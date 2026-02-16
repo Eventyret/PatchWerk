@@ -63,67 +63,47 @@ end
 -- crowded areas (cities, raids) this causes constant server queries
 -- that contribute to throttling and lag.
 --
--- Fix: Wrap LFF.InspectUnit to enforce an extended 30-second cache
--- timeout per GUID.  Within that window, calls still pass through to
--- the original so internal state stays consistent, but bypassTimeout
--- remains false so the library returns cached data instead of firing
--- a new NotifyInspect.  A periodic cleanup ticker prevents the GUID
--- lookup table from growing without bound.
+-- Fix: Replace NotifyInspect globally with a version that tracks when
+-- each GUID was last inspected.  If the last successful inspect was
+-- within 30 seconds, the server query is suppressed.  The library
+-- queues NotifyInspect asynchronously via an OnUpdate handler on the
+-- next frame, so the suppression must happen at the NotifyInspect
+-- call site itself (not synchronously around InspectUnit).
+-- A periodic cleanup ticker prevents the GUID lookup table from
+-- growing without bound.
 ------------------------------------------------------------------------
 ns.patches["TipTac_inspectCache"] = function()
     if not LibStub then return end
     if not C_Timer or not C_Timer.NewTicker then return end
 
+    -- Only apply when LibFroznFunctions is loaded (TipTacTalents dependency)
     local LFF
     local ok
     ok, LFF = pcall(LibStub.GetLibrary, LibStub, "LibFroznFunctions-1.0")
     if not ok then LFF = nil end
-
     if not LFF or not LFF.InspectUnit then return end
 
     local inspectTimes = {}
-    local EXTENDED_TIMEOUT = 30 -- seconds (up from 5)
+    local EXTENDED_TIMEOUT = 30 -- seconds (up from library's 5)
 
-    local origInspect = LFF.InspectUnit
-
-    -- Block NotifyInspect server queries when our extended cache says it's fresh.
-    -- Passing bypassTimeout=false to the original is not enough because the
-    -- library's internal 5s timeout (LFF_CACHE_TIMEOUT) expires and it would
-    -- send a new server query anyway. Instead, temporarily suppress NotifyInspect
-    -- around the call so the library still processes its internal state and
-    -- delivers cached data via callback, but no server roundtrip occurs.
+    -- Replace NotifyInspect at the point where the actual server query fires.
+    -- The library calls NotifyInspect asynchronously from an OnUpdate handler
+    -- on the next frame, so a synchronous flag around InspectUnit does not work.
     local origNotifyInspect = NotifyInspect
-    local suppressInspect = false
 
     NotifyInspect = function(unit)
-        if suppressInspect then return end
-        return origNotifyInspect(unit)
-    end
-
-    LFF.InspectUnit = function(self, unitID, callbackForInspectData, removeCallback, bypassTimeout)
-        -- If explicitly bypassed, let it through unmodified
-        if bypassTimeout then
-            return origInspect(self, unitID, callbackForInspectData, removeCallback, bypassTimeout)
-        end
-
-        -- Check our extended cache per GUID
-        local guid = unitID and UnitGUID(unitID)
-        if guid then
-            local lastTime = inspectTimes[guid]
-            if lastTime and (GetTime() - lastTime) < EXTENDED_TIMEOUT then
-                -- Within our extended window: call original but suppress the
-                -- actual server query. The library will deliver cached data.
-                suppressInspect = true
-                local result = origInspect(self, unitID, callbackForInspectData, removeCallback, false)
-                suppressInspect = false
-                return result
+        local guid = unit and UnitGUID(unit)
+        if guid and inspectTimes[guid] then
+            local elapsed = GetTime() - inspectTimes[guid]
+            if elapsed < EXTENDED_TIMEOUT then
+                return -- suppress server query, cached data is fresh enough
             end
-            -- Outside the window (or first time): record timestamp and
-            -- let the original proceed normally (with real server query)
+        end
+        -- Allow the inspect and record the timestamp
+        if guid then
             inspectTimes[guid] = GetTime()
         end
-
-        return origInspect(self, unitID, callbackForInspectData, removeCallback, bypassTimeout)
+        return origNotifyInspect(unit)
     end
 
     -- Prune old entries periodically to prevent memory leak
