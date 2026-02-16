@@ -22,29 +22,35 @@ local pcall   = pcall
 -- C API calls (GetZoom, GetPlayerWorldPosition, GetPlayerFacing,
 -- GetScale) before checking whether the player actually moved.
 --
--- Fix: Replace OnUpdate with a 20fps-throttled version.  The real
--- accumulated elapsed is forwarded so the internal 2-second rebuild
--- timer works correctly.
+-- Fix: Hook Display.OnEnable to install a 20fps-throttled OnUpdate
+-- after the frame is created.  The real accumulated elapsed is
+-- forwarded so the internal 2-second rebuild timer works correctly.
+-- Note: Display.updateFrame is created inside OnEnable, not at load
+-- time, so we must hook OnEnable rather than patching directly.
 ------------------------------------------------------------------------
 ns.patches["GatherMate2_minimapThrottle"] = function()
     if not GatherMate2 then return end
 
     local ok, Display = pcall(GatherMate2.GetModule, GatherMate2, "Display")
     if not ok or not Display then return end
-    if not Display.updateFrame then return end
+    if not Display.OnEnable then return end
 
-    local frame = Display.updateFrame
-    local origOnUpdate = frame:GetScript("OnUpdate")
-    if not origOnUpdate then return end
-
-    local accum = 0
-    frame:SetScript("OnUpdate", function(f, elapsed)
-        accum = accum + elapsed
-        if accum >= 0.05 then
-            origOnUpdate(f, accum)
-            accum = 0
-        end
-    end)
+    local origOnEnable = Display.OnEnable
+    Display.OnEnable = function(self, ...)
+        origOnEnable(self, ...)
+        local frame = self.updateFrame
+        if not frame then return end
+        local origOnUpdate = frame:GetScript("OnUpdate")
+        if not origOnUpdate then return end
+        local accum = 0
+        frame:SetScript("OnUpdate", function(f, elapsed)
+            accum = accum + elapsed
+            if accum >= 0.05 then
+                origOnUpdate(f, accum)
+                accum = 0
+            end
+        end)
+    end
 end
 
 ------------------------------------------------------------------------
