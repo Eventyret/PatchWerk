@@ -30,8 +30,13 @@ ns.patches["Details_hexFix"] = function()
     if not Details then return end
     if not Details.hex then return end
 
-    Details.hex = function(self, num)
-        return format("%02x", num)
+    -- Handle both calling conventions: Details:hex(num) and Details.hex(num)
+    Details.hex = function(selfOrNum, num)
+        if num then
+            return format("%02x", num)
+        else
+            return format("%02x", selfOrNum)
+        end
     end
 end
 
@@ -53,15 +58,16 @@ ns.patches["Details_fadeHandler"] = function()
     if not Details then return end
     if not Details.FadeHandler then return end
 
-    local frames = Details.FadeHandler.frames
-    if not frames then return end
+    if not Details.FadeHandler.frames then return end
 
     local originalOnUpdate = fadeFrame:GetScript("OnUpdate")
     if not originalOnUpdate then return end
 
     -- Wrap: skip the real handler when there is nothing to process
+    -- Read frames table inside the closure each time in case Details replaces it
     fadeFrame:SetScript("OnUpdate", function(self, deltaTime)
-        if not next(frames) then
+        local frames = Details.FadeHandler.frames
+        if not frames or not next(frames) then
             self:Hide()
             return
         end
@@ -140,18 +146,22 @@ ns.patches["Details_npcIdCache"] = function()
 
         local cached = cache[guid]
         if cached ~= nil then
+            -- Sentinel false means the original returned nil
+            if cached == false then return nil end
             return cached
         end
 
         local result = origGetNpcId(self, guid)
-        cache[guid] = result
-        cacheCount = cacheCount + 1
 
-        -- Prevent unbounded growth
-        if cacheCount > 500 then
+        -- Prevent unbounded growth (wipe before insert so new entry survives)
+        if cacheCount >= 500 then
             wipe(cache)
             cacheCount = 0
         end
+
+        -- Use false sentinel for nil results so they are cached too
+        cache[guid] = (result ~= nil) and result or false
+        cacheCount = cacheCount + 1
 
         return result
     end
