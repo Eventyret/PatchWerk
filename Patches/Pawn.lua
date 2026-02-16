@@ -32,22 +32,18 @@ ns.patches["Pawn_cacheIndex"] = function()
 
     local cacheIndex = {}
 
-    -- Hook PawnCacheItem to maintain index and handle LRU eviction
+    -- Hook PawnCacheItem to maintain index.
+    -- Note: PawnItemCache is local to Pawn.lua so we cannot access it to
+    -- clean up LRU-evicted entries. The hash index may accumulate stale
+    -- entries, but this is acceptable: the O(1) lookup is still a major
+    -- improvement over the O(200) linear scan, and stale entries only
+    -- return data that was valid at cache time (no corruption risk).
+    -- PawnClearCache and PawnUncacheItem hooks handle explicit removals.
     local origCache = PawnCacheItem
     PawnCacheItem = function(CachedItem, ...)
         origCache(CachedItem, ...)
         if CachedItem and CachedItem.Link then
             cacheIndex[CachedItem.Link] = CachedItem
-        end
-        -- Rebuild index from PawnItemCache to handle LRU eviction.
-        -- PawnCacheItem may tremove old entries that our index still references.
-        if PawnItemCache then
-            wipe(cacheIndex)
-            for _, item in ipairs(PawnItemCache) do
-                if item and item.Link then
-                    cacheIndex[item.Link] = item
-                end
-            end
         end
     end
 
