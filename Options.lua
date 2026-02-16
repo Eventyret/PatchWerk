@@ -517,15 +517,19 @@ local function CreateOptionsPanel()
         aboutText:SetWordWrap(true)
         aboutText:SetText(
             "|cff33ccffPatchWerk|r v" .. ns.VERSION .. "\n" ..
-            "by |cffffd100Eventyret|r\n" ..
+            "by |cffffd100Eventyret|r  (|cffC79C6EHexusPlexus|r - Thunderstrike EU)\n" ..
             "\n" ..
-            "PatchWerk automatically fixes performance problems in your other addons. " ..
-            "Each patch targets a specific bottleneck -- things like addons updating too " ..
-            "often, doing the same work twice, or wasting memory. Your addons keep " ..
-            "working exactly the same, just faster.\n" ..
+            "No enrage timer. No tank swap. Just pure, uninterrupted performance.\n" ..
             "\n" ..
-            "All patches are enabled by default. You can toggle individual ones if you " ..
-            "ever run into an issue, but most players can just leave everything on.\n" ..
+            "PatchWerk fixes performance problems hiding inside your other addons -- " ..
+            "things like addons refreshing way too fast, doing the same work twice, " ..
+            "or leaking memory like a boss with no mechanics. Your addons keep " ..
+            "working exactly the same, just without the lag.\n" ..
+            "\n" ..
+            "All patches are enabled by default and everything is safe to toggle. " ..
+            "Most players can just leave it all on and enjoy the extra frames. " ..
+            "If Patchwerk himself had this kind of efficiency, he wouldn't need " ..
+            "a hateful strike.\n" ..
             "\n" ..
             "|cff808080Slash commands:|r  |cffffd100/pw|r or |cffffd100/patchwerk|r to open this panel  " ..
             "|cff808080||  |cffffd100/pw status|r for a chat summary  " ..
