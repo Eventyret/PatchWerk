@@ -1,0 +1,18 @@
+## Interface: 20505
+## Title: AddonTweaks
+## Notes: Performance patches for popular addons (Details, Plater, Pawn, TipTac, Questie, Bartender4, Titan Panel, and more)
+## Author: Eventyret
+## Version: 1.0.0
+## OptionalDeps: Details, Plater, Pawn, TipTac, TipTacTalents, Questie, LFGBulletinBoard, Bartender4, Titan, TitanBag, TitanPerformance, TitanReputations
+## SavedVariables: AddonTweaksDB
+
+Core.lua
+Patches\Details.lua
+Patches\Plater.lua
+Patches\Pawn.lua
+Patches\TipTac.lua
+Patches\Questie.lua
+Patches\LFGBulletinBoard.lua
+Patches\Bartender4.lua
+Patches\TitanPanel.lua
+Options.lua
