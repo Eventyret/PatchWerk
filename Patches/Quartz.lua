@@ -19,6 +19,7 @@ local _, ns = ...
 local function ThrottleBarOnUpdate(barName)
     local bar = _G[barName]
     if not bar then return false end
+    if bar._addonTweaksThrottled then return true end
     local origScript = bar:GetScript("OnUpdate")
     if not origScript then return false end
 
@@ -29,6 +30,7 @@ local function ThrottleBarOnUpdate(barName)
         origScript(self, accum)
         accum = 0
     end)
+    bar._addonTweaksThrottled = true
     return true
 end
 
