@@ -8,11 +8,14 @@
 -- address:
 --   1. LFGBulletinBoard_updateListDirty - Only rebuild UI when data
 --                                          has actually changed
---   2. LFGBulletinBoard_sortSkip        - Skip re-sorting when no
---                                          new entries were added
+--   2. LFGBulletinBoard_sortSkip        - Time-based throttle on
+--                                          UpdateRequestList calls
 ------------------------------------------------------------------------
 
 local _, ns = ...
+
+local pairs   = pairs
+local GetTime = GetTime
 
 ------------------------------------------------------------------------
 -- 1. LFGBulletinBoard_updateListDirty
@@ -22,74 +25,77 @@ local _, ns = ...
 -- tab.  UpdateRequestList performs: purge expired entries, full
 -- table.sort, release and recreate all scroll child frames.
 --
--- Fix: Introduce a dirty flag.  UpdateRequestList only executes when
--- the flag is set or when an explicit clear is requested.  The dirty
--- flag is set by detecting changes to the request list length inside
--- the OnUpdate wrapper, which catches all code paths that add or
--- remove entries.
+-- NOTE: GBB.OnUpdate is stored by reference inside LibGPIToolBox's
+-- internal update handler array.  Overwriting GBB.OnUpdate only changes
+-- the table field without affecting the already-stored function pointer.
+--
+-- Fix: Wrap UpdateRequestList with a dirty flag.  A C_Timer.NewTicker
+-- monitors the request list for content changes every 0.5s and sets
+-- the dirty flag when entries are added or removed.  Uses pairs() to
+-- count entries correctly on sparse tables (GBB nil-assigns to remove).
 ------------------------------------------------------------------------
 ns.patches["LFGBulletinBoard_updateListDirty"] = function()
-    if not GBB or not GBB.OnUpdate then return end
+    if not GBB then return end
+    if not GBB.ChatRequests or not GBB.ChatRequests.UpdateRequestList then return end
 
-    -- Initialize dirty flag
-    GBB._atDirty = true
+    local dirty = true
+    local lastEntryCount = 0
 
-    -- Mark dirty whenever the request list is modified
-    -- Hook table.insert on GBB.RequestList isn't feasible,
-    -- but we can hook the chat event processing path
-    if GBB.ChatRequests and GBB.ChatRequests.UpdateRequestList then
-        local origURL = GBB.ChatRequests.UpdateRequestList
-        GBB.ChatRequests.UpdateRequestList = function(clearNeeded, ...)
-            if not GBB._atDirty and not clearNeeded then return end
-            GBB._atDirty = false
+    -- Monitor for list changes via ticker (cannot hook GBB.OnUpdate:
+    -- it is stored by reference in LibGPIToolBox._GPIPRIVAT_updates)
+    C_Timer.NewTicker(0.5, function()
+        if not GBB.RequestList then return end
+        -- Count with pairs() to handle sparse tables correctly
+        local count = 0
+        for _ in pairs(GBB.RequestList) do
+            count = count + 1
+        end
+        if count ~= lastEntryCount then
+            dirty = true
+            lastEntryCount = count
+        end
+    end)
+
+    local origURL = GBB.ChatRequests.UpdateRequestList
+    GBB.ChatRequests.UpdateRequestList = function(clearNeeded, ...)
+        if clearNeeded then
+            dirty = false
             return origURL(clearNeeded, ...)
         end
-    end
-
-    -- Mark dirty on chat message events via the RequestList modifications
-    -- Since we can't hook the local parseMessageForRequestList, we detect
-    -- changes by checking if the list length changed
-    local lastListLen = 0
-    local origOnUpdate = GBB.OnUpdate
-    GBB.OnUpdate = function(elapsed)
-        -- Check if list changed
-        if GBB.RequestList and #GBB.RequestList ~= lastListLen then
-            GBB._atDirty = true
-            lastListLen = #GBB.RequestList
-        end
-        return origOnUpdate(elapsed)
+        if not dirty then return end
+        dirty = false
+        return origURL(clearNeeded, ...)
     end
 end
 
 ------------------------------------------------------------------------
 -- 2. LFGBulletinBoard_sortSkip
 --
--- UpdateRequestList calls table.sort on every update even when no new
--- entries have been added since the last sort.  While Lua's sort is
--- nearly O(n) on already-sorted input, the comparison function
--- overhead across 50-100+ entries still adds up when called every
--- second.
+-- When updateListDirty is disabled, UpdateRequestList still runs every
+-- second unconditionally.  This patch provides an independent time-based
+-- throttle: UpdateRequestList can run at most once every 2 seconds
+-- (unless clearNeeded forces an immediate rebuild).
 --
--- Fix: Track a sort version that increments when the list length
--- changes (indicating new entries).  A C_Timer.NewTicker monitors
--- for length changes every 0.5s to keep the version current without
--- per-frame overhead.
+-- When both patches are enabled they chain: the outer wrapper gates on
+-- dirty flag, the inner gates on time interval, providing both
+-- content-aware and time-based protection.
 ------------------------------------------------------------------------
 ns.patches["LFGBulletinBoard_sortSkip"] = function()
-    if not GBB or not GBB.RequestList then return end
+    if not GBB then return end
+    if not GBB.ChatRequests or not GBB.ChatRequests.UpdateRequestList then return end
 
-    -- Track the list version to know if sort is needed
-    GBB._atSortVersion = 0
-    GBB._atLastSortedVersion = -1
+    local lastRun = 0
+    local MIN_INTERVAL = 2
 
-    -- Detect list modifications by wrapping table operations on RequestList
-    -- Since we can't hook raw table ops, detect via list length changes in a ticker
-    C_Timer.NewTicker(0.5, function()
-        if not GBB.RequestList then return end
-        local len = #GBB.RequestList
-        if len ~= (GBB._atLastListLen or 0) then
-            GBB._atSortVersion = (GBB._atSortVersion or 0) + 1
-            GBB._atLastListLen = len
+    local origURL = GBB.ChatRequests.UpdateRequestList
+    GBB.ChatRequests.UpdateRequestList = function(clearNeeded, ...)
+        if clearNeeded then
+            lastRun = GetTime()
+            return origURL(clearNeeded, ...)
         end
-    end)
+        local now = GetTime()
+        if (now - lastRun) < MIN_INTERVAL then return end
+        lastRun = now
+        return origURL(clearNeeded, ...)
+    end
 end
