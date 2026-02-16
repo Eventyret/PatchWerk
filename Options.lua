@@ -18,200 +18,156 @@ local LEVEL_COLORS = {
     Low    = { r = 0.6, g = 0.4, b = 0.2 },    -- bronze
 }
 
--- Patch metadata: labels, help text, impact info, and hook targets
+-- Patch metadata: labels, help text, and impact info
 local PATCH_INFO = {
     -- Details
     { key = "Details_hexFix",        group = "Details",  label = "Color Rendering Fix",
-      help = "Replaces a slow color encoder so damage meter bars render faster.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "Details.hex()" },
+      help = "Fixes slow color calculations in damage meter bars.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "Details_fadeHandler",   group = "Details",  label = "Idle Animation Saver",
-      help = "Stops the fade system from running every frame when no bars are animating.",
-      impact = "FPS", impactLevel = "Low",
-      hook = "DetailsFadeFrameOnUpdate" },
+      help = "Stops the fade system from wasting resources when no bars are animating.",
+      impact = "FPS", impactLevel = "Low" },
     { key = "Details_refreshCap",    group = "Details",  label = "Refresh Rate Cap",
-      help = "Prevents the damage meter from refreshing at 60fps, which can tank performance on Classic.",
-      impact = "FPS", impactLevel = "High",
-      hook = "Details.RefreshUpdater" },
+      help = "Prevents the damage meter from refreshing way too fast, which can tank performance on Classic.",
+      impact = "FPS", impactLevel = "High" },
     { key = "Details_npcIdCache",    group = "Details",  label = "Enemy Info Cache",
-      help = "Remembers enemy IDs instead of re-extracting them from GUIDs on every combat event.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "Details.GetNpcIdFromGuid" },
+      help = "Remembers enemy info so it doesn't have to figure it out again during every fight.",
+      impact = "FPS", impactLevel = "Medium" },
     -- Plater
     { key = "Plater_fpsCheck",       group = "Plater",   label = "Timer Leak Fix",
-      help = "Fixes Plater creating 60+ throwaway timer objects per second by using a single persistent timer.",
-      impact = "Memory", impactLevel = "High",
-      hook = "Plater.EveryFrameFPSCheck" },
+      help = "Fixes a Plater bug that wastes memory by creating 60+ temporary timers per second.",
+      impact = "Memory", impactLevel = "High" },
     { key = "Plater_healthText",     group = "Plater",   label = "Health Text Skip",
       help = "Skips nameplate health text updates when the value hasn't changed.",
-      impact = "FPS", impactLevel = "Low",
-      hook = "Plater.UpdateLifePercentText" },
+      impact = "FPS", impactLevel = "Low" },
     { key = "Plater_auraAlign",      group = "Plater",   label = "Aura Icon Guard",
-      help = "Skips buff/debuff icon rearrangement and its temp table allocation when the icon count is unchanged.",
-      impact = "Memory", impactLevel = "Medium",
-      hook = "Plater.AlignAuraFrames" },
+      help = "Skips reshuffling buff/debuff icons on nameplates when nothing changed.",
+      impact = "Memory", impactLevel = "Medium" },
     -- Pawn
     { key = "Pawn_cacheIndex",       group = "Pawn",     label = "Fast Item Lookup",
-      help = "Adds a hash index so Pawn finds cached items directly instead of scanning 200 entries.",
-      impact = "FPS", impactLevel = "High",
-      hook = "PawnGetCachedItem, PawnCacheItem, PawnClearCache" },
+      help = "Makes Pawn find item info much faster instead of searching through hundreds of entries.",
+      impact = "FPS", impactLevel = "High" },
     { key = "Pawn_tooltipDedup",     group = "Pawn",     label = "Duplicate Tooltip Guard",
-      help = "Prevents Pawn from processing the same item link multiple times per tooltip show.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "PawnUpdateTooltip" },
+      help = "Stops Pawn from checking the same item multiple times when you mouse over it.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "Pawn_upgradeCache",     group = "Pawn",     label = "Upgrade Result Cache",
-      help = "Remembers upgrade comparisons so Pawn doesn't rescan all equipped slots on every hover. Cleared on gear change.",
-      impact = "FPS", impactLevel = "High",
-      hook = "PawnIsItemAnUpgrade" },
+      help = "Remembers if an item is an upgrade so Pawn doesn't recheck all your gear on every hover.",
+      impact = "FPS", impactLevel = "High" },
     -- TipTac
     { key = "TipTac_unitAppearanceGuard", group = "TipTac", label = "Non-Unit Tooltip Guard",
-      help = "Stops per-frame tooltip updates when you're hovering items instead of players.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "TipTac.UpdateUnitAppearanceToTip" },
+      help = "Stops TipTac from constantly updating when you're hovering items instead of players.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "TipTac_inspectCache",   group = "TipTac",   label = "Extended Inspect Cache",
-      help = "Reduces inspect server queries from every 5s to every 30s for recently inspected players.",
-      impact = "Network", impactLevel = "Medium",
-      hook = "NotifyInspect (global)" },
+      help = "Reduces inspect requests from every 5s to every 30s for recently inspected players.",
+      impact = "Network", impactLevel = "Medium" },
     -- Questie
     { key = "Questie_questLogThrottle", group = "Questie", label = "Quest Log Throttle",
-      help = "Limits quest log rescans to twice per second during rapid event bursts.",
-      impact = "FPS", impactLevel = "High",
-      hook = "QuestEventHandler.QuestLogUpdate" },
+      help = "Limits quest log refreshes to twice per second when multiple quests update at once.",
+      impact = "FPS", impactLevel = "High" },
     { key = "Questie_availableQuestsDebounce", group = "Questie", label = "Quest Availability Batch",
-      help = "Combines rapid quest availability recalculations into a single 0.1s delayed update.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "AvailableQuests.CalculateAndDrawAll" },
+      help = "Combines rapid quest availability checks into one update instead of several.",
+      impact = "FPS", impactLevel = "Medium" },
     -- LFGBulletinBoard
     { key = "LFGBulletinBoard_updateListDirty", group = "LFGBulletinBoard", label = "Smart List Refresh",
-      help = "Skips the full group list rebuild when the entry count hasn't changed.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "GBB.ChatRequests.UpdateRequestList" },
+      help = "Skips the full group list rebuild when nothing actually changed.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "LFGBulletinBoard_sortSkip", group = "LFGBulletinBoard", label = "Sort Interval Throttle",
       help = "Limits group list sorting to once every 2 seconds.",
-      impact = "FPS", impactLevel = "Low",
-      hook = "GBB.ChatRequests.UpdateRequestList" },
+      impact = "FPS", impactLevel = "Low" },
     -- Bartender4
     { key = "Bartender4_lossOfControlSkip", group = "Bartender4", label = "Loss of Control Skip",
-      help = "Blocks LOSS_OF_CONTROL events that trigger 120-button scans but do nothing on Classic.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "LibActionButton-1.0 eventFrame" },
+      help = "Stops pointless 120-button scans for loss-of-control effects that don't exist on Classic.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "Bartender4_usableThrottle", group = "Bartender4", label = "Button State Batch",
-      help = "Combines rapid action bar usability checks (fired every mana tick) into one update per frame.",
-      impact = "FPS", impactLevel = "High",
-      hook = "LibActionButton-1.0 eventFrame" },
+      help = "Combines rapid action bar updates (triggered on every mana tick) into a single check.",
+      impact = "FPS", impactLevel = "High" },
     -- TitanPanel
     { key = "TitanPanel_reputationsOnUpdate", group = "TitanPanel", label = "Reputation Timer Fix",
-      help = "Replaces a per-frame reputation check with a 5-second timer.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "TitanPanelReputationsButton OnUpdate" },
+      help = "Checks your reputation every 5 seconds instead of constantly.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "TitanPanel_bagDebounce", group = "TitanPanel", label = "Bag Update Batch",
       help = "Counts bag contents once after looting instead of on every individual slot change.",
-      impact = "FPS", impactLevel = "Low",
-      hook = "TitanPanelButton_UpdateButton" },
+      impact = "FPS", impactLevel = "Low" },
     { key = "TitanPanel_performanceThrottle", group = "TitanPanel", label = "Performance Display Throttle",
       help = "Updates the FPS/memory display every 3s instead of every 1.5s.",
-      impact = "FPS", impactLevel = "Low",
-      hook = "TitanPanelButton_UpdateButton" },
+      impact = "FPS", impactLevel = "Low" },
     -- OmniCC
     { key = "OmniCC_gcdSpellCache", group = "OmniCC", label = "Cooldown Status Cache",
-      help = "Caches the Global Cooldown query once per frame instead of repeating it 20+ times.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "GetSpellCooldown (global)" },
+      help = "Checks the Global Cooldown once per update instead of 20+ times.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "OmniCC_ruleMatchCache", group = "OmniCC", label = "Display Rule Cache",
-      help = "Permanently caches which cooldown display rules match which frames. Cleared on profile change.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "OmniCC:GetMatchingRule" },
+      help = "Remembers which cooldown display settings apply to each ability. Resets on profile change.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "OmniCC_finishEffectGuard", group = "OmniCC", label = "Finish Effect Guard",
       help = "Skips cooldown finish animations for abilities that aren't close to coming off cooldown.",
-      impact = "FPS", impactLevel = "Low",
-      hook = "OmniCC.Cooldown.TryShowFinishEffect" },
+      impact = "FPS", impactLevel = "Low" },
     -- Prat-3.0
     { key = "Prat_smfThrottle", group = "Prat", label = "Chat Layout Throttle",
-      help = "Reduces chat text redraws from 60fps to 20fps. Full speed is preserved during mouse hover.",
-      impact = "FPS", impactLevel = "High",
-      hook = "Prat SMFHax.ChatFrame_OnUpdate" },
+      help = "Reduces chat window updates from 60 to 20 per second. Full speed when you mouse over chat.",
+      impact = "FPS", impactLevel = "High" },
     { key = "Prat_timestampCache", group = "Prat", label = "Timestamp Cache",
-      help = "Generates chat timestamps once per second instead of recalculating for every message.",
-      impact = "Memory", impactLevel = "Low",
-      hook = "Prat Timestamps.InsertTimeStamp" },
+      help = "Creates chat timestamps once per second instead of recalculating for every single message.",
+      impact = "Memory", impactLevel = "Low" },
     { key = "Prat_bubblesGuard", group = "Prat", label = "Bubble Scan Guard",
       help = "Skips chat bubble scanning when no one is talking nearby.",
-      impact = "FPS", impactLevel = "Low",
-      hook = "Prat Bubbles.FormatBubbles" },
+      impact = "FPS", impactLevel = "Low" },
     -- GatherMate2
     { key = "GatherMate2_minimapThrottle", group = "GatherMate2", label = "Minimap Pin Throttle",
-      help = "Updates minimap gathering pins at 20fps instead of 60fps.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "GatherMate2 Display OnUpdate" },
+      help = "Updates minimap gathering pins less often (20 instead of 60 times/sec) with no visible difference.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "GatherMate2_rebuildGuard", group = "GatherMate2", label = "Stationary Rebuild Skip",
       help = "Skips minimap node rebuilds when you're standing still.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "GatherMate2 Display.UpdateMiniMap" },
+      impact = "FPS", impactLevel = "Medium" },
     { key = "GatherMate2_cleuUnregister", group = "GatherMate2", label = "Remove Unused Combat Handler",
-      help = "Unregisters an unused combat log handler that fires hundreds of times in combat for zero benefit.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "GatherMate2 Collector CLEU" },
+      help = "Removes leftover code in GatherMate2 that runs during every fight but does nothing useful.",
+      impact = "FPS", impactLevel = "Medium" },
     -- Quartz
     { key = "Quartz_castBarThrottle", group = "Quartz", label = "Cast Bar 30fps Cap",
-      help = "Caps cast bar animations at 30fps -- looks identical, uses half the CPU.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "Quartz3CastBar OnUpdate" },
+      help = "Caps cast bar animations at 30fps -- looks identical, uses half the resources.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "Quartz_swingBarThrottle", group = "Quartz", label = "Swing Timer 30fps Cap",
-      help = "Caps the swing timer at 30fps -- imperceptible on a 2-3 second swing.",
-      impact = "FPS", impactLevel = "Low",
-      hook = "Quartz3SwingBar OnUpdate" },
+      help = "Caps the swing timer at 30fps -- no visible difference on a 2-3 second swing.",
+      impact = "FPS", impactLevel = "Low" },
     { key = "Quartz_gcdBarThrottle", group = "Quartz", label = "GCD Bar 30fps Cap",
-      help = "Caps the global cooldown bar animation at 30fps.",
-      impact = "FPS", impactLevel = "Low",
-      hook = "Quartz3GCDBar OnUpdate" },
+      help = "Caps the global cooldown bar at 30fps -- plenty smooth for a 1.5 second bar.",
+      impact = "FPS", impactLevel = "Low" },
     -- Auctionator
     { key = "Auctionator_ownerQueryThrottle", group = "Auctionator", label = "Auction Query Throttle",
-      help = "Throttles auction owner queries from per-frame to once per second while the AH is open.",
-      impact = "Network", impactLevel = "High",
-      hook = "Cancelling/Selling OnUpdate" },
+      help = "Reduces server queries at the auction house from constant to once per second.",
+      impact = "Network", impactLevel = "High" },
     { key = "Auctionator_throttleBroadcast", group = "Auctionator", label = "Timer Display Throttle",
-      help = "Reduces timeout countdown display updates from 60/sec to 2/sec.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "AuctionatorAHThrottlingFrameMixin.OnUpdate" },
+      help = "Reduces the auction throttle timer display from 60 updates/sec to 2.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "Auctionator_priceAgeOptimize", group = "Auctionator", label = "Price Age Optimizer",
-      help = "Replaces a table-sort price age calculation with a zero-allocation linear scan.",
-      impact = "Memory", impactLevel = "Medium",
-      hook = "Auctionator.Database.GetPriceAge" },
+      help = "Makes price freshness calculations faster and lighter on memory.",
+      impact = "Memory", impactLevel = "Medium" },
     { key = "Auctionator_dbKeyCache", group = "Auctionator", label = "Price Lookup Cache",
-      help = "Caches item-to-database key lookups instead of re-parsing the item link on every hover.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "Auctionator.Utilities.DBKeyFromLink" },
+      help = "Remembers item price lookups so Auctionator doesn't redo them every time you hover.",
+      impact = "FPS", impactLevel = "Medium" },
     -- VuhDo
     { key = "VuhDo_debuffDebounce", group = "VuhDo", label = "Debuff Scan Batch",
-      help = "During heavy AoE, batches debuff scans into one per 33ms instead of 100+ individual scans/sec.",
-      impact = "FPS", impactLevel = "High",
-      hook = "VUHDO_determineDebuff" },
+      help = "During heavy AoE damage, combines debuff checks instead of running 100+ per second.",
+      impact = "FPS", impactLevel = "High" },
     { key = "VuhDo_rangeSkipDead", group = "VuhDo", label = "Skip Dead Range Checks",
       help = "Skips range checking on dead or disconnected raid members.",
-      impact = "FPS", impactLevel = "Low",
-      hook = "VUHDO_updateUnitRange" },
+      impact = "FPS", impactLevel = "Low" },
     -- Cell
     { key = "Cell_debuffOrderMemo", group = "Cell", label = "Debuff Priority Cache",
-      help = "Caches the last debuff priority result -- the same debuff is looked up twice consecutively per update.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "Cell.iFuncs.GetDebuffOrder" },
+      help = "Remembers the last debuff priority check to skip a duplicate lookup that happens every update.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "Cell_customIndicatorGuard", group = "Cell", label = "Custom Indicator Guard",
-      help = "Skips custom indicator processing when none are configured. Checked on first use, not at load time.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "Cell.iFuncs.UpdateCustomIndicators" },
+      help = "Skips custom indicator processing when you don't have any set up.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "Cell_debuffGlowMemo", group = "Cell", label = "Debuff Glow Cache",
-      help = "Caches the last debuff glow result -- called with the same arguments right after the priority check.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "Cell.iFuncs.GetDebuffGlow" },
+      help = "Remembers which debuffs should glow on your raid frames to avoid rechecking.",
+      impact = "FPS", impactLevel = "Medium" },
     -- BigDebuffs
     { key = "BigDebuffs_hiddenDebuffsHash", group = "BigDebuffs", label = "Fast Hidden Debuff Check",
-      help = "Replaces a linear list scan with a hash lookup for hidden debuff checks. Skips if list is empty.",
-      impact = "FPS", impactLevel = "Medium",
-      hook = "BigDebuffs.HiddenDebuffs" },
+      help = "Speeds up hidden debuff checks by using a smarter lookup method.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "BigDebuffs_attachFrameGuard", group = "BigDebuffs", label = "Frame Anchor Cache",
-      help = "Caches unit frame anchor resolution instead of re-walking 9 frame systems on every aura event.",
-      impact = "FPS", impactLevel = "High",
-      hook = "BigDebuffs.AttachUnitFrame" },
+      help = "Remembers where to place debuff icons instead of searching all frame addons every time.",
+      impact = "FPS", impactLevel = "High" },
 }
 
 -- Build lookup for patches by group
@@ -462,9 +418,6 @@ local function CreateOptionsPanel()
                         GameTooltip:AddLine("Impact: " .. patchInfo.impact .. " (" .. (patchInfo.impactLevel or "Medium") .. ")",
                             bc.r, bc.g, bc.b)
                     end
-                    if patchInfo.hook then
-                        GameTooltip:AddLine("Hooks: " .. patchInfo.hook, 0.5, 0.5, 0.5)
-                    end
                     GameTooltip:AddLine(" ")
                     if not installed then
                         GameTooltip:AddLine("Target addon not installed", 0.5, 0.5, 0.5)
@@ -547,6 +500,40 @@ local function CreateOptionsPanel()
         reloadBtn:SetScript("OnClick", ReloadUI)
 
         yOffset = yOffset - 40
+
+        -- About section
+        yOffset = yOffset - 10
+        yOffset = AddSeparator(yOffset, 0.35)
+
+        local aboutHeader = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+        aboutHeader:SetPoint("TOPLEFT", 16, yOffset)
+        aboutHeader:SetText("About")
+        yOffset = yOffset - 20
+
+        local aboutText = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+        aboutText:SetPoint("TOPLEFT", 16, yOffset)
+        aboutText:SetPoint("RIGHT", content, "RIGHT", -20, 0)
+        aboutText:SetJustifyH("LEFT")
+        aboutText:SetWordWrap(true)
+        aboutText:SetText(
+            "|cff33ccffPatchWerk|r v" .. ns.VERSION .. "\n" ..
+            "by |cffffd100Eventyret|r\n" ..
+            "\n" ..
+            "PatchWerk automatically fixes performance problems in your other addons. " ..
+            "Each patch targets a specific bottleneck -- things like addons updating too " ..
+            "often, doing the same work twice, or wasting memory. Your addons keep " ..
+            "working exactly the same, just faster.\n" ..
+            "\n" ..
+            "All patches are enabled by default. You can toggle individual ones if you " ..
+            "ever run into an issue, but most players can just leave everything on.\n" ..
+            "\n" ..
+            "|cff808080Slash commands:|r  |cffffd100/pw|r or |cffffd100/patchwerk|r to open this panel  " ..
+            "|cff808080||  |cffffd100/pw status|r for a chat summary  " ..
+            "|cff808080||  |cffffd100/pw help|r for all commands"
+        )
+        local aboutHeight = aboutText:GetStringHeight() or 80
+        yOffset = yOffset - aboutHeight - 10
+
         content:SetHeight(-yOffset + 20)
     end
 
