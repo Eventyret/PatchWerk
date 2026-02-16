@@ -54,11 +54,12 @@ end
 -- via pairs() on every call.  The overhead is the function call itself
 -- plus the pairs() setup and the inner guard checks.
 --
--- Fix: Short-circuit when no custom indicators exist.  Check
--- Cell.snippetVars.enabledIndicators for any "indicator" prefixed keys
--- at patch time.  If none exist, replace with a no-op.  If custom
--- indicators are later configured, users must /reload anyway so this
--- is safe.
+-- Fix: On the first actual call (deferred so Cell is fully initialized),
+-- check Cell.snippetVars.enabledIndicators for custom indicators.
+-- If none exist, replace with a permanent no-op.  If custom indicators
+-- are found, restore the original function permanently.  This avoids
+-- the timing risk of checking at ADDON_LOADED before Cell populates
+-- its indicator tables.
 --
 -- NOTE: Uses the Classic calling convention (individual args, not
 -- auraInfo struct) since this targets TBC Classic Anniversary.
@@ -67,24 +68,27 @@ ns.patches["Cell_customIndicatorGuard"] = function()
     if not Cell or not Cell.iFuncs then return end
     if not Cell.iFuncs.UpdateCustomIndicators then return end
 
-    -- Check if any custom indicators are enabled
-    local hasCustom = false
-    if Cell.snippetVars and Cell.snippetVars.enabledIndicators then
-        for name in pairs(Cell.snippetVars.enabledIndicators) do
-            if type(name) == "string" and name:find("^indicator") then
-                hasCustom = true
-                break
+    local orig = Cell.iFuncs.UpdateCustomIndicators
+
+    -- Deferred check: resolve on first call when Cell is fully initialized
+    Cell.iFuncs.UpdateCustomIndicators = function(...)
+        local hasCustom = false
+        if Cell.snippetVars and Cell.snippetVars.enabledIndicators then
+            for name in pairs(Cell.snippetVars.enabledIndicators) do
+                if type(name) == "string" and name:find("^indicator") then
+                    hasCustom = true
+                    break
+                end
             end
         end
+        if hasCustom then
+            -- Custom indicators found - restore original permanently
+            Cell.iFuncs.UpdateCustomIndicators = orig
+            return orig(...)
+        end
+        -- No custom indicators - install permanent no-op
+        Cell.iFuncs.UpdateCustomIndicators = function() end
     end
-
-    if hasCustom then
-        -- Custom indicators exist - don't replace, but nothing to optimize
-        return
-    end
-
-    -- No custom indicators configured - replace with no-op
-    Cell.iFuncs.UpdateCustomIndicators = function() end
 end
 
 ------------------------------------------------------------------------

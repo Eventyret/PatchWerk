@@ -29,10 +29,15 @@ local wipe  = wipe
 -- pairs(table) checking if v == searchValue, so having id = id entries
 -- makes the existing tContains call find the match on the first
 -- iteration for any hidden ID.
+--
+-- NOTE: On TBC Classic Anniversary, HiddenDebuffs is typically empty
+-- (populated from BigDebuffs_Mainline.lua on retail).  The patch
+-- gracefully skips when the table is empty.
 ------------------------------------------------------------------------
 ns.patches["BigDebuffs_hiddenDebuffsHash"] = function()
     if not BigDebuffs then return end
     if not BigDebuffs.HiddenDebuffs then return end
+    if not next(BigDebuffs.HiddenDebuffs) then return end
 
     local proxy = {}
     for _, id in pairs(BigDebuffs.HiddenDebuffs) do
@@ -53,7 +58,8 @@ end
 --
 -- Fix: Track which units have been attached and skip the re-attach
 -- call when the frame is already known.  Invalidate on
--- PLAYER_ENTERING_WORLD which triggers full layout resets.
+-- PLAYER_ENTERING_WORLD (full layout resets), and hook Refresh/Test
+-- (profile changes and test mode toggling) to clear the cache.
 ------------------------------------------------------------------------
 ns.patches["BigDebuffs_attachFrameGuard"] = function()
     if not BigDebuffs then return end
@@ -73,11 +79,22 @@ ns.patches["BigDebuffs_attachFrameGuard"] = function()
         end
     end
 
-    -- Invalidate on layout changes
+    -- Invalidate on zone transitions (full layout resets)
     local invalidator = CreateFrame("Frame")
     invalidator:RegisterEvent("PLAYER_ENTERING_WORLD")
-    invalidator:RegisterEvent("GROUP_ROSTER_UPDATE")
     invalidator:SetScript("OnEvent", function()
         wipe(attached)
     end)
+
+    -- Invalidate on profile changes and test mode toggling
+    if BigDebuffs.Refresh then
+        hooksecurefunc(BigDebuffs, "Refresh", function()
+            wipe(attached)
+        end)
+    end
+    if BigDebuffs.Test then
+        hooksecurefunc(BigDebuffs, "Test", function()
+            wipe(attached)
+        end)
+    end
 end
