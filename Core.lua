@@ -65,7 +65,6 @@ local defaults = {
     Auctionator_priceAgeOptimize = true,
     Auctionator_dbKeyCache = true,
     -- VuhDo
-    VuhDo_emptyQueueGuard = true,
     VuhDo_debuffDebounce = true,
     VuhDo_rangeSkipDead = true,
 }

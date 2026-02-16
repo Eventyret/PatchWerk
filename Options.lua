@@ -95,8 +95,6 @@ local PATCH_INFO = {
     { key = "Auctionator_dbKeyCache", group = "Auctionator", label = "DB Key Link Cache",
       help = "Caches item link to database key mapping. Eliminates repeated regex parsing on every tooltip hover." },
     -- VuhDo
-    { key = "VuhDo_emptyQueueGuard", group = "VuhDo", label = "Empty Queue Guard",
-      help = "Skips deferred task processing when no tasks are queued. Eliminates 60 wasted function calls per second while idle." },
     { key = "VuhDo_debuffDebounce", group = "VuhDo", label = "Debuff Detection Debounce",
       help = "Debounces per-unit debuff scanning with a 33ms window during AoE debuff storms." },
     { key = "VuhDo_rangeSkipDead", group = "VuhDo", label = "Skip Dead/DC Range Checks",
