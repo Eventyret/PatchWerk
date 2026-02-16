@@ -71,6 +71,9 @@ local defaults = {
     Cell_debuffOrderMemo = true,
     Cell_customIndicatorGuard = true,
     Cell_debuffGlowMemo = true,
+    -- BigDebuffs
+    BigDebuffs_hiddenDebuffsHash = true,
+    BigDebuffs_attachFrameGuard = true,
 }
 
 ns.defaults = defaults
@@ -98,6 +101,7 @@ ns.addonGroups = {
     { id = "Auctionator",       label = "Auctionator (Auction House)", deps = { "Auctionator" } },
     { id = "VuhDo",             label = "VuhDo (Raid Frames)",       deps = { "VuhDo" } },
     { id = "Cell",              label = "Cell (Raid Frames)",        deps = { "Cell" } },
+    { id = "BigDebuffs",        label = "BigDebuffs (Debuff Display)", deps = { "BigDebuffs" } },
 }
 
 function ns:GetDB()

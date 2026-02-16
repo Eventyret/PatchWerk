@@ -161,6 +161,13 @@ local PATCH_INFO = {
     { key = "Cell_debuffGlowMemo", group = "Cell", label = "Debuff Glow Memoize",
       help = "Caches debuff glow lookups called right after the priority check.",
       impact = "FPS", impactLevel = "Medium" },
+    -- BigDebuffs
+    { key = "BigDebuffs_hiddenDebuffsHash", group = "BigDebuffs", label = "Hidden Debuffs Hash",
+      help = "Replaces slow list scan with instant lookup when checking hidden debuffs.",
+      impact = "FPS", impactLevel = "Medium" },
+    { key = "BigDebuffs_attachFrameGuard", group = "BigDebuffs", label = "Attach Frame Guard",
+      help = "Skips re-resolving unit frame anchors when already attached.",
+      impact = "FPS", impactLevel = "High" },
 }
 
 -- Build lookup for patches by group
