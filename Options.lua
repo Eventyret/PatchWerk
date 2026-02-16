@@ -1,104 +1,156 @@
 -- Options: GUI settings panel and slash command interface for PatchWerk
 --
 -- Provides a scrollable Blizzard Interface Options panel with patch toggles
--- grouped by target addon, status badges, and inline descriptions.
+-- grouped by target addon, impact badges, and user-friendly descriptions.
 
 local _, ns = ...
 
--- Patch metadata with user-friendly labels and help text
+-- Impact badge colors
+local BADGE_COLORS = {
+    FPS     = { r = 0.2, g = 0.9, b = 0.2 },   -- green
+    Memory  = { r = 0.2, g = 0.8, b = 0.9 },   -- cyan
+    Network = { r = 1.0, g = 0.6, b = 0.2 },   -- orange
+}
+
+local LEVEL_COLORS = {
+    High   = { r = 1.0, g = 1.0, b = 1.0 },
+    Medium = { r = 0.8, g = 0.8, b = 0.8 },
+    Low    = { r = 0.6, g = 0.6, b = 0.6 },
+}
+
+-- Patch metadata with user-friendly labels, help text, and impact info
 local PATCH_INFO = {
     -- Details
     { key = "Details_hexFix",        group = "Details",  label = "Hex Encoder Fix",
-      help = "Replaces slow character-by-character hex builder with a single format() call." },
+      help = "Speeds up damage meter bar color rendering.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "Details_fadeHandler",   group = "Details",  label = "Fade Handler Idle Guard",
-      help = "Stops the fade OnUpdate from running when no bars are actively fading." },
+      help = "Saves CPU when damage meter bars aren't animating.",
+      impact = "FPS", impactLevel = "Low" },
     { key = "Details_refreshCap",    group = "Details",  label = "Refresh Rate Cap",
-      help = "Prevents the streamer 60fps refresh mode which is too expensive for Classic." },
+      help = "Prevents an extreme 60fps meter refresh that tanks FPS on Classic.",
+      impact = "FPS", impactLevel = "High" },
     { key = "Details_npcIdCache",    group = "Details",  label = "NPC ID Cache",
-      help = "Caches GUID-to-NPC-ID extraction to avoid redundant pattern matching." },
+      help = "Remembers NPC IDs to avoid repeated lookups during combat.",
+      impact = "FPS", impactLevel = "Medium" },
     -- Plater
     { key = "Plater_fpsCheck",       group = "Plater",   label = "FPS Timer Allocation Fix",
-      help = "Replaces per-frame C_Timer.After(0) with a persistent OnUpdate frame." },
+      help = "Stops Plater from creating 60+ throwaway timers per second.",
+      impact = "Memory", impactLevel = "High" },
     { key = "Plater_healthText",     group = "Plater",   label = "Health Text Skip",
-      help = "Skips health text formatting when values haven't changed." },
+      help = "Skips nameplate health text updates when nothing changed.",
+      impact = "FPS", impactLevel = "Low" },
     { key = "Plater_auraAlign",      group = "Plater",   label = "Aura Alignment Guard",
-      help = "Skips redundant aura icon layout when visible count is unchanged." },
+      help = "Skips redundant buff/debuff icon rearrangement on nameplates.",
+      impact = "Memory", impactLevel = "Medium" },
     -- Pawn
     { key = "Pawn_cacheIndex",       group = "Pawn",     label = "Cache Hash Index",
-      help = "Replaces O(200) linear cache scan with O(1) hash lookup per tooltip show." },
+      help = "Makes tooltip item lookups instant instead of scanning 200 entries.",
+      impact = "FPS", impactLevel = "High" },
     { key = "Pawn_tooltipDedup",     group = "Pawn",     label = "Tooltip Deduplication",
-      help = "Skips redundant processing when multiple tooltip hooks fire for the same item." },
+      help = "Prevents Pawn from processing the same item multiple times per hover.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "Pawn_upgradeCache",     group = "Pawn",     label = "Upgrade Comparison Cache",
-      help = "Caches upgrade results per item link, invalidated on gear changes." },
+      help = "Remembers upgrade results so Pawn doesn't recalculate every hover.",
+      impact = "FPS", impactLevel = "High" },
     -- TipTac
     { key = "TipTac_unitAppearanceGuard", group = "TipTac", label = "Non-Unit Tooltip Guard",
-      help = "Skips per-frame appearance updates for item and spell tooltips." },
+      help = "Stops per-frame tooltip updates when you're hovering items, not players.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "TipTac_inspectCache",   group = "TipTac",   label = "Extended Inspect Cache",
-      help = "Extends talent inspect cache from 5 to 30 seconds to reduce server queries." },
+      help = "Reduces inspect spam from every 5s to every 30s in crowded areas.",
+      impact = "Network", impactLevel = "Medium" },
     -- Questie
     { key = "Questie_questLogThrottle", group = "Questie", label = "Quest Log Burst Throttle",
-      help = "Limits quest log scans to once per 0.5 seconds during rapid event bursts." },
+      help = "Limits quest log rescans to twice per second during rapid updates.",
+      impact = "FPS", impactLevel = "High" },
     { key = "Questie_availableQuestsDebounce", group = "Questie", label = "Available Quests Debounce",
-      help = "Collapses rapid recalculation calls into a single 100ms-delayed update." },
+      help = "Batches rapid quest availability checks into a single update.",
+      impact = "FPS", impactLevel = "Medium" },
     -- LFGBulletinBoard
     { key = "LFGBulletinBoard_updateListDirty", group = "LFGBulletinBoard", label = "Dirty Flag UI Rebuild",
-      help = "Skips the 1-second full UI rebuild when no new messages arrived." },
+      help = "Skips the full group list rebuild when nothing changed.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "LFGBulletinBoard_sortSkip", group = "LFGBulletinBoard", label = "Sort Interval Throttle",
-      help = "Limits list rebuilds to once every 2 seconds even when the dirty flag is disabled." },
+      help = "Limits group list sorting to once every 2 seconds.",
+      impact = "FPS", impactLevel = "Low" },
     -- Bartender4
     { key = "Bartender4_lossOfControlSkip", group = "Bartender4", label = "Skip Loss of Control Events",
-      help = "Eliminates 120-button update loops for no-op events on TBC Classic." },
+      help = "Stops 120-button scans for events that do nothing on Classic.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "Bartender4_usableThrottle", group = "Bartender4", label = "Usability Update Debounce",
-      help = "Batches rapid IsUsableAction checks into a single next-frame update." },
+      help = "Batches rapid action bar usability checks into one update.",
+      impact = "FPS", impactLevel = "High" },
     -- TitanPanel
     { key = "TitanPanel_reputationsOnUpdate", group = "TitanPanel", label = "Reputations Timer Fix",
-      help = "Replaces per-frame OnUpdate with a 5-second timer matching the internal throttle." },
+      help = "Checks reputation only every 5s instead of every frame.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "TitanPanel_bagDebounce", group = "TitanPanel", label = "Bag Update Debounce",
-      help = "Debounces rapid BAG_UPDATE events into a single 0.2s delayed scan." },
+      help = "Counts bag contents once after looting instead of per slot change.",
+      impact = "FPS", impactLevel = "Low" },
     { key = "TitanPanel_performanceThrottle", group = "TitanPanel", label = "Performance Update Throttle",
-      help = "Increases minimum update interval from 1.5 to 3 seconds." },
+      help = "Updates FPS/memory display every 3s instead of 1.5s.",
+      impact = "FPS", impactLevel = "Low" },
     -- OmniCC
     { key = "OmniCC_gcdSpellCache", group = "OmniCC", label = "GCD Spell Cache",
-      help = "Caches GetSpellCooldown result per frame during GCD bursts. Eliminates 20+ redundant API calls per GCD cycle." },
+      help = "Caches GCD status per-frame instead of querying 20+ times.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "OmniCC_ruleMatchCache", group = "OmniCC", label = "Rule Match Cache",
-      help = "Caches frame name pattern matching results. Frame names never change, so one match per name is enough." },
+      help = "Remembers which cooldown rules match which frames permanently.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "OmniCC_finishEffectGuard", group = "OmniCC", label = "Finish Effect Guard",
-      help = "Skips finish-effect checks for cooldowns that are clearly not expiring, reducing per-update overhead." },
+      help = "Skips cooldown finish checks for abilities not close to ready.",
+      impact = "FPS", impactLevel = "Low" },
     -- Prat-3.0
     { key = "Prat_smfThrottle", group = "Prat", label = "Chat Layout Throttle",
-      help = "Throttles per-frame chat line relayout from 60fps to 20fps. Saves ~96,000 API calls/sec with 4 chat windows." },
+      help = "Reduces chat line redraws from 60fps to 20fps, saving thousands of API calls.",
+      impact = "FPS", impactLevel = "High" },
     { key = "Prat_timestampCache", group = "Prat", label = "Timestamp Cache",
-      help = "Caches timestamp format string and rendered time per second instead of rebuilding on every message." },
+      help = "Renders chat timestamps once per second instead of per message.",
+      impact = "Memory", impactLevel = "Low" },
     { key = "Prat_bubblesGuard", group = "Prat", label = "Bubble Scan Guard",
-      help = "Skips the 10/sec chat bubble scan when no bubbles exist in the world." },
+      help = "Skips chat bubble scanning when no one is talking nearby.",
+      impact = "FPS", impactLevel = "Low" },
     -- GatherMate2
     { key = "GatherMate2_minimapThrottle", group = "GatherMate2", label = "Minimap Update Throttle",
-      help = "Caps minimap pin position updates from 60fps to 20fps. Eliminates wasteful API calls while standing still." },
+      help = "Updates minimap pins at 20fps instead of 60fps.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "GatherMate2_rebuildGuard", group = "GatherMate2", label = "Stationary Rebuild Skip",
-      help = "Skips the full 2-second minimap node rebuild when the player hasn't moved since the last rebuild." },
+      help = "Skips minimap node rebuilds when you're standing still.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "GatherMate2_cleuUnregister", group = "GatherMate2", label = "Remove Dead Combat Handler",
-      help = "Unregisters the Extract Gas combat log handler that is disabled in TBC Classic but still fires on every combat event." },
+      help = "Removes a dead combat log handler that fires hundreds of times in combat.",
+      impact = "FPS", impactLevel = "Medium" },
     -- Quartz
     { key = "Quartz_castBarThrottle", group = "Quartz", label = "Cast Bar 30fps Cap",
-      help = "Throttles Player/Target/Focus/Pet cast bar updates from 60fps to 30fps. Timing uses absolute GetTime, so accuracy is unaffected." },
+      help = "Caps cast bar animations to 30fps - looks identical, uses half the CPU.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "Quartz_swingBarThrottle", group = "Quartz", label = "Swing Timer 30fps Cap",
-      help = "Throttles the auto-attack swing bar to 30fps. Visually identical for a 2-3 second swing timer." },
+      help = "Caps swing timer to 30fps - imperceptible on a 2-3 second swing.",
+      impact = "FPS", impactLevel = "Low" },
     { key = "Quartz_gcdBarThrottle", group = "Quartz", label = "GCD Bar 30fps Cap",
-      help = "Throttles the GCD spark animation to 30fps during every spell cast." },
+      help = "Caps the GCD spark animation to 30fps.",
+      impact = "FPS", impactLevel = "Low" },
     -- Auctionator
     { key = "Auctionator_ownerQueryThrottle", group = "Auctionator", label = "Auction Query Throttle",
-      help = "Throttles GetOwnerAuctionItems from 120/sec (both tabs) to 2/sec. Eliminates constant server spam while AH is open." },
+      help = "Reduces auction queries from 120/sec to 2/sec while AH is open.",
+      impact = "Network", impactLevel = "High" },
     { key = "Auctionator_throttleBroadcast", group = "Auctionator", label = "Throttle Timer Broadcast",
-      help = "Reduces timeout countdown broadcasts from 60/sec to 2/sec. The countdown display updates every 0.5s instead of every frame." },
+      help = "Slows timeout countdown updates from 60/sec to 2/sec.",
+      impact = "FPS", impactLevel = "Medium" },
     { key = "Auctionator_priceAgeOptimize", group = "Auctionator", label = "Price Age Optimizer",
-      help = "Replaces table-alloc + sort with a zero-allocation max scan for tooltip price age calculation." },
+      help = "Eliminates temporary tables when calculating price freshness.",
+      impact = "Memory", impactLevel = "Medium" },
     { key = "Auctionator_dbKeyCache", group = "Auctionator", label = "DB Key Link Cache",
-      help = "Caches item link to database key mapping. Eliminates repeated regex parsing on every tooltip hover." },
+      help = "Caches item-to-database lookups instead of re-parsing on every hover.",
+      impact = "FPS", impactLevel = "Medium" },
     -- VuhDo
     { key = "VuhDo_debuffDebounce", group = "VuhDo", label = "Debuff Detection Debounce",
-      help = "Debounces per-unit debuff scanning with a 33ms window during AoE debuff storms." },
+      help = "Batches debuff scans during AoE damage, preventing 100+ rescans/sec.",
+      impact = "FPS", impactLevel = "High" },
     { key = "VuhDo_rangeSkipDead", group = "VuhDo", label = "Skip Dead/DC Range Checks",
-      help = "Skips range polling (4-5 API calls) for dead and disconnected raid members." },
+      help = "Skips range checking on dead or disconnected raid members.",
+      impact = "FPS", impactLevel = "Low" },
 }
 
 -- Build lookup for patches by group
@@ -116,6 +168,16 @@ for _, p in ipairs(PATCH_INFO) do
     PATCH_NAMES_LOWER[p.key:lower()] = p.key
 end
 
+-- Format an impact badge string with color codes
+local function FormatBadge(impact, level)
+    if not impact then return "" end
+    local bc = BADGE_COLORS[impact] or BADGE_COLORS.FPS
+    local lc = LEVEL_COLORS[level] or LEVEL_COLORS.Medium
+    return string.format("|cff%02x%02x%02x[%s]|r |cff%02x%02x%02x%s|r",
+        bc.r * 255, bc.g * 255, bc.b * 255, impact,
+        lc.r * 255, lc.g * 255, lc.b * 255, level or "")
+end
+
 ---------------------------------------------------------------------------
 -- GUI Panel
 ---------------------------------------------------------------------------
@@ -125,6 +187,8 @@ local function CreateOptionsPanel()
     panel.name = "PatchWerk"
 
     local checkboxes = {}
+    local groupCheckboxes = {} -- [groupId] = { cb1, cb2, ... }
+    local groupCountLabels = {} -- [groupId] = fontString
     local statusLabels = {}
     local contentBuilt = false
 
@@ -133,17 +197,35 @@ local function CreateOptionsPanel()
             local enabled = ns:GetOption(info.key)
             local applied = ns.applied[info.key]
             if applied then
-                info.fontString:SetText("Active")
-                info.fontString:SetTextColor(0.2, 0.9, 0.2)
+                info.fontString:SetText("|cff33e633Active|r")
             elseif enabled and not applied then
-                info.fontString:SetText("Reload needed")
-                info.fontString:SetTextColor(1, 0.82, 0)
+                info.fontString:SetText("|cffffff00Reload|r")
             elseif not enabled then
-                info.fontString:SetText("Disabled")
-                info.fontString:SetTextColor(0.5, 0.5, 0.5)
+                info.fontString:SetText("|cff808080Off|r")
             else
-                info.fontString:SetText("Not loaded")
-                info.fontString:SetTextColor(0.4, 0.4, 0.4)
+                info.fontString:SetText("")
+            end
+        end
+    end
+
+    local function RefreshGroupCounts()
+        for groupId, cbs in pairs(groupCheckboxes) do
+            local active = 0
+            local total = #cbs
+            for _, cb in ipairs(cbs) do
+                if ns:GetOption(cb.optionKey) then
+                    active = active + 1
+                end
+            end
+            local label = groupCountLabels[groupId]
+            if label then
+                if active == total then
+                    label:SetText("|cff33e633" .. active .. "/" .. total .. " active|r")
+                elseif active > 0 then
+                    label:SetText("|cffffff00" .. active .. "/" .. total .. " active|r")
+                else
+                    label:SetText("|cff808080" .. active .. "/" .. total .. " active|r")
+                end
             end
         end
     end
@@ -157,7 +239,7 @@ local function CreateOptionsPanel()
         scrollFrame:SetPoint("BOTTOMRIGHT", -26, 10)
 
         local content = CreateFrame("Frame")
-        content:SetSize(580, 1200)
+        content:SetSize(580, 2000)
         scrollFrame:SetScrollChild(content)
 
         scrollFrame:SetScript("OnSizeChanged", function(self, w)
@@ -165,27 +247,13 @@ local function CreateOptionsPanel()
         end)
 
         -- Helpers
-        local function AddSeparator(y)
+        local function AddSeparator(y, alpha)
             local line = content:CreateTexture(nil, "ARTWORK")
             line:SetHeight(1)
             line:SetPoint("TOPLEFT", 12, y)
             line:SetPoint("TOPRIGHT", -12, y)
-            line:SetColorTexture(0.6, 0.6, 0.6, 0.25)
-            return y - 10
-        end
-
-        local function AddGroupHeader(text, installed, y)
-            y = AddSeparator(y)
-            local header = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-            header:SetPoint("TOPLEFT", 16, y)
-            header:SetText(text)
-
-            if not installed then
-                local note = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-                note:SetPoint("LEFT", header, "RIGHT", 8, 0)
-                note:SetText("(not installed)")
-            end
-            return y - 22
+            line:SetColorTexture(0.6, 0.6, 0.6, alpha or 0.25)
+            return y - 8
         end
 
         -- Title
@@ -198,7 +266,7 @@ local function CreateOptionsPanel()
         version:SetText("v" .. ns.VERSION)
 
         local subtitle = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-        subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
+        subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
         subtitle:SetText("Performance patches for popular addons. Toggle patches below, then /reload.")
         subtitle:SetJustifyH("LEFT")
 
@@ -209,16 +277,16 @@ local function CreateOptionsPanel()
 
         local countText = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
         countText:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -2)
-        countText:SetText("|cff00ff00" .. activeCount .. "/" .. totalCount .. " patches active|r. Changes require /reload.")
+        countText:SetText("|cff33e633" .. activeCount .. "/" .. totalCount .. " patches active|r")
         countText:SetJustifyH("LEFT")
 
-        local yOffset = -78
+        local yOffset = -74
 
         -- Build addon group sections
         for _, groupInfo in ipairs(ns.addonGroups) do
             local groupId = groupInfo.id
             local groupPatches = PATCHES_BY_GROUP[groupId]
-            if not groupPatches then groupPatches = {} end -- skip empty groups
+            if not groupPatches then groupPatches = {} end
 
             -- Check if any dep for this group is loaded
             local installed = false
@@ -229,33 +297,79 @@ local function CreateOptionsPanel()
                 end
             end
 
-            yOffset = AddGroupHeader(groupInfo.label, installed, yOffset)
+            -- Group separator
+            yOffset = yOffset - 6
+            yOffset = AddSeparator(yOffset, installed and 0.35 or 0.15)
+
+            -- Group header (larger font)
+            local header = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+            header:SetPoint("TOPLEFT", 16, yOffset)
+            if installed then
+                header:SetText(groupInfo.label)
+            else
+                header:SetText("|cff666666" .. groupInfo.label .. "|r")
+            end
+
+            -- Active count per group (right-aligned next to header)
+            local groupCount = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+            groupCount:SetPoint("LEFT", header, "RIGHT", 10, 0)
+            groupCountLabels[groupId] = groupCount
+
+            -- Not installed label
+            if not installed then
+                local note = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+                note:SetPoint("LEFT", groupCount, "RIGHT", 8, 0)
+                note:SetText("(not installed)")
+            end
+
+            -- Enable All / Disable All buttons (right side of header)
+            local enableAllBtn = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
+            enableAllBtn:SetPoint("TOPRIGHT", content, "TOPRIGHT", -80, yOffset + 2)
+            enableAllBtn:SetSize(60, 18)
+            enableAllBtn:SetText("All On")
+            enableAllBtn:GetFontString():SetFont(enableAllBtn:GetFontString():GetFont(), 10)
+
+            local disableAllBtn = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
+            disableAllBtn:SetPoint("LEFT", enableAllBtn, "RIGHT", 4, 0)
+            disableAllBtn:SetSize(60, 18)
+            disableAllBtn:SetText("All Off")
+            disableAllBtn:GetFontString():SetFont(disableAllBtn:GetFontString():GetFont(), 10)
+
+            yOffset = yOffset - 24
+
+            -- Init group checkbox tracking
+            groupCheckboxes[groupId] = {}
 
             for _, patchInfo in ipairs(groupPatches) do
                 local cb = CreateFrame("CheckButton", "PatchWerk_CB_" .. patchInfo.key, content, "UICheckButtonTemplate")
-                cb:SetPoint("TOPLEFT", 16, yOffset)
+                cb:SetPoint("TOPLEFT", 20, yOffset)
                 cb.optionKey = patchInfo.key
+
+                -- Disable checkbox interaction for uninstalled addons
+                if not installed then
+                    cb:Disable()
+                    cb:SetAlpha(0.4)
+                end
 
                 local cbName = cb:GetName()
                 local cbLabel = _G[cbName .. "Text"]
                 if cbLabel then
-                    cbLabel:SetText(patchInfo.label)
-                    cbLabel:SetFontObject("GameFontHighlight")
-                    if not installed then
-                        cbLabel:SetFontObject("GameFontDisable")
-                    end
+                    -- Label with impact badge inline
+                    local badge = FormatBadge(patchInfo.impact, patchInfo.impactLevel)
+                    cbLabel:SetText(patchInfo.label .. "  " .. badge)
+                    cbLabel:SetFontObject(installed and "GameFontHighlight" or "GameFontDisable")
                 end
 
-                -- Status badge
-                local badge = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-                badge:SetPoint("TOPRIGHT", content, "TOPRIGHT", -20, yOffset - 5)
-                table.insert(statusLabels, { key = patchInfo.key, fontString = badge })
+                -- Status badge (right side)
+                local statusBadge = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+                statusBadge:SetPoint("TOPRIGHT", content, "TOPRIGHT", -20, yOffset - 5)
+                table.insert(statusLabels, { key = patchInfo.key, fontString = statusBadge })
 
                 -- Help text
                 local helpText = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
                 helpText:SetPoint("TOPLEFT", cb, "BOTTOMLEFT", 26, 2)
-                helpText:SetPoint("RIGHT", content, "RIGHT", -90, 0)
-                helpText:SetText(patchInfo.help)
+                helpText:SetPoint("RIGHT", content, "RIGHT", -70, 0)
+                helpText:SetText(installed and patchInfo.help or ("|cff555555" .. patchInfo.help .. "|r"))
                 helpText:SetJustifyH("LEFT")
                 helpText:SetWordWrap(true)
 
@@ -264,6 +378,12 @@ local function CreateOptionsPanel()
                     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                     GameTooltip:SetText(patchInfo.label, 1, 1, 1)
                     GameTooltip:AddLine(patchInfo.help, 1, 0.82, 0, true)
+                    if patchInfo.impact then
+                        GameTooltip:AddLine(" ")
+                        local bc = BADGE_COLORS[patchInfo.impact] or BADGE_COLORS.FPS
+                        GameTooltip:AddLine("Impact: " .. patchInfo.impact .. " (" .. (patchInfo.impactLevel or "Medium") .. ")",
+                            bc.r, bc.g, bc.b)
+                    end
                     GameTooltip:AddLine(" ")
                     if not installed then
                         GameTooltip:AddLine("Target addon not installed", 0.5, 0.5, 0.5)
@@ -279,48 +399,46 @@ local function CreateOptionsPanel()
                 cb:SetScript("OnClick", function(self)
                     ns:SetOption(self.optionKey, self:GetChecked() and true or false)
                     RefreshStatusLabels()
+                    RefreshGroupCounts()
                 end)
 
                 table.insert(checkboxes, cb)
+                table.insert(groupCheckboxes[groupId], cb)
                 yOffset = yOffset - 42
             end
 
-            yOffset = yOffset - 4
+            -- Wire up Enable/Disable All buttons
+            local grpCbs = groupCheckboxes[groupId]
+            enableAllBtn:SetScript("OnClick", function()
+                for _, cb in ipairs(grpCbs) do
+                    ns:SetOption(cb.optionKey, true)
+                    cb:SetChecked(true)
+                end
+                RefreshStatusLabels()
+                RefreshGroupCounts()
+            end)
+            disableAllBtn:SetScript("OnClick", function()
+                for _, cb in ipairs(grpCbs) do
+                    ns:SetOption(cb.optionKey, false)
+                    cb:SetChecked(false)
+                end
+                RefreshStatusLabels()
+                RefreshGroupCounts()
+            end)
+
+            if not installed then
+                enableAllBtn:Disable()
+                disableAllBtn:Disable()
+                enableAllBtn:SetAlpha(0.4)
+                disableAllBtn:SetAlpha(0.4)
+            end
+
+            yOffset = yOffset - 2
         end
 
-        -- Slash Command Reference
-        yOffset = yOffset - 2
-        yOffset = AddSeparator(yOffset)
-
-        local cmdHeader = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-        cmdHeader:SetPoint("TOPLEFT", 16, yOffset)
-        cmdHeader:SetText("Slash Commands")
-        yOffset = yOffset - 22
-
-        local commands = {
-            { cmd = "/patchwerk",                 info = "Open this settings panel" },
-            { cmd = "/patchwerk status",          info = "Show all patch status in chat" },
-            { cmd = "/patchwerk toggle <patch>",  info = "Toggle a patch on or off" },
-            { cmd = "/patchwerk reset",           info = "Reset all settings to defaults" },
-        }
-
-        for _, cmdInfo in ipairs(commands) do
-            local line = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-            line:SetPoint("TOPLEFT", 22, yOffset)
-            line:SetText("|cffffcc00" .. cmdInfo.cmd .. "|r")
-            line:SetJustifyH("LEFT")
-
-            local desc = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-            desc:SetPoint("TOPLEFT", 220, yOffset)
-            desc:SetText(cmdInfo.info)
-            desc:SetJustifyH("LEFT")
-
-            yOffset = yOffset - 16
-        end
-
-        -- Buttons
-        yOffset = yOffset - 14
-        yOffset = AddSeparator(yOffset)
+        -- Bottom buttons
+        yOffset = yOffset - 6
+        yOffset = AddSeparator(yOffset, 0.35)
 
         local resetBtn = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
         resetBtn:SetPoint("TOPLEFT", 16, yOffset)
@@ -337,6 +455,7 @@ local function CreateOptionsPanel()
                 cb:SetChecked(ns:GetOption(cb.optionKey))
             end
             RefreshStatusLabels()
+            RefreshGroupCounts()
             ns:Print("Settings reset to defaults. Reload to apply.")
         end)
 
@@ -361,6 +480,7 @@ local function CreateOptionsPanel()
             cb:SetChecked(ns:GetOption(cb.optionKey))
         end
         RefreshStatusLabels()
+        RefreshGroupCounts()
     end)
 
     if Settings and Settings.RegisterCanvasLayoutCategory then
@@ -455,8 +575,6 @@ SlashCmdList["PATCHWERK"] = function(msg)
         if ns.settingsCategoryID and Settings and Settings.OpenToCategory then
             Settings.OpenToCategory(ns.settingsCategoryID)
         elseif InterfaceOptionsFrame_OpenToCategory and ns.optionsPanel then
-            -- Double-call is a well-known workaround for a Blizzard bug where
-            -- the first call opens Interface Options but doesn't select the panel
             InterfaceOptionsFrame_OpenToCategory(ns.optionsPanel)
             InterfaceOptionsFrame_OpenToCategory(ns.optionsPanel)
         else
