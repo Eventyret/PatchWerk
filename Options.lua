@@ -185,6 +185,18 @@ for _, p in ipairs(PATCH_INFO) do
     PATCH_NAMES_LOWER[p.key:lower()] = p.key
 end
 
+-- Human-readable impact descriptions for tooltips
+local IMPACT_DESC = {
+    FPS = "Smoother gameplay",
+    Memory = "Less memory usage",
+    Network = "Less server traffic",
+}
+local LEVEL_DESC = {
+    High = "very noticeable improvement",
+    Medium = "helps in busy situations",
+    Low = "small improvement",
+}
+
 -- Format an impact badge string with color codes
 local function FormatBadge(impact, level)
     if not impact then return "" end
@@ -305,16 +317,20 @@ local function CreateOptionsPanel()
 
         -- Badge legend
         local legendText = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-        legendText:SetPoint("TOPLEFT", safetyText, "BOTTOMLEFT", 0, -4)
-        legendText:SetText(
-            "|cff33e633[FPS]|r Framerate   " ..
-            "|cff33cce6[Memory]|r Memory usage   " ..
-            "|cffff9933[Network]|r Server traffic" ..
-            "      |cffffd100High|r > |cffbfbfbf Medium|r > |cff996633Low|r"
-        )
+        legendText:SetPoint("TOPLEFT", safetyText, "BOTTOMLEFT", 0, -6)
+        legendText:SetPoint("RIGHT", content, "RIGHT", -20, 0)
         legendText:SetJustifyH("LEFT")
+        legendText:SetWordWrap(true)
+        legendText:SetText(
+            "|cff33e633[FPS]|r Smoother gameplay, less stuttering   " ..
+            "|cff33cce6[Memory]|r Fewer slowdowns over long sessions   " ..
+            "|cffff9933[Network]|r Less lag and server traffic\n" ..
+            "Impact:  |cffffd100High|r = very noticeable    " ..
+            "|cffbfbfbfMedium|r = helps in busy situations    " ..
+            "|cff996633Low|r = small improvement"
+        )
 
-        local yOffset = -102
+        local yOffset = -114
 
         -- Build addon group sections
         for _, groupInfo in ipairs(ns.addonGroups) do
@@ -415,8 +431,13 @@ local function CreateOptionsPanel()
                     if patchInfo.impact then
                         GameTooltip:AddLine(" ")
                         local bc = BADGE_COLORS[patchInfo.impact] or BADGE_COLORS.FPS
-                        GameTooltip:AddLine("Impact: " .. patchInfo.impact .. " (" .. (patchInfo.impactLevel or "Medium") .. ")",
-                            bc.r, bc.g, bc.b)
+                        local lc = LEVEL_COLORS[patchInfo.impactLevel] or LEVEL_COLORS.Medium
+                        local what = IMPACT_DESC[patchInfo.impact] or patchInfo.impact
+                        local how = LEVEL_DESC[patchInfo.impactLevel] or ""
+                        GameTooltip:AddLine(what, bc.r, bc.g, bc.b)
+                        if how ~= "" then
+                            GameTooltip:AddLine(how, lc.r, lc.g, lc.b)
+                        end
                     end
                     GameTooltip:AddLine(" ")
                     if not installed then
@@ -517,7 +538,7 @@ local function CreateOptionsPanel()
         aboutText:SetWordWrap(true)
         aboutText:SetText(
             "|cff33ccffPatchWerk|r v" .. ns.VERSION .. "\n" ..
-            "by |cffffd100Eventyret|r  (|cffC79C6EHexusPlexus|r - Thunderstrike EU)\n" ..
+            "by |cffffd100Eventyret|r  (|cff8788EEHexusPlexus|r - Thunderstrike EU)\n" ..
             "\n" ..
             "No enrage timer. No tank swap. Just pure, uninterrupted performance.\n" ..
             "\n" ..
