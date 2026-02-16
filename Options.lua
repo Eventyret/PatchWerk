@@ -412,6 +412,11 @@ SlashCmdList["ADDONTWEAKS"] = function(msg)
     if cmd == "" then
         if ns.settingsCategoryID and Settings and Settings.OpenToCategory then
             Settings.OpenToCategory(ns.settingsCategoryID)
+        elseif InterfaceOptionsFrame_OpenToCategory and ns.optionsPanel then
+            -- Double-call is a well-known workaround for a Blizzard bug where
+            -- the first call opens Interface Options but doesn't select the panel
+            InterfaceOptionsFrame_OpenToCategory(ns.optionsPanel)
+            InterfaceOptionsFrame_OpenToCategory(ns.optionsPanel)
         else
             ShowStatus()
         end
@@ -424,6 +429,9 @@ SlashCmdList["ADDONTWEAKS"] = function(msg)
     elseif cmd == "config" or cmd == "options" then
         if ns.settingsCategoryID and Settings and Settings.OpenToCategory then
             Settings.OpenToCategory(ns.settingsCategoryID)
+        elseif InterfaceOptionsFrame_OpenToCategory and ns.optionsPanel then
+            InterfaceOptionsFrame_OpenToCategory(ns.optionsPanel)
+            InterfaceOptionsFrame_OpenToCategory(ns.optionsPanel)
         else
             ShowStatus()
         end
