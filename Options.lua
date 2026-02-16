@@ -151,6 +151,16 @@ local PATCH_INFO = {
     { key = "VuhDo_rangeSkipDead", group = "VuhDo", label = "Skip Dead/DC Range Checks",
       help = "Skips range checking on dead or disconnected raid members.",
       impact = "FPS", impactLevel = "Low" },
+    -- Cell
+    { key = "Cell_debuffOrderMemo", group = "Cell", label = "Debuff Order Memoize",
+      help = "Caches debuff priority lookups to avoid repeated checks on the same aura.",
+      impact = "FPS", impactLevel = "Medium" },
+    { key = "Cell_customIndicatorGuard", group = "Cell", label = "Custom Indicator Guard",
+      help = "Skips custom indicator processing when none are configured.",
+      impact = "FPS", impactLevel = "Medium" },
+    { key = "Cell_debuffGlowMemo", group = "Cell", label = "Debuff Glow Memoize",
+      help = "Caches debuff glow lookups called right after the priority check.",
+      impact = "FPS", impactLevel = "Medium" },
 }
 
 -- Build lookup for patches by group

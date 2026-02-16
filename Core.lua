@@ -67,6 +67,10 @@ local defaults = {
     -- VuhDo
     VuhDo_debuffDebounce = true,
     VuhDo_rangeSkipDead = true,
+    -- Cell
+    Cell_debuffOrderMemo = true,
+    Cell_customIndicatorGuard = true,
+    Cell_debuffGlowMemo = true,
 }
 
 ns.defaults = defaults
@@ -93,6 +97,7 @@ ns.addonGroups = {
     { id = "Quartz",            label = "Quartz (Cast Bars)",        deps = { "Quartz" } },
     { id = "Auctionator",       label = "Auctionator (Auction House)", deps = { "Auctionator" } },
     { id = "VuhDo",             label = "VuhDo (Raid Frames)",       deps = { "VuhDo" } },
+    { id = "Cell",              label = "Cell (Raid Frames)",        deps = { "Cell" } },
 }
 
 function ns:GetDB()

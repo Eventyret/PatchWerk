@@ -3,7 +3,7 @@
 ## Notes: Performance patches for popular addons - less lag, same gameplay
 ## Author: Eventyret
 ## Version: 2.0.0
-## OptionalDeps: Details, Plater, Pawn, TipTac, TipTacTalents, Questie, LFGBulletinBoard, Bartender4, Titan, TitanBag, TitanPerformance, TitanReputations, OmniCC, OmniCC_Config, Prat-3.0, GatherMate2, Quartz, Auctionator, VuhDo, VuhDoOptions
+## OptionalDeps: Details, Plater, Pawn, TipTac, TipTacTalents, Questie, LFGBulletinBoard, Bartender4, Titan, TitanBag, TitanPerformance, TitanReputations, OmniCC, OmniCC_Config, Prat-3.0, GatherMate2, Quartz, Auctionator, VuhDo, VuhDoOptions, Cell
 ## SavedVariables: PatchWerkDB
 
 Core.lua
@@ -21,4 +21,5 @@ Patches\GatherMate2.lua
 Patches\Quartz.lua
 Patches\Auctionator.lua
 Patches\VuhDo.lua
+Patches\Cell.lua
 Options.lua
