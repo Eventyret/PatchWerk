@@ -1,0 +1,121 @@
+------------------------------------------------------------------------
+-- AddonTweaks - Performance patches for TipTac (Tooltips)
+--
+-- TipTac is a popular tooltip enhancement addon that hooks into every
+-- GameTooltip frame.  On TBC Classic Anniversary, two hot paths cause
+-- unnecessary CPU and network overhead:
+--   1. TipTac_unitAppearanceGuard - Skip per-frame OnUpdate work for
+--                                   non-unit tooltips
+--   2. TipTac_inspectCache        - Extend the 5-second inspect cache
+--                                   to reduce server queries
+------------------------------------------------------------------------
+
+local _, ns = ...
+
+local pairs    = pairs
+local pcall    = pcall
+local GetTime  = GetTime
+local UnitGUID = UnitGUID
+
+------------------------------------------------------------------------
+-- 1. TipTac_unitAppearanceGuard
+--
+-- TipTac hooks OnUpdate on every GameTooltip and calls
+-- tt:UpdateUnitAppearanceToTip(tip) at 60fps for every visible tooltip,
+-- including item/spell tooltips where no unit is being shown.  The
+-- function checks timestampStartUnitAppearance and returns early if
+-- nil, but the function call overhead plus cache lookups still happen
+-- every single frame.
+--
+-- Fix: Wrap UpdateUnitAppearanceToTip with a fast guard that checks
+-- whether the tooltip is actually showing a unit via tip:GetUnit()
+-- before delegating to the original function.  The "force" parameter
+-- bypasses the guard so explicit refreshes still work.
+------------------------------------------------------------------------
+ns.patches["TipTac_unitAppearanceGuard"] = function()
+    if not TipTac then return end
+
+    local tt = TipTac
+    if not tt.UpdateUnitAppearanceToTip then return end
+
+    local orig = tt.UpdateUnitAppearanceToTip
+
+    tt.UpdateUnitAppearanceToTip = function(self, tip, force)
+        -- Fast exit: only process if the tooltip is actually showing a unit.
+        -- When force is true, bypass the guard entirely so explicit refreshes
+        -- are never blocked.
+        if not force then
+            if tip and tip.GetUnit then
+                local _, unit = tip:GetUnit()
+                if not unit then return end
+            end
+        end
+        return orig(self, tip, force)
+    end
+end
+
+------------------------------------------------------------------------
+-- 2. TipTac_inspectCache
+--
+-- TipTacTalents uses LibFroznFunctions which has a 5-second inspect
+-- cache timeout (LFF_CACHE_TIMEOUT = 5).  Every 5+ seconds after
+-- hovering a player, a new NotifyInspect server query is sent.  In
+-- crowded areas (cities, raids) this causes constant server queries
+-- that contribute to throttling and lag.
+--
+-- Fix: Wrap LFF.InspectUnit to enforce an extended 30-second cache
+-- timeout per GUID.  Within that window, calls still pass through to
+-- the original so internal state stays consistent, but bypassTimeout
+-- remains false so the library returns cached data instead of firing
+-- a new NotifyInspect.  A periodic cleanup ticker prevents the GUID
+-- lookup table from growing without bound.
+------------------------------------------------------------------------
+ns.patches["TipTac_inspectCache"] = function()
+    if not LibStub then return end
+    if not C_Timer or not C_Timer.NewTicker then return end
+
+    local LFF
+    local ok
+    ok, LFF = pcall(LibStub.GetLibrary, LibStub, "LibFroznFunctions-1.0")
+    if not ok then LFF = nil end
+
+    if not LFF or not LFF.InspectUnit then return end
+
+    local inspectTimes = {}
+    local EXTENDED_TIMEOUT = 30 -- seconds (up from 5)
+
+    local origInspect = LFF.InspectUnit
+
+    LFF.InspectUnit = function(self, unitID, callbackForInspectData, removeCallback, bypassTimeout)
+        -- If explicitly bypassed, let it through unmodified
+        if bypassTimeout then
+            return origInspect(self, unitID, callbackForInspectData, removeCallback, bypassTimeout)
+        end
+
+        -- Check our extended cache per GUID
+        local guid = unitID and UnitGUID(unitID)
+        if guid then
+            local lastTime = inspectTimes[guid]
+            if lastTime and (GetTime() - lastTime) < EXTENDED_TIMEOUT then
+                -- Within our extended window: delegate to original with
+                -- bypassTimeout=false so it returns its internal cache
+                return origInspect(self, unitID, callbackForInspectData, removeCallback, false)
+            end
+            -- Outside the window (or first time): record timestamp and
+            -- let the original proceed normally
+            inspectTimes[guid] = GetTime()
+        end
+
+        return origInspect(self, unitID, callbackForInspectData, removeCallback, bypassTimeout)
+    end
+
+    -- Prune old entries periodically to prevent memory leak
+    C_Timer.NewTicker(120, function()
+        local now = GetTime()
+        for guid, t in pairs(inspectTimes) do
+            if (now - t) > EXTENDED_TIMEOUT * 2 then
+                inspectTimes[guid] = nil
+            end
+        end
+    end)
+end
