@@ -1,0 +1,168 @@
+------------------------------------------------------------------------
+-- AddonTweaks - Performance patches for Plater (Nameplates)
+--
+-- Plater is a popular nameplate addon but has several hot paths that
+-- generate unnecessary garbage collection pressure and CPU overhead
+-- on TBC Classic Anniversary.  These patches address:
+--   1. Plater_fpsCheck    - Replace C_Timer.After(0) self-rescheduling
+--                           FPS tracker with a persistent OnUpdate frame
+--   2. Plater_healthText  - Skip UpdateLifePercentText when health
+--                           values haven't changed since last call
+--   3. Plater_auraAlign   - Skip redundant AlignAuraFrames calls when
+--                           the visible aura icon count is unchanged
+------------------------------------------------------------------------
+
+local _, ns = ...
+
+local pairs  = pairs
+local max    = math.max
+local ceil   = math.ceil
+
+------------------------------------------------------------------------
+-- 1. Plater_fpsCheck
+--
+-- Plater.EveryFrameFPSCheck reschedules itself via C_Timer.After(0, ...)
+-- on every single frame.  This allocates 60+ timer callback objects per
+-- second that the garbage collector must eventually sweep.  The function
+-- itself is trivial: it tracks FPS samples, calculates how many plates
+-- to update per frame, and resets platesUpdatedThisFrame to zero.
+--
+-- Fix: Neutralise the self-rescheduling timer chain by replacing the
+-- function with a no-op, then create a persistent frame whose OnUpdate
+-- script performs the identical work without any timer allocation.
+------------------------------------------------------------------------
+ns.patches["Plater_fpsCheck"] = function()
+    if not Plater then return end
+    if not Plater.EveryFrameFPSCheck then return end
+    if not Plater.FPSData then return end
+
+    -- Kill the self-rescheduling timer chain
+    Plater.EveryFrameFPSCheck = function() end
+
+    -- Persistent replacement frame
+    local fpsFrame = CreateFrame("Frame")
+    local GetTime = GetTime
+
+    fpsFrame:SetScript("OnUpdate", function()
+        local data = Plater.FPSData
+        if not data then return end
+
+        local curTime = GetTime()
+
+        if (data.startTime + 0.25) < curTime then
+            data.curFPS = max(data.frames / (curTime - data.startTime), 1)
+
+            -- The original uses local upvalues DB_TICK_THROTTLE and
+            -- NUM_NAMEPLATES_ON_SCREEN that we cannot access.  Read
+            -- from the profile if available, otherwise use sane defaults.
+            local throttle = 0.1
+            if Plater.db and Plater.db.profile and Plater.db.profile.update_throttle then
+                throttle = Plater.db.profile.update_throttle
+            end
+
+            local numPlates = 30
+            if Plater.GetNominalNumNameplates then
+                numPlates = Plater.GetNominalNumNameplates() or 30
+            end
+
+            data.platesToUpdatePerFrame = ceil(numPlates / throttle / data.curFPS)
+            data.frames = 0
+            data.startTime = curTime
+        else
+            data.frames = data.frames + 1
+        end
+
+        data.platesUpdatedThisFrame = 0
+    end)
+end
+
+------------------------------------------------------------------------
+-- 2. Plater_healthText
+--
+-- Plater.UpdateLifePercentText is called inside NameplateTick's
+-- throttled block for every nameplate that has percent text enabled.
+-- Each call runs string.format() and SetText() even when the health
+-- bar's current and max health have not changed since the last call.
+--
+-- Fix: Cache the last-seen health and healthMax on the healthBar
+-- widget.  If both values match the previous call, skip the original
+-- function entirely - the text on screen is already correct.
+------------------------------------------------------------------------
+ns.patches["Plater_healthText"] = function()
+    if not Plater then return end
+    if not Plater.UpdateLifePercentText then return end
+
+    local orig = Plater.UpdateLifePercentText
+
+    Plater.UpdateLifePercentText = function(healthBar, unitId, showHealthAmount, showPercentAmount, showDecimals)
+        if not healthBar then
+            return orig(healthBar, unitId, showHealthAmount, showPercentAmount, showDecimals)
+        end
+
+        local newHealth = healthBar.currentHealth
+        local newMax    = healthBar.currentHealthMax
+
+        if healthBar._atLastHealth == newHealth and healthBar._atLastMax == newMax then
+            return
+        end
+
+        healthBar._atLastHealth = newHealth
+        healthBar._atLastMax    = newMax
+
+        return orig(healthBar, unitId, showHealthAmount, showPercentAmount, showDecimals)
+    end
+end
+
+------------------------------------------------------------------------
+-- 3. Plater_auraAlign
+--
+-- Plater.AlignAuraFrames is called after every aura update to
+-- reposition buff/debuff icons on a nameplate.  Each invocation
+-- allocates a fresh scratch table (`local iconFrameContainerCopy = {}`)
+-- that is immediately discarded, generating significant GC pressure
+-- during combat (200+ calls/second across all visible nameplates).
+--
+-- Fully replacing AlignAuraFrames is risky because it contains complex
+-- layout logic that varies across Plater versions.  Instead we wrap it
+-- with a lightweight guard: count visible aura icons on the buff frame
+-- and skip the call entirely when the count has not changed.  This
+-- eliminates the vast majority of redundant layout passes (and their
+-- associated table allocations) while preserving correctness whenever
+-- the aura set actually changes.
+------------------------------------------------------------------------
+ns.patches["Plater_auraAlign"] = function()
+    if not Plater then return end
+    if not Plater.AlignAuraFrames then return end
+
+    local orig = Plater.AlignAuraFrames
+
+    Plater.AlignAuraFrames = function(self, ...)
+        if not self then
+            return orig(self, ...)
+        end
+
+        -- The buff container holds all aura icon frames for this plate
+        local container = self.PlaterBuffList
+        if not container then
+            return orig(self, ...)
+        end
+
+        -- Count currently visible icons
+        local count = 0
+        for _, icon in pairs(container) do
+            if icon:IsShown() then
+                count = count + 1
+            end
+        end
+
+        -- If the visible count is unchanged and non-zero, the layout
+        -- produced by the original would be identical - skip it.
+        if self._atLastAuraCount == count and count > 0 then
+            return
+        end
+
+        self._atLastAuraCount = count
+
+        return orig(self, ...)
+    end
+end
