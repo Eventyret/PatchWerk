@@ -43,8 +43,8 @@ local PATCH_INFO = {
     -- LFGBulletinBoard
     { key = "LFGBulletinBoard_updateListDirty", group = "LFGBulletinBoard", label = "Dirty Flag UI Rebuild",
       help = "Skips the 1-second full UI rebuild when no new messages arrived." },
-    { key = "LFGBulletinBoard_sortSkip", group = "LFGBulletinBoard", label = "Sort Version Tracking",
-      help = "Tracks list changes to avoid unnecessary re-sorting." },
+    { key = "LFGBulletinBoard_sortSkip", group = "LFGBulletinBoard", label = "Sort Interval Throttle",
+      help = "Limits list rebuilds to once every 2 seconds even when the dirty flag is disabled." },
     -- Bartender4
     { key = "Bartender4_lossOfControlSkip", group = "Bartender4", label = "Skip Loss of Control Events",
       help = "Eliminates 120-button update loops for no-op events on TBC Classic." },
@@ -57,6 +57,50 @@ local PATCH_INFO = {
       help = "Debounces rapid BAG_UPDATE events into a single 0.2s delayed scan." },
     { key = "TitanPanel_performanceThrottle", group = "TitanPanel", label = "Performance Update Throttle",
       help = "Increases minimum update interval from 1.5 to 3 seconds." },
+    -- OmniCC
+    { key = "OmniCC_gcdSpellCache", group = "OmniCC", label = "GCD Spell Cache",
+      help = "Caches GetSpellCooldown result per frame during GCD bursts. Eliminates 20+ redundant API calls per GCD cycle." },
+    { key = "OmniCC_ruleMatchCache", group = "OmniCC", label = "Rule Match Cache",
+      help = "Caches frame name pattern matching results. Frame names never change, so one match per name is enough." },
+    { key = "OmniCC_finishEffectGuard", group = "OmniCC", label = "Finish Effect Guard",
+      help = "Skips finish-effect checks for cooldowns that are clearly not expiring, reducing per-update overhead." },
+    -- Prat-3.0
+    { key = "Prat_smfThrottle", group = "Prat", label = "Chat Layout Throttle",
+      help = "Throttles per-frame chat line relayout from 60fps to 20fps. Saves ~96,000 API calls/sec with 4 chat windows." },
+    { key = "Prat_timestampCache", group = "Prat", label = "Timestamp Cache",
+      help = "Caches timestamp format string and rendered time per second instead of rebuilding on every message." },
+    { key = "Prat_bubblesGuard", group = "Prat", label = "Bubble Scan Guard",
+      help = "Skips the 10/sec chat bubble scan when no bubbles exist in the world." },
+    -- GatherMate2
+    { key = "GatherMate2_minimapThrottle", group = "GatherMate2", label = "Minimap Update Throttle",
+      help = "Caps minimap pin position updates from 60fps to 20fps. Eliminates wasteful API calls while standing still." },
+    { key = "GatherMate2_rebuildGuard", group = "GatherMate2", label = "Stationary Rebuild Skip",
+      help = "Skips the full 2-second minimap node rebuild when the player hasn't moved since the last rebuild." },
+    { key = "GatherMate2_cleuUnregister", group = "GatherMate2", label = "Remove Dead Combat Handler",
+      help = "Unregisters the Extract Gas combat log handler that is disabled in TBC Classic but still fires on every combat event." },
+    -- Quartz
+    { key = "Quartz_castBarThrottle", group = "Quartz", label = "Cast Bar 30fps Cap",
+      help = "Throttles Player/Target/Focus/Pet cast bar updates from 60fps to 30fps. Timing uses absolute GetTime, so accuracy is unaffected." },
+    { key = "Quartz_swingBarThrottle", group = "Quartz", label = "Swing Timer 30fps Cap",
+      help = "Throttles the auto-attack swing bar to 30fps. Visually identical for a 2-3 second swing timer." },
+    { key = "Quartz_gcdBarThrottle", group = "Quartz", label = "GCD Bar 30fps Cap",
+      help = "Throttles the GCD spark animation to 30fps during every spell cast." },
+    -- Auctionator
+    { key = "Auctionator_ownerQueryThrottle", group = "Auctionator", label = "Auction Query Throttle",
+      help = "Throttles GetOwnerAuctionItems from 120/sec (both tabs) to 2/sec. Eliminates constant server spam while AH is open." },
+    { key = "Auctionator_throttleBroadcast", group = "Auctionator", label = "Throttle Timer Broadcast",
+      help = "Reduces timeout countdown broadcasts from 60/sec to 2/sec. The countdown display updates every 0.5s instead of every frame." },
+    { key = "Auctionator_priceAgeOptimize", group = "Auctionator", label = "Price Age Optimizer",
+      help = "Replaces table-alloc + sort with a zero-allocation max scan for tooltip price age calculation." },
+    { key = "Auctionator_dbKeyCache", group = "Auctionator", label = "DB Key Link Cache",
+      help = "Caches item link to database key mapping. Eliminates repeated regex parsing on every tooltip hover." },
+    -- VuhDo
+    { key = "VuhDo_emptyQueueGuard", group = "VuhDo", label = "Empty Queue Guard",
+      help = "Skips deferred task processing when no tasks are queued. Eliminates 60 wasted function calls per second while idle." },
+    { key = "VuhDo_debuffDebounce", group = "VuhDo", label = "Debuff Detection Debounce",
+      help = "Debounces per-unit debuff scanning with a 33ms window during AoE debuff storms." },
+    { key = "VuhDo_rangeSkipDead", group = "VuhDo", label = "Skip Dead/DC Range Checks",
+      help = "Skips range polling (4-5 API calls) for dead and disconnected raid members." },
 }
 
 -- Build lookup for patches by group
