@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- AddonTweaks - Performance patches for TipTac (Tooltips)
+-- PatchWerk - Performance patches for TipTac (Tooltips)
 --
 -- TipTac is a popular tooltip enhancement addon that hooks into every
 -- GameTooltip frame.  On TBC Classic Anniversary, two hot paths cause

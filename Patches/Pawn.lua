@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- AddonTweaks - Performance patches for Pawn (Item Comparison)
+-- PatchWerk - Performance patches for Pawn (Item Comparison)
 --
 -- Pawn hooks 20+ GameTooltip methods to annotate items with upgrade
 -- arrows and scale values.  On TBC Classic Anniversary several of its

@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- AddonTweaks - Performance patches for Details (Damage Meter)
+-- PatchWerk - Performance patches for Details (Damage Meter)
 --
 -- Details is one of the most popular damage meters but ships with several
 -- hot paths that are unnecessarily expensive on TBC Classic Anniversary.

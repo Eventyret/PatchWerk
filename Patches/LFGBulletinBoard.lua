@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- AddonTweaks - Performance patches for LFG Bulletin Board
+-- PatchWerk - Performance patches for LFG Bulletin Board
 --
 -- LFG Bulletin Board (GroupBulletinBoard/GBB) parses chat messages to
 -- build a looking-for-group panel.  On TBC Classic Anniversary its

@@ -1,4 +1,4 @@
--- Options: GUI settings panel and slash command interface for AddonTweaks
+-- Options: GUI settings panel and slash command interface for PatchWerk
 --
 -- Provides a scrollable Blizzard Interface Options panel with patch toggles
 -- grouped by target addon, status badges, and inline descriptions.
@@ -122,7 +122,7 @@ end
 
 local function CreateOptionsPanel()
     local panel = CreateFrame("Frame")
-    panel.name = "AddonTweaks"
+    panel.name = "PatchWerk"
 
     local checkboxes = {}
     local statusLabels = {}
@@ -152,7 +152,7 @@ local function CreateOptionsPanel()
         if contentBuilt then return end
         contentBuilt = true
 
-        local scrollFrame = CreateFrame("ScrollFrame", "AddonTweaks_OptionsScroll", panel, "UIPanelScrollFrameTemplate")
+        local scrollFrame = CreateFrame("ScrollFrame", "PatchWerk_OptionsScroll", panel, "UIPanelScrollFrameTemplate")
         scrollFrame:SetPoint("TOPLEFT", 0, -10)
         scrollFrame:SetPoint("BOTTOMRIGHT", -26, 10)
 
@@ -191,7 +191,7 @@ local function CreateOptionsPanel()
         -- Title
         local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
         title:SetPoint("TOPLEFT", 16, -16)
-        title:SetText("AddonTweaks")
+        title:SetText("PatchWerk")
 
         local version = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
         version:SetPoint("LEFT", title, "RIGHT", 6, 0)
@@ -232,7 +232,7 @@ local function CreateOptionsPanel()
             yOffset = AddGroupHeader(groupInfo.label, installed, yOffset)
 
             for _, patchInfo in ipairs(groupPatches) do
-                local cb = CreateFrame("CheckButton", "AddonTweaks_CB_" .. patchInfo.key, content, "UICheckButtonTemplate")
+                local cb = CreateFrame("CheckButton", "PatchWerk_CB_" .. patchInfo.key, content, "UICheckButtonTemplate")
                 cb:SetPoint("TOPLEFT", 16, yOffset)
                 cb.optionKey = patchInfo.key
 
@@ -298,10 +298,10 @@ local function CreateOptionsPanel()
         yOffset = yOffset - 22
 
         local commands = {
-            { cmd = "/atweaks",                 info = "Open this settings panel" },
-            { cmd = "/atweaks status",          info = "Show all patch status in chat" },
-            { cmd = "/atweaks toggle <patch>",  info = "Toggle a patch on or off" },
-            { cmd = "/atweaks reset",           info = "Reset all settings to defaults" },
+            { cmd = "/patchwerk",                 info = "Open this settings panel" },
+            { cmd = "/patchwerk status",          info = "Show all patch status in chat" },
+            { cmd = "/patchwerk toggle <patch>",  info = "Toggle a patch on or off" },
+            { cmd = "/patchwerk reset",           info = "Reset all settings to defaults" },
         }
 
         for _, cmdInfo in ipairs(commands) do
@@ -327,10 +327,10 @@ local function CreateOptionsPanel()
         resetBtn:SetSize(130, 26)
         resetBtn:SetText("Reset Defaults")
         resetBtn:SetScript("OnClick", function()
-            if AddonTweaksDB then
-                wipe(AddonTweaksDB)
+            if PatchWerkDB then
+                wipe(PatchWerkDB)
                 for key, value in pairs(ns.defaults) do
-                    AddonTweaksDB[key] = value
+                    PatchWerkDB[key] = value
                 end
             end
             for _, cb in ipairs(checkboxes) do
@@ -352,7 +352,7 @@ local function CreateOptionsPanel()
 
     panel:SetScript("OnShow", function()
         BuildContent()
-        local sf = AddonTweaks_OptionsScroll
+        local sf = PatchWerk_OptionsScroll
         if sf then
             local w = sf:GetWidth()
             if w and w > 0 then sf:GetScrollChild():SetWidth(w) end
@@ -364,10 +364,10 @@ local function CreateOptionsPanel()
     end)
 
     if Settings and Settings.RegisterCanvasLayoutCategory then
-        local category = Settings.RegisterCanvasLayoutCategory(panel, "AddonTweaks")
-        category.ID = "AddonTweaks"
+        local category = Settings.RegisterCanvasLayoutCategory(panel, "PatchWerk")
+        category.ID = "PatchWerk"
         Settings.RegisterAddOnCategory(category)
-        ns.settingsCategoryID = "AddonTweaks"
+        ns.settingsCategoryID = "PatchWerk"
     elseif InterfaceOptions_AddCategory then
         InterfaceOptions_AddCategory(panel)
     end
@@ -420,7 +420,7 @@ local function HandleToggle(input)
     local patchKey = PATCH_NAMES_LOWER[input:lower()]
     if not patchKey then
         ns:Print("Unknown patch: " .. tostring(input))
-        ns:Print("Use /atweaks status to see available patches.")
+        ns:Print("Use /patchwerk status to see available patches.")
         return
     end
 
@@ -431,19 +431,19 @@ local function HandleToggle(input)
 end
 
 local function HandleReset()
-    if AddonTweaksDB then
-        wipe(AddonTweaksDB)
+    if PatchWerkDB then
+        wipe(PatchWerkDB)
         for key, value in pairs(ns.defaults) do
-            AddonTweaksDB[key] = value
+            PatchWerkDB[key] = value
         end
     end
     ns:Print("All settings reset to defaults. Reload UI to apply.")
 end
 
-SLASH_ADDONTWEAKS1 = "/atweaks"
-SLASH_ADDONTWEAKS2 = "/addontweaks"
+SLASH_PATCHWERK1 = "/patchwerk"
+SLASH_PATCHWERK2 = "/pw"
 
-SlashCmdList["ADDONTWEAKS"] = function(msg)
+SlashCmdList["PATCHWERK"] = function(msg)
     local args = {}
     for word in msg:gmatch("%S+") do
         table.insert(args, word)
@@ -479,11 +479,11 @@ SlashCmdList["ADDONTWEAKS"] = function(msg)
         end
     elseif cmd == "help" then
         ns:Print("Usage:")
-        ns:Print("  /atweaks              Open settings panel")
-        ns:Print("  /atweaks status       Show all patch status")
-        ns:Print("  /atweaks toggle X     Toggle a patch on/off")
-        ns:Print("  /atweaks reset        Reset to defaults")
-        ns:Print("  /atweaks help         Show this help")
+        ns:Print("  /patchwerk              Open settings panel")
+        ns:Print("  /patchwerk status       Show all patch status")
+        ns:Print("  /patchwerk toggle X     Toggle a patch on/off")
+        ns:Print("  /patchwerk reset        Reset to defaults")
+        ns:Print("  /patchwerk help         Show this help")
     else
         ShowStatus()
     end

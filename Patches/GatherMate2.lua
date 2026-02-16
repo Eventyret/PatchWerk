@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- AddonTweaks - Performance patches for GatherMate2 (Gathering Nodes)
+-- PatchWerk - Performance patches for GatherMate2 (Gathering Nodes)
 --
 -- GatherMate2 tracks gathering node locations and displays them on
 -- the minimap.  On TBC Classic Anniversary its update loops run far

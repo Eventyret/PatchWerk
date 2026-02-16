@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- AddonTweaks - Performance patches for VuhDo (Raid Frames)
+-- PatchWerk - Performance patches for VuhDo (Raid Frames)
 --
 -- VuhDo is a healing-focused raid frame addon with a deferred task
 -- system.  On TBC Classic Anniversary several global hot paths can

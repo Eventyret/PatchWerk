@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- AddonTweaks - Performance patches for Prat-3.0 (Chat Enhancement)
+-- PatchWerk - Performance patches for Prat-3.0 (Chat Enhancement)
 --
 -- Prat-3.0 hooks multiple chat frame systems.  On TBC Classic
 -- Anniversary several hot paths cause unnecessary per-frame overhead:

@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- AddonTweaks - Performance patches for Bartender4 (Action Bars)
+-- PatchWerk - Performance patches for Bartender4 (Action Bars)
 --
 -- Bartender4 uses LibActionButton-1.0 (LAB) to manage action bar buttons.
 -- On TBC Classic Anniversary, two event-handling hot paths generate

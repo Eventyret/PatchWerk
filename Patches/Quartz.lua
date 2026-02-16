@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- AddonTweaks - Performance patches for Quartz (Cast Bars)
+-- PatchWerk - Performance patches for Quartz (Cast Bars)
 --
 -- Quartz creates cast bar frames with per-frame OnUpdate handlers for
 -- smooth animation.  On TBC Classic Anniversary the full 60fps update
@@ -19,7 +19,7 @@ local _, ns = ...
 local function ThrottleBarOnUpdate(barName)
     local bar = _G[barName]
     if not bar then return false end
-    if bar._addonTweaksThrottled then return true end
+    if bar._pwThrottled then return true end
     local origScript = bar:GetScript("OnUpdate")
     if not origScript then return false end
 
@@ -30,7 +30,7 @@ local function ThrottleBarOnUpdate(barName)
         origScript(self, accum)
         accum = 0
     end)
-    bar._addonTweaksThrottled = true
+    bar._pwThrottled = true
     return true
 end
 

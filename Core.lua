@@ -1,4 +1,4 @@
--- AddonTweaks - Performance patches for popular addons
+-- PatchWerk - Performance patches for popular addons
 -- Core initialization and settings framework
 
 local ADDON_NAME, ns = ...
@@ -96,7 +96,7 @@ ns.addonGroups = {
 }
 
 function ns:GetDB()
-    return AddonTweaksDB
+    return PatchWerkDB
 end
 
 function ns:GetOption(key)
@@ -121,7 +121,7 @@ function ns:IsAddonLoaded(addonName)
 end
 
 -- Print a message to chat
-local CHAT_PREFIX = "|cff33ccff[AddonTweaks]|r "
+local CHAT_PREFIX = "|cff33ccff[PatchWerk]|r "
 function ns:Print(msg)
     DEFAULT_CHAT_FRAME:AddMessage(CHAT_PREFIX .. msg)
 end
@@ -133,15 +133,16 @@ loader:SetScript("OnEvent", function(self, event, addon)
     if addon ~= ADDON_NAME then return end
     self:UnregisterEvent("ADDON_LOADED")
 
-    -- Initialize saved variables
-    if not AddonTweaksDB then
-        AddonTweaksDB = {}
+    -- Initialize saved variables (migrate from old name if needed)
+    if not PatchWerkDB then
+        PatchWerkDB = AddonTweaksDB or {}
+        AddonTweaksDB = nil
     end
 
     -- Copy missing defaults
     for key, value in pairs(defaults) do
-        if AddonTweaksDB[key] == nil then
-            AddonTweaksDB[key] = value
+        if PatchWerkDB[key] == nil then
+            PatchWerkDB[key] = value
         end
     end
 

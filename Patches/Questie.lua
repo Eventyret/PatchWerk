@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- AddonTweaks - Performance patches for Questie (Quest Helper)
+-- PatchWerk - Performance patches for Questie (Quest Helper)
 --
 -- Questie is the most popular quest helper addon for Classic, but its
 -- event-driven update paths fire far more often than necessary on TBC

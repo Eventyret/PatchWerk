@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- AddonTweaks - Performance patches for OmniCC (Cooldown Text)
+-- PatchWerk - Performance patches for OmniCC (Cooldown Text)
 --
 -- OmniCC hooks every cooldown frame to display countdown text.  On TBC
 -- Classic Anniversary several hot paths cause redundant API calls:

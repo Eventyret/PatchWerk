@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- AddonTweaks - Performance patches for Titan Panel
+-- PatchWerk - Performance patches for Titan Panel
 --
 -- Titan Panel is a popular information bar addon that displays system
 -- stats, bag space, reputation, and more.  On TBC Classic Anniversary,

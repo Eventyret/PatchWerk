@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- AddonTweaks - Performance patches for Plater (Nameplates)
+-- PatchWerk - Performance patches for Plater (Nameplates)
 --
 -- Plater is a popular nameplate addon but has several hot paths that
 -- generate unnecessary garbage collection pressure and CPU overhead

@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- AddonTweaks - Performance patches for Auctionator (Auction House)
+-- PatchWerk - Performance patches for Auctionator (Auction House)
 --
 -- Auctionator hooks into the Legacy AH system for TBC Classic.  Several
 -- hot paths cause unnecessary server queries and memory allocations:
