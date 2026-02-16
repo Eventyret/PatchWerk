@@ -45,7 +45,8 @@ ns.patches["Plater_fpsCheck"] = function()
 
     fpsFrame:SetScript("OnUpdate", function()
         local data = Plater.FPSData
-        if not data then return end
+        -- Guard all sub-fields: they may be nil during Plater's deferred init
+        if not data or not data.startTime or not data.frames then return end
 
         local curTime = GetTime()
 
@@ -62,7 +63,9 @@ ns.patches["Plater_fpsCheck"] = function()
 
             local numPlates = 30
             if Plater.GetNominalNumNameplates then
-                numPlates = Plater.GetNominalNumNameplates() or 30
+                -- Use pcall: may be method or function depending on Plater version
+                local ok, result = pcall(Plater.GetNominalNumNameplates, Plater)
+                if ok and result then numPlates = result end
             end
 
             data.platesToUpdatePerFrame = ceil(numPlates / throttle / data.curFPS)
@@ -101,6 +104,11 @@ ns.patches["Plater_healthText"] = function()
 
         local newHealth = healthBar.currentHealth
         local newMax    = healthBar.currentHealthMax
+
+        -- If fields are nil (not yet populated), always pass through to original
+        if newHealth == nil or newMax == nil then
+            return orig(healthBar, unitId, showHealthAmount, showPercentAmount, showDecimals)
+        end
 
         if healthBar._atLastHealth == newHealth and healthBar._atLastMax == newMax then
             return
@@ -147,10 +155,10 @@ ns.patches["Plater_auraAlign"] = function()
             return orig(self, ...)
         end
 
-        -- Count currently visible icons
+        -- Count currently visible icons (type guard for non-frame metadata entries)
         local count = 0
         for _, icon in pairs(container) do
-            if icon:IsShown() then
+            if type(icon) == "table" and icon.IsShown and icon:IsShown() then
                 count = count + 1
             end
         end
