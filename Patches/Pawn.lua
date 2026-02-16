@@ -1,0 +1,167 @@
+------------------------------------------------------------------------
+-- AddonTweaks - Performance patches for Pawn (Item Comparison)
+--
+-- Pawn hooks 20+ GameTooltip methods to annotate items with upgrade
+-- arrows and scale values.  On TBC Classic Anniversary several of its
+-- hot paths are unnecessarily expensive because they were written for
+-- retail where the cost is hidden by faster hardware.
+-- These patches address:
+--   1. Pawn_cacheIndex     - O(1) hash lookup instead of O(200) linear scan
+--   2. Pawn_tooltipDedup   - Skip redundant tooltip processing for same item
+--   3. Pawn_upgradeCache   - Cache upgrade comparison results per item link
+------------------------------------------------------------------------
+
+local _, ns = ...
+
+local wipe = wipe
+
+------------------------------------------------------------------------
+-- 1. Pawn_cacheIndex
+--
+-- PawnGetCachedItem(ItemLink, ItemName, NumLines) iterates the entire
+-- PawnItemCache array (up to 200 entries) checking ItemLink == CachedItem.Link
+-- for every tooltip show.  PawnCacheItem adds items and PawnUncacheItem
+-- removes them.
+--
+-- Fix: Maintain a parallel hash index keyed by ItemLink so the most
+-- common lookup path (by link, no NumLines validation) is O(1).
+------------------------------------------------------------------------
+ns.patches["Pawn_cacheIndex"] = function()
+    if not PawnGetCachedItem then return end
+    if not PawnCacheItem then return end
+
+    local cacheIndex = {}
+
+    -- Hook PawnCacheItem to maintain index
+    local origCache = PawnCacheItem
+    PawnCacheItem = function(CachedItem, ...)
+        origCache(CachedItem, ...)
+        if CachedItem and CachedItem.Link then
+            cacheIndex[CachedItem.Link] = CachedItem
+        end
+    end
+
+    -- Hook PawnUncacheItem to maintain index
+    if PawnUncacheItem then
+        local origUncache = PawnUncacheItem
+        PawnUncacheItem = function(CachedItem, ...)
+            if CachedItem and CachedItem.Link then
+                cacheIndex[CachedItem.Link] = nil
+            end
+            return origUncache(CachedItem, ...)
+        end
+    end
+
+    -- Hook PawnClearCache if it exists
+    if PawnClearCache then
+        local origClear = PawnClearCache
+        PawnClearCache = function(...)
+            wipe(cacheIndex)
+            return origClear(...)
+        end
+    end
+
+    -- Replace PawnGetCachedItem with hash lookup for link-based queries
+    local origGet = PawnGetCachedItem
+    PawnGetCachedItem = function(ItemLink, ItemName, NumLines)
+        -- Fast path: direct link lookup (most common case)
+        if ItemLink and not NumLines then
+            local cached = cacheIndex[ItemLink]
+            if cached then return cached end
+        end
+        -- Fallback to original for NumLines validation or name-only lookups
+        return origGet(ItemLink, ItemName, NumLines)
+    end
+end
+
+------------------------------------------------------------------------
+-- 2. Pawn_tooltipDedup
+--
+-- PawnUpdateTooltip is hooked on 20+ different GameTooltip methods
+-- (SetBagItem, SetMerchantItem, SetHyperlink, etc.).  Multiple hooks
+-- can fire for the same item, causing the full parse pipeline to run
+-- repeatedly for no benefit.
+--
+-- Fix: Track the last processed item link per tooltip and skip if
+-- the same link is seen again.  Clear on Hide / ClearLines.
+------------------------------------------------------------------------
+ns.patches["Pawn_tooltipDedup"] = function()
+    if not PawnUpdateTooltip then return end
+
+    local lastProcessedLink = {}
+
+    local origUpdate = PawnUpdateTooltip
+    PawnUpdateTooltip = function(TooltipName, MethodName, Param1, ...)
+        -- Try to determine the item link early
+        local itemLink
+        if MethodName == "SetHyperlink" and Param1 then
+            itemLink = Param1
+        else
+            local tip = _G[TooltipName]
+            if tip and tip.GetItem then
+                local _, link = tip:GetItem()
+                itemLink = link
+            end
+        end
+
+        -- Skip if we already processed this exact item on this tooltip
+        if itemLink and lastProcessedLink[TooltipName] == itemLink then
+            return
+        end
+        lastProcessedLink[TooltipName] = itemLink
+        return origUpdate(TooltipName, MethodName, Param1, ...)
+    end
+
+    -- Clear on tooltip hide/clear
+    if GameTooltip then
+        hooksecurefunc(GameTooltip, "Hide", function()
+            lastProcessedLink["GameTooltip"] = nil
+        end)
+        hooksecurefunc(GameTooltip, "ClearLines", function()
+            lastProcessedLink["GameTooltip"] = nil
+        end)
+    end
+end
+
+------------------------------------------------------------------------
+-- 3. Pawn_upgradeCache
+--
+-- PawnIsItemAnUpgrade(Item) calls PawnGetItemDataForInventorySlot for
+-- every equipped slot, for every enabled scale, on every tooltip show.
+-- This is extremely expensive when multiple scales are active.
+--
+-- Fix: Cache the result per item link and invalidate when the player's
+-- equipped items change (UNIT_INVENTORY_CHANGED, PLAYER_EQUIPMENT_CHANGED).
+------------------------------------------------------------------------
+ns.patches["Pawn_upgradeCache"] = function()
+    if not PawnIsItemAnUpgrade then return end
+
+    local upgradeCache = {}
+
+    local origIsUpgrade = PawnIsItemAnUpgrade
+    PawnIsItemAnUpgrade = function(Item, DoNotRescan)
+        if not Item or not Item.Link then
+            return origIsUpgrade(Item, DoNotRescan)
+        end
+
+        local cached = upgradeCache[Item.Link]
+        if cached ~= nil then
+            if cached == false then return nil end
+            return unpack(cached)
+        end
+
+        local result = { origIsUpgrade(Item, DoNotRescan) }
+        upgradeCache[Item.Link] = (#result > 0 and result[1] ~= nil) and result or false
+        return unpack(result)
+    end
+
+    -- Invalidate cache when equipped items change
+    local invalidator = CreateFrame("Frame")
+    invalidator:RegisterEvent("UNIT_INVENTORY_CHANGED")
+    invalidator:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+    invalidator:SetScript("OnEvent", function(_, _, unit)
+        if unit == "player" or unit == nil then
+            wipe(upgradeCache)
+        end
+    end)
+end
