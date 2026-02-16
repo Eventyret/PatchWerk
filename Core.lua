@@ -9,7 +9,7 @@ local tostring = tostring
 local CreateFrame = CreateFrame
 local DEFAULT_CHAT_FRAME = DEFAULT_CHAT_FRAME
 
-ns.VERSION = "1.0.0"
+ns.VERSION = "2.0.0"
 
 -- Default settings: all patches enabled by default
 -- Keys follow the pattern: "TargetAddon_patchName"
@@ -43,6 +43,31 @@ local defaults = {
     TitanPanel_reputationsOnUpdate = true,
     TitanPanel_bagDebounce = true,
     TitanPanel_performanceThrottle = true,
+    -- OmniCC
+    OmniCC_gcdSpellCache = true,
+    OmniCC_ruleMatchCache = true,
+    OmniCC_finishEffectGuard = true,
+    -- Prat-3.0
+    Prat_smfThrottle = true,
+    Prat_timestampCache = true,
+    Prat_bubblesGuard = true,
+    -- GatherMate2
+    GatherMate2_minimapThrottle = true,
+    GatherMate2_rebuildGuard = true,
+    GatherMate2_cleuUnregister = true,
+    -- Quartz
+    Quartz_castBarThrottle = true,
+    Quartz_swingBarThrottle = true,
+    Quartz_gcdBarThrottle = true,
+    -- Auctionator
+    Auctionator_ownerQueryThrottle = true,
+    Auctionator_throttleBroadcast = true,
+    Auctionator_priceAgeOptimize = true,
+    Auctionator_dbKeyCache = true,
+    -- VuhDo
+    VuhDo_emptyQueueGuard = true,
+    VuhDo_debuffDebounce = true,
+    VuhDo_rangeSkipDead = true,
 }
 
 ns.defaults = defaults
@@ -63,6 +88,12 @@ ns.addonGroups = {
     { id = "LFGBulletinBoard",  label = "LFG Bulletin Board",       deps = { "LFGBulletinBoard" } },
     { id = "Bartender4",        label = "Bartender4 (Action Bars)",  deps = { "Bartender4" } },
     { id = "TitanPanel",        label = "Titan Panel",               deps = { "Titan" } },
+    { id = "OmniCC",            label = "OmniCC (Cooldown Text)",    deps = { "OmniCC" } },
+    { id = "Prat",              label = "Prat-3.0 (Chat)",           deps = { "Prat-3.0" } },
+    { id = "GatherMate2",       label = "GatherMate2 (Gathering)",   deps = { "GatherMate2" } },
+    { id = "Quartz",            label = "Quartz (Cast Bars)",        deps = { "Quartz" } },
+    { id = "Auctionator",       label = "Auctionator (Auction House)", deps = { "Auctionator" } },
+    { id = "VuhDo",             label = "VuhDo (Raid Frames)",       deps = { "VuhDo" } },
 }
 
 function ns:GetDB()
