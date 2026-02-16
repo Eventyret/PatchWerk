@@ -86,6 +86,20 @@ ns.patches["TipTac_inspectCache"] = function()
 
     local origInspect = LFF.InspectUnit
 
+    -- Block NotifyInspect server queries when our extended cache says it's fresh.
+    -- Passing bypassTimeout=false to the original is not enough because the
+    -- library's internal 5s timeout (LFF_CACHE_TIMEOUT) expires and it would
+    -- send a new server query anyway. Instead, temporarily suppress NotifyInspect
+    -- around the call so the library still processes its internal state and
+    -- delivers cached data via callback, but no server roundtrip occurs.
+    local origNotifyInspect = NotifyInspect
+    local suppressInspect = false
+
+    NotifyInspect = function(unit)
+        if suppressInspect then return end
+        return origNotifyInspect(unit)
+    end
+
     LFF.InspectUnit = function(self, unitID, callbackForInspectData, removeCallback, bypassTimeout)
         -- If explicitly bypassed, let it through unmodified
         if bypassTimeout then
@@ -97,12 +111,15 @@ ns.patches["TipTac_inspectCache"] = function()
         if guid then
             local lastTime = inspectTimes[guid]
             if lastTime and (GetTime() - lastTime) < EXTENDED_TIMEOUT then
-                -- Within our extended window: delegate to original with
-                -- bypassTimeout=false so it returns its internal cache
-                return origInspect(self, unitID, callbackForInspectData, removeCallback, false)
+                -- Within our extended window: call original but suppress the
+                -- actual server query. The library will deliver cached data.
+                suppressInspect = true
+                local result = origInspect(self, unitID, callbackForInspectData, removeCallback, false)
+                suppressInspect = false
+                return result
             end
             -- Outside the window (or first time): record timestamp and
-            -- let the original proceed normally
+            -- let the original proceed normally (with real server query)
             inspectTimes[guid] = GetTime()
         end
 
