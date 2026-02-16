@@ -32,7 +32,9 @@ local hooksecurefunc   = hooksecurefunc
 -- intended update rate while eliminating per-frame overhead.
 ------------------------------------------------------------------------
 ns.patches["TitanPanel_reputationsOnUpdate"] = function()
-    local btn = _G["TitanPanelReputationsButton"]
+    -- Elib constructs frame name as "TitanPanel" .. id .. "Button"
+    -- TitanReputations uses id = "TITAN_REPUTATION_XP"
+    local btn = _G["TitanPanelTITAN_REPUTATION_XPButton"] or _G["TitanPanelReputationsButton"]
     if not btn then return end
 
     local checked = false
@@ -72,18 +74,20 @@ ns.patches["TitanPanel_bagDebounce"] = function()
     local origUpdate = TitanPanelButton_UpdateButton
     local bagTimer = nil
 
-    TitanPanelButton_UpdateButton = function(id, ...)
+    TitanPanelButton_UpdateButton = function(id, setButtonWidth, ...)
         if id == "Bag" then
             if bagTimer then
                 bagTimer:Cancel()
             end
+            -- Preserve setButtonWidth argument for the deferred call
+            local capturedWidth = setButtonWidth
             bagTimer = C_Timer.NewTimer(0.2, function()
                 bagTimer = nil
-                origUpdate("Bag")
+                origUpdate("Bag", capturedWidth)
             end)
             return
         end
-        return origUpdate(id, ...)
+        return origUpdate(id, setButtonWidth, ...)
     end
 end
 
