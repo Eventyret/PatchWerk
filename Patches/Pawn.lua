@@ -32,12 +32,22 @@ ns.patches["Pawn_cacheIndex"] = function()
 
     local cacheIndex = {}
 
-    -- Hook PawnCacheItem to maintain index
+    -- Hook PawnCacheItem to maintain index and handle LRU eviction
     local origCache = PawnCacheItem
     PawnCacheItem = function(CachedItem, ...)
         origCache(CachedItem, ...)
         if CachedItem and CachedItem.Link then
             cacheIndex[CachedItem.Link] = CachedItem
+        end
+        -- Rebuild index from PawnItemCache to handle LRU eviction.
+        -- PawnCacheItem may tremove old entries that our index still references.
+        if PawnItemCache then
+            wipe(cacheIndex)
+            for _, item in ipairs(PawnItemCache) do
+                if item and item.Link then
+                    cacheIndex[item.Link] = item
+                end
+            end
         end
     end
 
@@ -64,6 +74,10 @@ ns.patches["Pawn_cacheIndex"] = function()
     -- Replace PawnGetCachedItem with hash lookup for link-based queries
     local origGet = PawnGetCachedItem
     PawnGetCachedItem = function(ItemLink, ItemName, NumLines)
+        -- Respect debug mode: Pawn disables caching when PawnCommon.Debug is true
+        if PawnCommon and PawnCommon.Debug then
+            return origGet(ItemLink, ItemName, NumLines)
+        end
         -- Fast path: direct link lookup (most common case)
         if ItemLink and not NumLines then
             local cached = cacheIndex[ItemLink]
@@ -112,15 +126,20 @@ ns.patches["Pawn_tooltipDedup"] = function()
         return origUpdate(TooltipName, MethodName, Param1, ...)
     end
 
-    -- Clear on tooltip hide/clear
-    if GameTooltip then
-        hooksecurefunc(GameTooltip, "Hide", function()
-            lastProcessedLink["GameTooltip"] = nil
+    -- Clear on tooltip hide/clear (GameTooltip + shopping comparison tooltips)
+    local function HookTooltipClear(tip, name)
+        if not tip then return end
+        hooksecurefunc(tip, "Hide", function()
+            lastProcessedLink[name] = nil
         end)
-        hooksecurefunc(GameTooltip, "ClearLines", function()
-            lastProcessedLink["GameTooltip"] = nil
+        hooksecurefunc(tip, "ClearLines", function()
+            lastProcessedLink[name] = nil
         end)
     end
+
+    HookTooltipClear(GameTooltip, "GameTooltip")
+    HookTooltipClear(ShoppingTooltip1, "ShoppingTooltip1")
+    HookTooltipClear(ShoppingTooltip2, "ShoppingTooltip2")
 end
 
 ------------------------------------------------------------------------
@@ -151,7 +170,17 @@ ns.patches["Pawn_upgradeCache"] = function()
         end
 
         local result = { origIsUpgrade(Item, DoNotRescan) }
-        upgradeCache[Item.Link] = (#result > 0 and result[1] ~= nil) and result or false
+
+        -- Only cache definitive results. When DoNotRescan is true and result
+        -- is nil, Pawn means "best-items data not computed yet" - a temporary
+        -- state that should not be permanently cached as "not an upgrade".
+        if #result > 0 and result[1] ~= nil then
+            upgradeCache[Item.Link] = result
+        elseif not DoNotRescan then
+            -- nil result with DoNotRescan=false is definitive (no upgrade)
+            upgradeCache[Item.Link] = false
+        end
+
         return unpack(result)
     end
 
@@ -159,8 +188,10 @@ ns.patches["Pawn_upgradeCache"] = function()
     local invalidator = CreateFrame("Frame")
     invalidator:RegisterEvent("UNIT_INVENTORY_CHANGED")
     invalidator:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
-    invalidator:SetScript("OnEvent", function(_, _, unit)
-        if unit == "player" or unit == nil then
+    invalidator:SetScript("OnEvent", function(_, event, arg1)
+        -- UNIT_INVENTORY_CHANGED: arg1 = unitID string ("player")
+        -- PLAYER_EQUIPMENT_CHANGED: arg1 = equipmentSlot number
+        if event == "PLAYER_EQUIPMENT_CHANGED" or arg1 == "player" then
             wipe(upgradeCache)
         end
     end)
