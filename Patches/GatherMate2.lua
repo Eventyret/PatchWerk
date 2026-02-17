@@ -82,7 +82,7 @@ ns.patches["GatherMate2_rebuildGuard"] = function()
     local lastRebuildX, lastRebuildY = -1, -1
 
     Display.UpdateMiniMap = function(self, force)
-        if force then
+        if not force then
             local x, y = HBD:GetPlayerWorldPosition()
             if x and y then
                 if x == lastRebuildX and y == lastRebuildY then

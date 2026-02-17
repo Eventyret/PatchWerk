@@ -9,7 +9,7 @@ local tostring = tostring
 local CreateFrame = CreateFrame
 local DEFAULT_CHAT_FRAME = DEFAULT_CHAT_FRAME
 
-ns.VERSION = "2.0.0"
+ns.VERSION = "2.1.0"
 
 -- Default settings: all patches enabled by default
 -- Keys follow the pattern: "TargetAddon_patchName"
@@ -19,6 +19,7 @@ local defaults = {
     Details_fadeHandler = true,
     Details_refreshCap = true,
     Details_npcIdCache = true,
+    Details_formatCache = true,
     -- Plater
     Plater_fpsCheck = true,
     Plater_healthText = true,
@@ -33,6 +34,7 @@ local defaults = {
     -- Questie
     Questie_questLogThrottle = true,
     Questie_availableQuestsDebounce = true,
+    Questie_framePoolPrealloc = true,
     -- LFGBulletinBoard
     LFGBulletinBoard_updateListDirty = true,
     LFGBulletinBoard_sortSkip = true,
@@ -51,6 +53,8 @@ local defaults = {
     Prat_smfThrottle = true,
     Prat_timestampCache = true,
     Prat_bubblesGuard = true,
+    Prat_playerNamesThrottle = true,
+    Prat_guildRosterThrottle = true,
     -- GatherMate2
     GatherMate2_minimapThrottle = true,
     GatherMate2_rebuildGuard = true,
@@ -59,6 +63,7 @@ local defaults = {
     Quartz_castBarThrottle = true,
     Quartz_swingBarThrottle = true,
     Quartz_gcdBarThrottle = true,
+    Quartz_buffBucket = true,
     -- Auctionator
     Auctionator_ownerQueryThrottle = true,
     Auctionator_throttleBroadcast = true,
@@ -67,13 +72,17 @@ local defaults = {
     -- VuhDo
     VuhDo_debuffDebounce = true,
     VuhDo_rangeSkipDead = true,
+    VuhDo_inspectThrottle = true,
     -- Cell
     Cell_debuffOrderMemo = true,
     Cell_customIndicatorGuard = true,
     Cell_debuffGlowMemo = true,
+    Cell_inspectQueueThrottle = true,
     -- BigDebuffs
     BigDebuffs_hiddenDebuffsHash = true,
     BigDebuffs_attachFrameGuard = true,
+    -- EasyFrames
+    EasyFrames_healthTextFix = true,
 }
 
 ns.defaults = defaults
@@ -102,6 +111,7 @@ ns.addonGroups = {
     { id = "VuhDo",             label = "VuhDo (Raid Frames)",       deps = { "VuhDo" } },
     { id = "Cell",              label = "Cell (Raid Frames)",        deps = { "Cell" } },
     { id = "BigDebuffs",        label = "BigDebuffs (Debuff Display)", deps = { "BigDebuffs" } },
+    { id = "EasyFrames",       label = "EasyFrames (Unit Frames)",    deps = { "EasyFrames" } },
 }
 
 function ns:GetDB()
