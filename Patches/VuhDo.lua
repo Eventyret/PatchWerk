@@ -4,8 +4,9 @@
 -- VuhDo is a healing-focused raid frame addon with a deferred task
 -- system.  On TBC Classic Anniversary several global hot paths can
 -- be optimized without touching the critical healing display:
---   1. VuhDo_debuffDebounce  - Debounce UNIT_AURA debuff detection
---   2. VuhDo_rangeSkipDead   - Skip range checks for dead/DC units
+--   1. VuhDo_debuffDebounce   - Debounce UNIT_AURA debuff detection
+--   2. VuhDo_rangeSkipDead    - Skip range checks for dead/DC units
+--   3. VuhDo_inspectThrottle  - Throttle NotifyInspect polling (network)
 ------------------------------------------------------------------------
 
 local _, ns = ...
@@ -69,5 +70,37 @@ ns.patches["VuhDo_rangeSkipDead"] = function()
             end
         end
         return origUpdateRange(aUnit, aMode)
+    end
+end
+
+------------------------------------------------------------------------
+-- 3. VuhDo_inspectThrottle
+--
+-- VUHDO_tryInspectNext() is called every ~2.1 seconds via a timer in
+-- VUHDO_handleSegment2L.  It iterates all raid members and sends
+-- NotifyInspect() for the first uninspected unit.  Each NotifyInspect
+-- is a server round-trip.  In a 25-man raid with members joining/leaving
+-- or going out of range, this sends one inspect request every 2.1 seconds
+-- continuously.
+--
+-- Fix: Throttle to once every 5 seconds.  Role detection still works,
+-- just completes the initial scan more slowly (~125s vs ~52s for 25
+-- players).  Since most roles are determined via other means, the
+-- practical impact is minimal.
+------------------------------------------------------------------------
+ns.patches["VuhDo_inspectThrottle"] = function()
+    if type(VUHDO_tryInspectNext) ~= "function" then return end
+
+    local origTryInspect = VUHDO_tryInspectNext
+    local lastInspectTime = 0
+    local INSPECT_INTERVAL = 5
+
+    VUHDO_tryInspectNext = function(...)
+        local now = GetTime()
+        if now - lastInspectTime < INSPECT_INTERVAL then
+            return
+        end
+        lastInspectTime = now
+        return origTryInspect(...)
     end
 end

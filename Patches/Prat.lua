@@ -3,9 +3,11 @@
 --
 -- Prat-3.0 hooks multiple chat frame systems.  On TBC Classic
 -- Anniversary several hot paths cause unnecessary per-frame overhead:
---   1. Prat_smfThrottle    - Throttle SMFHax ChatFrame_OnUpdate
---   2. Prat_timestampCache - Cache timestamp format strings per second
---   3. Prat_bubblesGuard   - Skip bubble scan when none exist
+--   1. Prat_smfThrottle          - Throttle SMFHax ChatFrame_OnUpdate
+--   2. Prat_timestampCache       - Cache timestamp format strings per second
+--   3. Prat_bubblesGuard         - Skip bubble scan when none exist
+--   4. Prat_playerNamesThrottle  - Throttle UNIT_AURA in PlayerNames
+--   5. Prat_guildRosterThrottle  - Rate-limit GuildRoster() calls (network)
 ------------------------------------------------------------------------
 
 local _, ns = ...
@@ -171,5 +173,76 @@ ns.patches["Prat_bubblesGuard"] = function()
         for _ in pairs(all) do hasAny = true; break end
         if not hasAny then return end
         return origFormat(self)
+    end
+end
+
+------------------------------------------------------------------------
+-- 4. Prat_playerNamesThrottle
+--
+-- The PlayerNames module registers for UNIT_AURA events to track
+-- player class/name info.  In raids, UNIT_AURA fires 20-50 times per
+-- second as buffs and debuffs apply across all raid members.  Player
+-- name/class info doesn't change on aura updates.
+--
+-- Fix: Throttle the UNIT_AURA handler to 5Hz (200ms).  Player info
+-- updates are purely cosmetic (chat name coloring) and don't need
+-- instant responsiveness.
+------------------------------------------------------------------------
+ns.patches["Prat_playerNamesThrottle"] = function()
+    if not Prat then return end
+    local addon = Prat.Addon
+    if not addon or not addon.GetModule then return end
+
+    local ok, pnModule = pcall(addon.GetModule, addon, "PlayerNames", true)
+    if not ok or not pnModule then return end
+    if not pnModule.UNIT_AURA then return end
+
+    local origAura = pnModule.UNIT_AURA
+    local lastAuraUpdate = 0
+    local THROTTLE = 0.2
+
+    pnModule.UNIT_AURA = function(self, event, ...)
+        local now = GetTime()
+        if now - lastAuraUpdate < THROTTLE then return end
+        lastAuraUpdate = now
+        return origAura(self, event, ...)
+    end
+end
+
+------------------------------------------------------------------------
+-- 5. Prat_guildRosterThrottle
+--
+-- The PlayerNames module calls C_GuildInfo.GuildRoster() (or the legacy
+-- GuildRoster()) inside its GUILD_ROSTER_UPDATE handler.  This creates
+-- a feedback loop: the server responds to GuildRoster() with another
+-- GUILD_ROSTER_UPDATE event, which calls GuildRoster() again.  The
+-- server has its own ~15s internal throttle, but the client still
+-- attempts the call each time, generating outbound network traffic.
+-- In a large active guild, GUILD_ROSTER_UPDATE fires frequently from
+-- members logging in/out, zone changes, etc.
+--
+-- Fix: Rate-limit the module's GuildRoster reference to once per 15
+-- seconds on the client side, breaking the feedback loop.
+------------------------------------------------------------------------
+ns.patches["Prat_guildRosterThrottle"] = function()
+    if not Prat then return end
+    local addon = Prat.Addon
+    if not addon or not addon.GetModule then return end
+
+    local ok, pnModule = pcall(addon.GetModule, addon, "PlayerNames", true)
+    if not ok or not pnModule then return end
+    if type(pnModule.GuildRoster) ~= "function" then return end
+
+    local origGuildRoster = pnModule.GuildRoster
+    local lastCallTime = 0
+    local COOLDOWN = 15
+
+    pnModule.GuildRoster = function(...)
+        local now = GetTime()
+        if now - lastCallTime < COOLDOWN then
+            return
+        end
+        lastCallTime = now
+        return origGuildRoster(...)
     end
 end

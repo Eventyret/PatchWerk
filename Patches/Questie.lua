@@ -80,3 +80,39 @@ ns.patches["Questie_availableQuestsDebounce"] = function()
         end)
     end
 end
+
+------------------------------------------------------------------------
+-- 3. Questie_framePoolPrealloc
+--
+-- Questie creates map icon frames on-demand via CreateFrame when
+-- displaying new quests.  The first time a batch of quest icons is
+-- needed (zone transition, quest accept burst), the synchronous
+-- CreateFrame calls cause a visible stutter.
+--
+-- Fix: Warm up the frame pool 3 seconds after login by borrowing and
+-- immediately returning 20 frames.  This spreads the CreateFrame cost
+-- over idle time instead of hitting it during active gameplay.
+------------------------------------------------------------------------
+ns.patches["Questie_framePoolPrealloc"] = function()
+    if not QuestieLoader or not QuestieLoader.ImportModule then return end
+    if not C_Timer or not C_Timer.NewTimer then return end
+
+    local ok, QFP = pcall(QuestieLoader.ImportModule, QuestieLoader, "QuestieFramePool")
+    if not ok or not QFP then return end
+    if not QFP.GetFrame then return end
+
+    C_Timer.NewTimer(3, function()
+        local prealloc = {}
+        for i = 1, 20 do
+            local ok2, frame = pcall(QFP.GetFrame, QFP)
+            if ok2 and frame and frame.Unload then
+                prealloc[i] = frame
+            else
+                break
+            end
+        end
+        for _, frame in ipairs(prealloc) do
+            pcall(frame.Unload, frame)
+        end
+    end)
+end

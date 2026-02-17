@@ -166,3 +166,42 @@ ns.patches["Details_npcIdCache"] = function()
         return result
     end
 end
+
+------------------------------------------------------------------------
+-- 5. Details_formatCache
+--
+-- Details.ToK2() formats damage/heal numbers for display in meter bars.
+-- It is called 10-50 times per window refresh for bar labels, and the
+-- same total values often repeat across multiple windows or refreshes.
+--
+-- Fix: Cache the last 200 formatted results.  Wipe when the cache grows
+-- beyond 200 entries to prevent unbounded memory use during long
+-- sessions with many unique values (boss encounters with varying DoT
+-- ticks, etc.).
+------------------------------------------------------------------------
+ns.patches["Details_formatCache"] = function()
+    if not Details then return end
+    if not Details.ToK2 then return end
+
+    local origToK2 = Details.ToK2
+    local cache = {}
+    local cacheCount = 0
+
+    Details.ToK2 = function(number)
+        if not number then return origToK2(number) end
+
+        local cached = cache[number]
+        if cached then return cached end
+
+        if cacheCount >= 200 then
+            wipe(cache)
+            cacheCount = 0
+        end
+
+        local result = origToK2(number)
+        cache[number] = result
+        cacheCount = cacheCount + 1
+
+        return result
+    end
+end

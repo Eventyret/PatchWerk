@@ -4,15 +4,17 @@
 -- Cell is a popular raid frame addon with a custom indicator system.
 -- On TBC Classic Anniversary, several functions in the aura processing
 -- hot path are called redundantly with identical arguments:
---   1. Cell_debuffOrderMemo      - Memoize GetDebuffOrder last-call result
---   2. Cell_customIndicatorGuard - Skip UpdateCustomIndicators when no
---                                  custom indicators are configured
---   3. Cell_debuffGlowMemo       - Memoize GetDebuffGlow last-call result
+--   1. Cell_debuffOrderMemo        - Memoize GetDebuffOrder last-call result
+--   2. Cell_customIndicatorGuard   - Skip UpdateCustomIndicators when no
+--                                    custom indicators are configured
+--   3. Cell_debuffGlowMemo         - Memoize GetDebuffGlow last-call result
+--   4. Cell_inspectQueueThrottle   - Throttle LibGroupInfo inspect queue (network)
 ------------------------------------------------------------------------
 
 local _, ns = ...
 
 local pairs = pairs
+local GetTime = GetTime
 
 ------------------------------------------------------------------------
 -- 1. Cell_debuffOrderMemo
@@ -117,4 +119,35 @@ ns.patches["Cell_debuffGlowMemo"] = function()
         lastGlowType, lastGlowOpts = orig(spellName, spellId, count)
         return lastGlowType, lastGlowOpts
     end
+end
+
+------------------------------------------------------------------------
+-- 4. Cell_inspectQueueThrottle
+--
+-- Cell bundles LibGroupInfo which polls an inspect queue via an OnUpdate
+-- handler every 0.25 seconds.  Each tick sends a NotifyInspect() server
+-- request for the next uninspected group member.  In a 25-man raid this
+-- means 4 inspect requests per second for the first ~6 seconds after
+-- joining, and the server silently drops most of them, causing retries.
+--
+-- Fix: Wrap the OnUpdate to only fire every 1.5 seconds (matching the
+-- library's own RETRY_INTERVAL).  This reduces burst inspect traffic
+-- by ~83% and avoids server-side throttle drops.
+------------------------------------------------------------------------
+ns.patches["Cell_inspectQueueThrottle"] = function()
+    local frame = _G["LibGroupInfoFrame"]
+    if not frame then return end
+
+    local origOnUpdate = frame:GetScript("OnUpdate")
+    if not origOnUpdate then return end
+
+    local accumulator = 0
+    local INTERVAL = 1.5
+
+    frame:SetScript("OnUpdate", function(self, elapsed)
+        accumulator = accumulator + elapsed
+        if accumulator < INTERVAL then return end
+        origOnUpdate(self, accumulator)
+        accumulator = 0
+    end)
 end

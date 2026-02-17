@@ -127,3 +127,44 @@ ns.patches["Quartz_gcdBarThrottle"] = function()
     if not Quartz3 then return end
     ThrottleBarViaOnShow("Quartz3GCDBar")
 end
+
+------------------------------------------------------------------------
+-- 4. Quartz_buffBucket
+--
+-- The Buff module updates target/focus buff bars on every
+-- PLAYER_TARGET_CHANGED and PLAYER_FOCUS_CHANGED event.  During
+-- rapid target switching (tab-targeting, healer mouse-over) these
+-- fire in quick succession, each iterating up to 72 auras
+-- (32 buffs + 40 debuffs) via UnitAura.
+--
+-- Fix: Throttle UpdateTargetBars and UpdateFocusBars to at most once
+-- per 100ms.  The module already uses AceBucket to batch UNIT_AURA at
+-- 0.5s, so target/focus changes are the remaining hot path.
+------------------------------------------------------------------------
+ns.patches["Quartz_buffBucket"] = function()
+    if not Quartz3 then return end
+
+    local ok, Buff = pcall(Quartz3.GetModule, Quartz3, "Buff", true)
+    if not ok or not Buff then return end
+    if not Buff.UpdateTargetBars or not Buff.UpdateFocusBars then return end
+
+    local GetTime = GetTime
+    local lastTargetUpdate, lastFocusUpdate = 0, 0
+    local THROTTLE = 0.1
+
+    local origUpdateTarget = Buff.UpdateTargetBars
+    Buff.UpdateTargetBars = function(self)
+        local now = GetTime()
+        if now - lastTargetUpdate < THROTTLE then return end
+        lastTargetUpdate = now
+        return origUpdateTarget(self)
+    end
+
+    local origUpdateFocus = Buff.UpdateFocusBars
+    Buff.UpdateFocusBars = function(self)
+        local now = GetTime()
+        if now - lastFocusUpdate < THROTTLE then return end
+        lastFocusUpdate = now
+        return origUpdateFocus(self)
+    end
+end
