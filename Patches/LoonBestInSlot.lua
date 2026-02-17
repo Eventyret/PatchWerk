@@ -213,10 +213,14 @@ ns.patches["LoonBestInSlot_containerCompat"] = function()
             end
         end
 
-        -- Read bags using classic global functions instead of C_Container
+        -- Read bags using whichever container API is available
+        local GetNumSlots = (C_Container and C_Container.GetContainerNumSlots) or GetContainerNumSlots
+        local GetItemLink = (C_Container and C_Container.GetContainerItemLink) or GetContainerItemLink
+        if not GetNumSlots or not GetItemLink then return end
+
         for bag = -1, NUM_BAG_SLOTS + NUM_BANKBAGSLOTS do
-            for slot = 1, GetContainerNumSlots(bag) do
-                local itemLink = GetContainerItemLink(bag, slot)
+            for slot = 1, GetNumSlots(bag) do
+                local itemLink = GetItemLink(bag, slot)
                 if itemLink then
                     local itemId = LBIS:GetItemIdFromLink(itemLink)
                     if bag < 0 or bag > NUM_BAG_SLOTS then
