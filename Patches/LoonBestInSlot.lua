@@ -22,6 +22,45 @@
 
 local _, ns = ...
 
+------------------------------------------------------------------------
+-- Patch metadata (consumed by Options.lua for the settings GUI)
+------------------------------------------------------------------------
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "LoonBestInSlot_apiCompat", group = "LoonBestInSlot", label = "Fix Item Lookups",
+    help = "Fixes item and spell info loading that would otherwise break on TBC Classic Anniversary.",
+    detail = "LoonBestInSlot was built for Retail WoW and uses item and spell lookup methods that do not exist in TBC Classic Anniversary. Without this fix, the addon cannot load item names, icons, or spell info, causing widespread errors and making the addon unusable. This fix swaps in Classic-compatible lookups so everything loads correctly.",
+    impact = "FPS", impactLevel = "High", category = "Fixes",
+    estimate = "Fixes broken item and spell info that made the addon unusable on Classic",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "LoonBestInSlot_containerCompat", group = "LoonBestInSlot", label = "Fix Bag Scanning",
+    help = "Fixes bag scanning so the addon can detect which gear you already own.",
+    detail = "LoonBestInSlot scans your bags to mark items you already have, but it uses a bag-reading method that only exists in Retail WoW. On TBC Classic Anniversary, this causes errors when the addon tries to check your inventory. This fix uses the Classic-compatible bag scanning instead.",
+    impact = "FPS", impactLevel = "High", category = "Fixes",
+    estimate = "Fixes bag scanning so owned items are detected correctly",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "LoonBestInSlot_settingsCompat", group = "LoonBestInSlot", label = "Fix Settings Menu",
+    help = "Fixes the /bis settings command and minimap button so they open the options panel without errors.",
+    detail = "Typing '/bis settings' or right-clicking the minimap button tries to open the settings panel using a method that only exists in Retail WoW. On TBC Classic Anniversary, this causes an error instead of showing the options. This fix makes both entry points open the settings panel correctly.",
+    impact = "FPS", impactLevel = "Medium", category = "Fixes",
+    estimate = "Fixes settings menu that would throw errors on Classic",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "LoonBestInSlot_phaseUpdate", group = "LoonBestInSlot", label = "Show All Phases",
+    help = "Unlocks all Phase 1 through 5 gear in the item browser and tooltips.",
+    detail = "LoonBestInSlot defaults to showing only Phase 1 items, which hides the majority of TBC gear from tooltips and the gear browser. Since TBC Classic Anniversary has all content through Phase 5 available, this fix unlocks all phases so you can see every relevant item.",
+    impact = "FPS", impactLevel = "Low", category = "Tweaks",
+    estimate = "All Phase 1-5 gear visible in the browser and tooltips",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "LoonBestInSlot_nilGuards", group = "LoonBestInSlot", label = "Fix Missing Items",
+    help = "Prevents the addon from breaking when certain items, gems, or enchants have incomplete data.",
+    detail = "Some items, gems, or enchants in the database are missing source information (like which boss drops them). When the addon encounters one of these gaps, it crashes and stops loading all remaining items for that spec. This fix safely skips over missing entries so the rest of your gear list loads properly.",
+    impact = "FPS", impactLevel = "Medium", category = "Fixes",
+    estimate = "Prevents the gear list from breaking when some item sources are missing",
+}
+
 local pairs  = pairs
 local tonumber = tonumber
 local tostring = tostring

@@ -14,6 +14,31 @@
 
 local _, ns = ...
 
+------------------------------------------------------------------------
+-- Patch metadata (consumed by Options.lua for the settings GUI)
+------------------------------------------------------------------------
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Plater_fpsCheck", group = "Plater", label = "Timer Leak Fix",
+    help = "Fixes a Plater bug that wastes memory by creating 60+ temporary timers per second.",
+    detail = "Plater creates 60+ temporary objects every second just to track your FPS, which causes memory buildup over time. During heavy combat with many nameplates visible, this contributes to stuttering. The fix uses a single reusable tracker instead.",
+    impact = "Memory", impactLevel = "High", category = "Performance",
+    estimate = "~2-4 FPS, fewer garbage collection stutters",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Plater_healthText", group = "Plater", label = "Health Text Skip",
+    help = "Skips nameplate health text updates when the value hasn't changed.",
+    detail = "Plater reformats nameplate health text on every update even when HP hasn't changed. With 20-40 nameplates visible in a dungeon or raid, that's thousands of wasted text updates per second for no visual benefit.",
+    impact = "FPS", impactLevel = "Low", category = "Performance",
+    estimate = "~0.5-1 FPS with 20+ nameplates visible",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Plater_auraAlign", group = "Plater", label = "Aura Icon Guard",
+    help = "Skips reshuffling buff/debuff icons on nameplates when nothing changed.",
+    detail = "Plater reshuffles buff and debuff icons on nameplates 200+ times per second during combat, creating throwaway data each time. This causes stutters when you have many visible nameplates with multiple buffs or debuffs active.",
+    impact = "Memory", impactLevel = "Medium", category = "Performance",
+    estimate = "~1-3 FPS with many nameplates in combat",
+}
+
 local pairs  = pairs
 local max    = math.max
 local ceil   = math.ceil

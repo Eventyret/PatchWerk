@@ -13,6 +13,31 @@
 
 local _, ns = ...
 
+------------------------------------------------------------------------
+-- Patch metadata (consumed by Options.lua for the settings GUI)
+------------------------------------------------------------------------
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Pawn_cacheIndex", group = "Pawn", label = "Fast Item Lookup",
+    help = "Makes Pawn find item info much faster instead of searching through hundreds of entries.",
+    detail = "Pawn searches through up to 200 cached items one by one every time you hover an item. When you're rapidly mousing over loot or vendor items, this causes tooltip lag where there's a visible delay before Pawn's upgrade arrows appear.",
+    impact = "FPS", impactLevel = "High", category = "Performance",
+    estimate = "Noticeably snappier tooltips when hovering items",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Pawn_tooltipDedup", group = "Pawn", label = "Duplicate Tooltip Guard",
+    help = "Stops Pawn from checking the same item multiple times when you mouse over it.",
+    detail = "Multiple tooltip updates fire for the same item, causing Pawn to calculate upgrade scores 2-4 times per hover. This makes tooltips feel sluggish, especially with multiple stat scales enabled.",
+    impact = "FPS", impactLevel = "Medium", category = "Performance",
+    estimate = "Faster tooltip display with multiple stat scales",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Pawn_upgradeCache", group = "Pawn", label = "Upgrade Result Cache",
+    help = "Remembers if an item is an upgrade so Pawn doesn't recheck all your gear on every hover.",
+    detail = "Pawn recalculates upgrade comparisons against all your equipped gear for every item you hover, every single time. With 2-3 active stat scales, hovering loot during a dungeon run causes noticeable tooltip delays.",
+    impact = "FPS", impactLevel = "High", category = "Performance",
+    estimate = "Instant upgrade arrows on items you've seen before",
+}
+
 local wipe = wipe
 
 ------------------------------------------------------------------------

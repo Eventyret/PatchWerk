@@ -12,6 +12,45 @@
 
 local _, ns = ...
 
+------------------------------------------------------------------------
+-- Patch metadata (consumed by Options.lua for the settings GUI)
+------------------------------------------------------------------------
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Details_hexFix", group = "Details", label = "Color Rendering Fix",
+    help = "Fixes slow color calculations in damage meter bars.",
+    detail = "Details recalculates bar colors 50+ times per window refresh using a slow method. This causes visible stuttering when you have multiple damage meter windows open during heavy combat, especially on Classic's older engine.",
+    impact = "FPS", impactLevel = "Medium", category = "Performance",
+    estimate = "~1-2 FPS in combat with multiple meter windows",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Details_fadeHandler", group = "Details", label = "Idle Animation Saver",
+    help = "Stops the fade system from wasting resources when no bars are animating.",
+    detail = "The fade animation system runs constantly even when nothing is fading, wasting resources thousands of times per minute. The fix makes it sleep when idle and only wake up when bars actually need to fade.",
+    impact = "FPS", impactLevel = "Low", category = "Performance",
+    estimate = "Eliminates idle CPU waste when no bars are fading",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Details_refreshCap", group = "Details", label = "Refresh Rate Cap",
+    help = "Prevents the damage meter from refreshing way too fast, which can tank performance on Classic.",
+    detail = "Details tries to refresh at 60fps when streamer mode is enabled, which is way too fast for Classic. This causes severe FPS drops during combat. The fix caps refreshes at 10 per second, which is still plenty responsive.",
+    impact = "FPS", impactLevel = "High", category = "Performance",
+    estimate = "~3-8 FPS in combat with streamer mode enabled",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Details_npcIdCache", group = "Details", label = "Enemy Info Cache",
+    help = "Remembers enemy info so it doesn't have to figure it out again during every fight.",
+    detail = "Details figures out enemy IDs using slow pattern matching, and redoes this dozens of times per refresh for the same enemies. During raid boss fights with many adds, this causes noticeable lag spikes when the meter updates.",
+    impact = "FPS", impactLevel = "Medium", category = "Performance",
+    estimate = "~1-3 FPS during large pulls with many adds",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Details_formatCache", group = "Details", label = "Number Format Cache",
+    help = "Caches formatted damage and heal numbers to avoid recalculating the same values.",
+    detail = "Details formats the same damage totals repeatedly during each window refresh -- 10-50 times across multiple meter windows. This patch caches the last 200 formatted results so identical numbers are returned instantly instead of rebuilt every time.",
+    impact = "FPS", impactLevel = "Medium", category = "Performance",
+    estimate = "~1-2 FPS with multiple meter windows open",
+}
+
 local pairs   = pairs
 local next    = next
 local wipe    = wipe

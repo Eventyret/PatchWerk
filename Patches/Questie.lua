@@ -15,6 +15,31 @@
 
 local _, ns = ...
 
+------------------------------------------------------------------------
+-- Patch metadata (consumed by Options.lua for the settings GUI)
+------------------------------------------------------------------------
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Questie_questLogThrottle", group = "Questie", label = "Quest Log Throttle",
+    help = "Limits quest log refreshes to twice per second when multiple quests update at once.",
+    detail = "Questie scans your entire quest log multiple times per second during active questing -- every mob kill, quest progress tick, and zone change triggers it. This causes noticeable FPS drops when you have 20+ active quests, especially in crowded quest hubs.",
+    impact = "FPS", impactLevel = "High", category = "Performance",
+    estimate = "~2-4 FPS during active questing with 20+ quests",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Questie_availableQuestsDebounce", group = "Questie", label = "Quest Availability Batch",
+    help = "Combines rapid quest availability checks into one update instead of several.",
+    detail = "When you accept, complete, or abandon a quest, Questie recalculates all available quests 4-6 times in rapid succession. Each pass checks thousands of quests in its database, causing a brief freeze or stutter.",
+    impact = "FPS", impactLevel = "Medium", category = "Performance",
+    estimate = "Eliminates brief freeze on quest accept/complete",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Questie_framePoolPrealloc", group = "Questie", label = "Quest Icon Warmup",
+    help = "Pre-creates quest map icons at login to prevent stuttering when entering new zones.",
+    detail = "Questie creates quest map icons on-demand, causing brief stutters when you enter a new zone or accept several quests at once. This patch pre-creates icons during the loading screen so they're ready when needed, eliminating the stutter.",
+    impact = "FPS", impactLevel = "Medium", category = "Performance",
+    estimate = "Smoother zone transitions, no icon stutter",
+}
+
 local pcall   = pcall
 local GetTime = GetTime
 

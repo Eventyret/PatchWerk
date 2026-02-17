@@ -104,6 +104,10 @@ ns.defaults = defaults
 -- Patch registry (populated by individual patch files before ADDON_LOADED fires)
 ns.patches = {}
 
+-- Patch metadata registry (populated by individual patch files)
+-- Each entry: { key, group, label, help, detail, impact, impactLevel, category, estimate }
+ns.patchInfo = {}
+
 -- Track which patches were applied, and target addon info
 ns.applied = {}
 

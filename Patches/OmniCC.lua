@@ -10,6 +10,31 @@
 
 local _, ns = ...
 
+------------------------------------------------------------------------
+-- Patch metadata (consumed by Options.lua for the settings GUI)
+------------------------------------------------------------------------
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "OmniCC_gcdSpellCache", group = "OmniCC", label = "Cooldown Status Cache",
+    help = "Checks the Global Cooldown once per update instead of 20+ times.",
+    detail = "Every time you press an ability and trigger the global cooldown, OmniCC checks it 20+ times across all your action bars. This creates micro-stuttering during ability spam, especially noticeable in PvP and fast raid rotations.",
+    impact = "FPS", impactLevel = "Medium", category = "Performance",
+    estimate = "~1-2 FPS during ability rotation",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "OmniCC_ruleMatchCache", group = "OmniCC", label = "Display Rule Cache",
+    help = "Remembers which cooldown display settings apply to each ability. Resets on profile change.",
+    detail = "OmniCC figures out which display settings apply to each cooldown by checking every one against a list of rules. Since these never change during gameplay, it's doing hundreds of identical lookups for no reason.",
+    impact = "FPS", impactLevel = "Medium", category = "Performance",
+    estimate = "Reduced microstutter when multiple cooldowns trigger",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "OmniCC_finishEffectGuard", group = "OmniCC", label = "Finish Effect Guard",
+    help = "Skips cooldown finish animations for abilities that aren't close to coming off cooldown.",
+    detail = "OmniCC tries to play cooldown-finished animations even for abilities that are nowhere near ready. The fix skips this wasted work unless an ability is actually within 2 seconds of being usable again.",
+    impact = "FPS", impactLevel = "Low", category = "Performance",
+    estimate = "~0.5-1 FPS during active combat with many abilities",
+}
+
 local GetTime = GetTime
 
 ------------------------------------------------------------------------

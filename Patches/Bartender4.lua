@@ -14,6 +14,31 @@
 
 local _, ns = ...
 
+------------------------------------------------------------------------
+-- Patch metadata (consumed by Options.lua for the settings GUI)
+------------------------------------------------------------------------
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Bartender4_lossOfControlSkip", group = "Bartender4", label = "Unused Effect Skip",
+    help = "Stops your action bars from constantly checking for stun/silence effects that don't exist on Classic.",
+    detail = "Bartender4 scans all your action bar buttons for loss-of-control overlays (stun, silence, etc.) every time something happens in combat. These overlays don't exist on Classic, so every scan finds nothing and wastes resources. This adds up fast during busy fights.",
+    impact = "FPS", impactLevel = "Medium", category = "Performance",
+    estimate = "~1-2 FPS in combat on Classic",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Bartender4_usableThrottle", group = "Bartender4", label = "Button Update Batch",
+    help = "Combines rapid action bar updates into a single check instead of refreshing all buttons multiple times per second.",
+    detail = "Your action bars refresh on every mana tick, target change, and buff change, causing all your buttons to be rechecked multiple times per second. During intense combat, this can cause button highlights and range coloring to feel sluggish. The fix batches these updates together so your bars stay responsive without the overhead.",
+    impact = "FPS", impactLevel = "High", category = "Performance",
+    estimate = "~2-4 FPS during mana-heavy combat",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Bartender4_pressAndHoldGuard", group = "Bartender4", label = "Combat Error Flood Fix",
+    help = "Stops a flood of error spam every time you enter combat caused by incompatible retail code.",
+    detail = "TBC Anniversary includes newer action bar code meant for Retail WoW that conflicts with Bartender4 during combat. This triggers around 19 errors every time you enter combat, flooding your error log and wasting resources. The fix prevents the conflict from happening in the first place.",
+    impact = "FPS", impactLevel = "High", category = "Fixes",
+    estimate = "Eliminates ~19 error popups per combat encounter",
+}
+
 local pcall   = pcall
 local LibStub = LibStub
 

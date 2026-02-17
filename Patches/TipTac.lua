@@ -12,6 +12,24 @@
 
 local _, ns = ...
 
+------------------------------------------------------------------------
+-- Patch metadata (consumed by Options.lua for the settings GUI)
+------------------------------------------------------------------------
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "TipTac_unitAppearanceGuard", group = "TipTac", label = "Non-Unit Tooltip Guard",
+    help = "Stops TipTac from constantly updating when you're hovering items instead of players.",
+    detail = "TipTac runs appearance updates constantly for every visible tooltip, including item and spell tooltips where no player or NPC is shown. This wastes resources when you're hovering items in bags or on vendors.",
+    impact = "FPS", impactLevel = "Medium", category = "Performance",
+    estimate = "~0.5-1 FPS while hovering items in bags",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "TipTac_inspectCache", group = "TipTac", label = "Extended Inspect Cache",
+    help = "Reduces inspect requests from every 5s to every 30s for recently inspected players.",
+    detail = "TipTac re-inspects players every 5 seconds when you hover them, sending repeated requests to the server. In crowded cities or raids, this causes inspect delays for everyone. The fix extends the cache to 30 seconds.",
+    impact = "Network", impactLevel = "Medium", category = "Performance",
+    estimate = "80% fewer inspect requests, less server lag",
+}
+
 local pairs    = pairs
 local pcall    = pcall
 local GetTime  = GetTime

@@ -13,6 +13,38 @@
 
 local _, ns = ...
 
+------------------------------------------------------------------------
+-- Patch metadata (consumed by Options.lua for the settings GUI)
+------------------------------------------------------------------------
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Cell_debuffOrderMemo", group = "Cell", label = "Debuff Priority Cache",
+    help = "Remembers the last debuff priority check to skip a duplicate lookup that happens every update.",
+    detail = "Cell checks debuff priority twice in a row for the same debuff during updates -- once from the debuff scan and once from the raid debuff check. The fix remembers the last result and skips the duplicate lookup.",
+    impact = "FPS", impactLevel = "Medium", category = "Performance",
+    estimate = "~1-2 FPS during debuff-heavy encounters",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Cell_customIndicatorGuard", group = "Cell", label = "Custom Indicator Guard",
+    help = "Skips custom indicator processing when you don't have any set up.",
+    detail = "Cell processes custom indicators for every aura on every raid frame, even if you don't have any custom indicators set up. Most players use default settings, so this is wasted work on every update. The fix detects this and skips the whole system.",
+    impact = "FPS", impactLevel = "Medium", category = "Performance",
+    estimate = "~1-2 FPS for users without custom indicators",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Cell_debuffGlowMemo", group = "Cell", label = "Debuff Glow Cache",
+    help = "Remembers which debuffs should glow on your raid frames to avoid rechecking.",
+    detail = "Cell checks which debuffs should glow immediately after checking their priority, using the same information both times. The fix remembers the last result and reuses it, cutting the work in half.",
+    impact = "FPS", impactLevel = "Medium", category = "Performance",
+    estimate = "~0.5-1 FPS during raid debuff tracking",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Cell_inspectQueueThrottle", group = "Cell", label = "Inspect Queue Throttle",
+    help = "Slows down Cell's inspect burst from 4 requests/sec to once per 1.5 seconds.",
+    detail = "When you join a group, Cell's group info system fires inspect requests to the server every 0.25 seconds -- that's 4 per second. In a 25-man raid, it sends 24 inspect requests in just 6 seconds, most of which get silently dropped by the server and need retries. The fix spaces them to every 1.5 seconds, which the server handles cleanly.",
+    impact = "Network", impactLevel = "Medium", category = "Performance",
+    estimate = "83% fewer inspect server requests on group join",
+}
+
 local pairs = pairs
 local GetTime = GetTime
 

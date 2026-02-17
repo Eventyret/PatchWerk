@@ -11,6 +11,31 @@
 
 local _, ns = ...
 
+------------------------------------------------------------------------
+-- Patch metadata (consumed by Options.lua for the settings GUI)
+------------------------------------------------------------------------
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "VuhDo_debuffDebounce", group = "VuhDo", label = "Debuff Scan Batch",
+    help = "During heavy AoE damage, combines debuff checks instead of running 100+ per second.",
+    detail = "During heavy AoE damage in raids, VuhDo's debuff checker fires 100+ times per second as aura updates flood in. This creates raid frame stuttering during encounters like Lurker or Vashj. The fix combines checks within 33ms windows.",
+    impact = "FPS", impactLevel = "High", category = "Performance",
+    estimate = "~2-5 FPS in 25-man raids during AoE encounters",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "VuhDo_rangeSkipDead", group = "VuhDo", label = "Skip Dead Range Checks",
+    help = "Skips range checking on dead or disconnected raid members.",
+    detail = "VuhDo checks range on every raid member continuously, making multiple checks per person per update. Dead and disconnected players obviously can't change range, but VuhDo checks them anyway. In a 25-man with deaths, that's a lot of wasted work.",
+    impact = "FPS", impactLevel = "Low", category = "Performance",
+    estimate = "~1-3 FPS during wipe recovery and rez phases",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "VuhDo_inspectThrottle", group = "VuhDo", label = "Inspect Request Throttle",
+    help = "Reduces server inspect requests from every 2 seconds to every 5 seconds.",
+    detail = "VuhDo sends inspect requests to the server every 2.1 seconds to determine raid members' specs and roles. In a 25-man raid, this means continuous inspect traffic for the entire session as members join, leave, or go out of range. The fix spaces requests to every 5 seconds, cutting server traffic by 60%.",
+    impact = "Network", impactLevel = "Medium", category = "Performance",
+    estimate = "60% fewer inspect server requests in raids",
+}
+
 local GetTime = GetTime
 
 ------------------------------------------------------------------------

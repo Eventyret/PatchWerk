@@ -11,6 +11,38 @@
 
 local _, ns = ...
 
+------------------------------------------------------------------------
+-- Patch metadata (consumed by Options.lua for the settings GUI)
+------------------------------------------------------------------------
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Auctionator_ownerQueryThrottle", group = "Auctionator", label = "Auction Query Throttle",
+    help = "Reduces server queries at the auction house from constant to once per second.",
+    detail = "Auctionator queries the server 60 times per second while you're on the Selling or Cancelling tabs. Your auction data only changes when you post or cancel, not every frame. The fix limits queries to once per second.",
+    impact = "Network", impactLevel = "High", category = "Performance",
+    estimate = "~10-20 FPS at the auction house",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Auctionator_throttleBroadcast", group = "Auctionator", label = "Timer Display Throttle",
+    help = "Reduces the auction throttle timer display from 60 updates/sec to 2.",
+    detail = "The auction throttle countdown timer updates 60 times per second just to show a number counting down. You don't need frame-perfect precision for a countdown. The fix drops it to 2 updates per second.",
+    impact = "FPS", impactLevel = "Medium", category = "Performance",
+    estimate = "~1-2 FPS during AH operations",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Auctionator_priceAgeOptimize", group = "Auctionator", label = "Price Age Optimizer",
+    help = "Makes price freshness calculations faster and lighter on memory.",
+    detail = "Every time you hover over an item, Auctionator creates throwaway data, sorts it, then discards it just to check how old the price is. During quick auction scans this causes tooltip lag. The fix does it without any throwaway data.",
+    impact = "Memory", impactLevel = "Medium", category = "Performance",
+    estimate = "Less memory growth during long AH sessions",
+}
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "Auctionator_dbKeyCache", group = "Auctionator", label = "Price Lookup Cache",
+    help = "Remembers item price lookups so Auctionator doesn't redo them every time you hover.",
+    detail = "Auctionator converts item links to price lookups using expensive conversions every single time you hover an item. If you mouseover the same item 10 times, it does the same work 10 times. The fix remembers results.",
+    impact = "FPS", impactLevel = "Medium", category = "Performance",
+    estimate = "Snappier tooltip on frequently hovered AH items",
+}
+
 local GetTime  = GetTime
 local pairs    = pairs
 local floor    = math.floor
