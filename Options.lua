@@ -245,6 +245,53 @@ local PATCH_INFO = {
       help = "Fixes confusing 'T' suffix on health numbers -- changes to standard K/M/B abbreviations.",
       detail = "EasyFrames uses 'T' for thousands (e.g. '36T' for 36,000 HP) which looks like trillions. It also mislabels values in the 1-9.9 million range as 'T'. The fix replaces the number formatting with standard K (thousands), M (millions), B (billions).",
       impact = "FPS", impactLevel = "Low" },
+    -- BugSack
+    { key = "BugSack_settingsCompat", group = "BugSack", label = "Settings API Compat",
+      help = "Fixes Settings.OpenToCategory calls that crash on TBC Classic Anniversary.",
+      detail = "BugSack's latest version uses the Retail Settings.OpenToCategory API in three places (slash command, sack right-click, LDB right-click). This API does not exist in TBC Classic. The fix replaces these calls with InterfaceOptionsFrame_OpenToCategory which works on Classic.",
+      impact = "FPS", impactLevel = "High" },
+    { key = "BugSack_formatCache", group = "BugSack", label = "Format Result Cache",
+      help = "Caches formatted error text to avoid redundant string processing on repeated views.",
+      detail = "FormatError runs 15 gsub calls (8 for stack colorization, 7 for locals colorization) every time an error is displayed, even if the same error was already formatted. With many errors, scrolling through the sack causes repeated expensive string work. The fix caches the result on the error object and invalidates when the counter changes.",
+      impact = "FPS", impactLevel = "Medium" },
+    { key = "BugSack_searchThrottle", group = "BugSack", label = "Search Debounce",
+      help = "Delays search filtering until you stop typing, preventing lag on every keystroke.",
+      detail = "The sack's search box runs filterSack on every OnTextChanged event, doing a linear string.find scan across all captured errors' message, stack, and locals fields. With hundreds of errors, this causes noticeable input lag while typing. The fix debounces the search with a 0.3 second idle delay.",
+      impact = "FPS", impactLevel = "Low" },
+    -- LoonBestInSlot
+    { key = "LoonBestInSlot_apiCompat", group = "LoonBestInSlot", label = "Item/Spell API Compat",
+      help = "Replaces retail Item:CreateFromItemID and Spell:CreateFromSpellID with classic equivalents.",
+      detail = "LoonBestInSlot uses retail-only APIs (Item:CreateFromItemID, C_Item.GetItemInfoInstant, Spell:CreateFromSpellID, C_Spell.GetSpellTexture) that do not exist in TBC Classic Anniversary. The fix replaces LBIS:GetItemInfo and LBIS:GetSpellInfo with implementations using the classic GetItemInfo() and GetSpellInfo() globals, preserving the same cache logic and return object shapes.",
+      impact = "FPS", impactLevel = "High" },
+    { key = "LoonBestInSlot_containerCompat", group = "LoonBestInSlot", label = "Container API Compat",
+      help = "Replaces C_Container calls with classic GetContainerNumSlots/GetContainerItemLink.",
+      detail = "The user item cache scans bags using C_Container.GetContainerNumSlots and C_Container.GetContainerItemLink which do not exist in TBC Classic. The fix replaces LBIS:BuildItemCache to use the classic global equivalents.",
+      impact = "FPS", impactLevel = "High" },
+    { key = "LoonBestInSlot_settingsCompat", group = "LoonBestInSlot", label = "Settings Panel Compat",
+      help = "Replaces Settings.OpenToCategory with InterfaceOptionsFrame_OpenToCategory for Classic.",
+      detail = "The slash command handler (/bis settings) and minimap button right-click call Settings.OpenToCategory which does not exist in TBC Classic. The fix hooks both entry points to use InterfaceOptionsFrame_OpenToCategory instead.",
+      impact = "FPS", impactLevel = "Medium" },
+    { key = "LoonBestInSlot_phaseUpdate", group = "LoonBestInSlot", label = "Phase 5 Unlock",
+      help = "Sets CurrentPhase to 5 so all TBC Anniversary items are visible in the browser.",
+      detail = "LoonBestInSlot defaults to Phase 1, hiding all Phase 2-5 items from tooltips and the gear browser. TBC Classic Anniversary has all content through Phase 5 available. The fix sets CurrentPhase to 5 at load time.",
+      impact = "FPS", impactLevel = "Low" },
+    { key = "LoonBestInSlot_nilGuards", group = "LoonBestInSlot", label = "Missing Source Guards",
+      help = "Prevents Lua errors when item, gem, or enchant source data is missing.",
+      detail = "LBIS:AddItem, LBIS:AddGem, and LBIS:AddEnchant access properties on source lookup tables (ItemSources, GemSources, EnchantSources) without checking for nil. If any source entry is missing, the error halts loading of all subsequent items for that spec. The fix wraps each function with a nil check.",
+      impact = "FPS", impactLevel = "Medium" },
+    { key = "LoonBestInSlot_tooltipOptimize", group = "LoonBestInSlot", label = "Tooltip Performance",
+      help = "Optimises the tooltip hot path by avoiding temp tables and pre-computing class icons.",
+      detail = "The tooltip handler uses {strsplit(':', itemString)}[2] which allocates a temporary table on every hover. It also rebuilds class icon font strings per tooltip line. The fix uses string.match for item ID extraction, pre-computes class icon strings once at load, and caches tooltip:GetName() in a local.",
+      impact = "FPS", impactLevel = "Medium" },
+    -- NovaInstanceTracker
+    { key = "NovaInstanceTracker_weeklyResetGuard", group = "NovaInstanceTracker", label = "Weekly Reset API Guard",
+      help = "Prevents a crash on login from missing C_DateAndTime API in TBC Classic.",
+      detail = "NovaInstanceTracker calls C_DateAndTime.GetSecondsUntilWeeklyReset() during initialization without checking if the API exists. This API is not available in TBC Classic Anniversary, causing the addon to error on every login. The fix adds a nil guard so the function returns safely.",
+      impact = "FPS", impactLevel = "High" },
+    { key = "NovaInstanceTracker_settingsCompat", group = "NovaInstanceTracker", label = "Settings Panel Compat",
+      help = "Fixes the /nit config command that crashes on TBC Classic due to missing Settings API.",
+      detail = "The openConfig function calls Settings.OpenToCategory which only exists in Retail 10.0+. On TBC Classic this crashes when the user tries to open settings. The fix falls back to InterfaceOptionsFrame_OpenToCategory.",
+      impact = "FPS", impactLevel = "High" },
 }
 
 -- Estimated performance improvement per patch (shown in detail tooltip)
@@ -318,6 +365,20 @@ local PATCH_ESTIMATES = {
     BigDebuffs_attachFrameGuard = "~1-3 FPS during raid aura storms",
     -- EasyFrames
     EasyFrames_healthTextFix = "Correct K/M/B abbreviations on health text",
+    -- BugSack
+    BugSack_settingsCompat = "Prevents Lua errors when opening BugSack settings on Classic",
+    BugSack_formatCache = "Faster sack navigation with many captured errors",
+    BugSack_searchThrottle = "Smoother typing in the error search box",
+    -- LoonBestInSlot
+    LoonBestInSlot_apiCompat = "Prevents Lua errors from missing retail Item/Spell/C_Item/C_Spell APIs",
+    LoonBestInSlot_containerCompat = "Prevents Lua errors from missing C_Container API",
+    LoonBestInSlot_settingsCompat = "Prevents Lua errors when opening settings on Classic",
+    LoonBestInSlot_phaseUpdate = "All Phase 1-5 gear visible in browser and tooltips",
+    LoonBestInSlot_nilGuards = "Prevents cascading Lua errors from missing source data",
+    LoonBestInSlot_tooltipOptimize = "~0.5-1 FPS from fewer temp table allocations on hover",
+    -- NovaInstanceTracker
+    NovaInstanceTracker_weeklyResetGuard = "Prevents addon crash on every login",
+    NovaInstanceTracker_settingsCompat = "Prevents crash when opening settings on Classic",
 }
 
 -- Build lookup for patches by group

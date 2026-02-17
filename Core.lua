@@ -83,6 +83,20 @@ local defaults = {
     BigDebuffs_attachFrameGuard = true,
     -- EasyFrames
     EasyFrames_healthTextFix = true,
+    -- BugSack
+    BugSack_settingsCompat = true,
+    BugSack_formatCache = true,
+    BugSack_searchThrottle = true,
+    -- LoonBestInSlot
+    LoonBestInSlot_apiCompat = true,
+    LoonBestInSlot_containerCompat = true,
+    LoonBestInSlot_settingsCompat = true,
+    LoonBestInSlot_phaseUpdate = true,
+    LoonBestInSlot_nilGuards = true,
+    LoonBestInSlot_tooltipOptimize = true,
+    -- NovaInstanceTracker
+    NovaInstanceTracker_weeklyResetGuard = true,
+    NovaInstanceTracker_settingsCompat = true,
 }
 
 ns.defaults = defaults
@@ -112,6 +126,9 @@ ns.addonGroups = {
     { id = "Cell",              label = "Cell (Raid Frames)",        deps = { "Cell" } },
     { id = "BigDebuffs",        label = "BigDebuffs (Debuff Display)", deps = { "BigDebuffs" } },
     { id = "EasyFrames",       label = "EasyFrames (Unit Frames)",    deps = { "EasyFrames" } },
+    { id = "BugSack",          label = "BugSack (Error Display)",    deps = { "BugSack" } },
+    { id = "LoonBestInSlot",   label = "LoonBestInSlot (Gear Guide)", deps = { "LoonBestInSlot" } },
+    { id = "NovaInstanceTracker", label = "Nova Instance Tracker",  deps = { "NovaInstanceTracker" } },
 }
 
 function ns:GetDB()
