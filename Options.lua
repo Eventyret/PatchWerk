@@ -107,6 +107,10 @@ local PATCH_INFO = {
       help = "Combines rapid action bar updates (triggered on every mana tick) into a single check.",
       detail = "Action bars update on every mana tick, target change, and buff/debuff change, causing Bartender4 to recheck all 120 buttons multiple times per second. During intense combat, this can make button highlights and range coloring feel sluggish.",
       impact = "FPS", impactLevel = "High" },
+    { key = "Bartender4_pressAndHoldGuard", group = "Bartender4", label = "Combat SetAttribute Fix",
+      help = "Stops 19x ADDON_ACTION_BLOCKED errors from Blizzard's backported press-and-hold code.",
+      detail = "TBC Anniversary backported retail ActionButton code that calls SetAttribute() on hidden Blizzard bar buttons during combat. Since Bartender4 manages these buttons, the protected call is blocked, flooding BugSack with ~19 errors per combat entry. The fix adds an InCombatLockdown() guard.",
+      impact = "FPS", impactLevel = "High" },
     -- TitanPanel
     { key = "TitanPanel_reputationsOnUpdate", group = "TitanPanel", label = "Reputation Timer Fix",
       help = "Checks your reputation every 5 seconds instead of constantly.",
@@ -323,6 +327,7 @@ local PATCH_ESTIMATES = {
     -- Bartender4
     Bartender4_lossOfControlSkip = "~1-2 FPS in combat on Classic",
     Bartender4_usableThrottle = "~2-4 FPS during mana-heavy combat",
+    Bartender4_pressAndHoldGuard = "Eliminates ~19 ADDON_ACTION_BLOCKED errors per combat",
     -- TitanPanel
     TitanPanel_reputationsOnUpdate = "~0.5-1 FPS from eliminating 300+ idle checks/sec",
     TitanPanel_bagDebounce = "Eliminates brief stutter when looting multiple items",

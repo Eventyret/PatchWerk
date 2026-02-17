@@ -41,6 +41,7 @@ local defaults = {
     -- Bartender4
     Bartender4_lossOfControlSkip = true,
     Bartender4_usableThrottle = true,
+    Bartender4_pressAndHoldGuard = true,
     -- TitanPanel
     TitanPanel_reputationsOnUpdate = true,
     TitanPanel_bagDebounce = true,

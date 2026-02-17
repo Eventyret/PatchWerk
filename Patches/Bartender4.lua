@@ -1,14 +1,15 @@
 ------------------------------------------------------------------------
--- PatchWerk - Performance patches for Bartender4 (Action Bars)
+-- PatchWerk - Performance and compatibility patches for Bartender4
 --
 -- Bartender4 uses LibActionButton-1.0 (LAB) to manage action bar buttons.
--- On TBC Classic Anniversary, two event-handling hot paths generate
--- significant CPU overhead with zero visual benefit:
---   1. Bartender4_lossOfControlSkip  - Skip LOSS_OF_CONTROL events that
---                                      are no-ops on TBC Classic
---   2. Bartender4_usableThrottle     - Debounce ACTIONBAR_UPDATE_USABLE
---                                      and SPELL_UPDATE_USABLE to avoid
---                                      per-button spam on every mana tick
+-- On TBC Classic Anniversary, several issues arise:
+--   1. Bartender4_lossOfControlSkip    - Skip LOSS_OF_CONTROL events that
+--                                        are no-ops on TBC Classic
+--   2. Bartender4_usableThrottle       - Debounce ACTIONBAR_UPDATE_USABLE
+--                                        and SPELL_UPDATE_USABLE to avoid
+--                                        per-button spam on every mana tick
+--   3. Bartender4_pressAndHoldGuard    - Prevent ADDON_ACTION_BLOCKED spam
+--                                        from backported UpdatePressAndHoldAction
 ------------------------------------------------------------------------
 
 local _, ns = ...
@@ -100,4 +101,55 @@ ns.patches["Bartender4_usableThrottle"] = function()
         end
         return currentOnEvent(frame, event, ...)
     end)
+end
+
+------------------------------------------------------------------------
+-- 3. Bartender4_pressAndHoldGuard
+--
+-- TBC Classic Anniversary ships retail-backported ActionButton code that
+-- includes UpdatePressAndHoldAction().  This function calls SetAttribute()
+-- on Blizzard multi-bar buttons (MultiBarBottomLeft, MultiBarBottomRight,
+-- etc.) that Bartender4 hides but does NOT fully deregister from
+-- Blizzard's action button update system.
+--
+-- Result: ~19x ADDON_ACTION_BLOCKED errors per combat entry because
+-- SetAttribute() is protected during combat lockdown.
+--
+-- Fix: If the global UpdatePressAndHoldAction exists, wrap it with an
+-- InCombatLockdown() guard so the SetAttribute() call is skipped during
+-- combat.  Fallback: strip OnEvent from hidden Blizzard multi-bar
+-- buttons so the Blizzard bar system can no longer drive UpdateAction
+-- on them.
+------------------------------------------------------------------------
+ns.patches["Bartender4_pressAndHoldGuard"] = function()
+    if not ns:IsAddonLoaded("Bartender4") then return end
+
+    -- Try wrapping the global function first (cleanest fix)
+    if type(UpdatePressAndHoldAction) == "function" then
+        local orig = UpdatePressAndHoldAction
+        UpdatePressAndHoldAction = function(self, ...)
+            if InCombatLockdown() then return end
+            return orig(self, ...)
+        end
+        return
+    end
+
+    -- Fallback: strip OnEvent from Blizzard buttons that Bartender4
+    -- already hid by re-parenting to UIHider.  This prevents the
+    -- Blizzard ActionButton OnEvent chain from calling UpdateAction
+    -- (and thus UpdatePressAndHoldAction/SetAttribute) on them.
+    local barPrefixes = {
+        "MultiBarBottomLeftButton",
+        "MultiBarBottomRightButton",
+        "MultiBarLeftButton",
+        "MultiBarRightButton",
+    }
+    for _, prefix in ipairs(barPrefixes) do
+        for i = 1, 12 do
+            local btn = _G[prefix .. i]
+            if btn and btn:GetParent() ~= UIParent then
+                btn:SetScript("OnEvent", nil)
+            end
+        end
+    end
 end
