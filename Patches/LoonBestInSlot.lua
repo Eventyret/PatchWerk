@@ -18,10 +18,6 @@
 --   5. LoonBestInSlot_nilGuards         - Add nil-safety to AddItem,
 --                                          AddGem, AddEnchant source
 --                                          lookups
---   6. LoonBestInSlot_tooltipOptimize   - Optimise tooltip hot path:
---                                          avoid temp table from strsplit,
---                                          pre-compute class icon strings,
---                                          cache tooltip:GetName()
 ------------------------------------------------------------------------
 
 local _, ns = ...
@@ -30,7 +26,6 @@ local pairs  = pairs
 local tonumber = tonumber
 local tostring = tostring
 local string_match = string.match
-local string_gsub  = string.gsub
 
 ------------------------------------------------------------------------
 -- 1. LoonBestInSlot_apiCompat  (Bug fix - Critical)
@@ -276,22 +271,29 @@ ns.patches["LoonBestInSlot_settingsCompat"] = function()
     end
 
     -- 3b. Hook the LibDataBroker minimap button OnClick
-    -- The LDB data object is registered under "LoonBestInSlot".
-    -- We need LibDataBroker to access it.
-    local LDB = LibStub and LibStub("LibDataBroker-1.1", true)
-    if LDB then
-        local dataObj = LDB:GetDataObjectByName("LoonBestInSlot")
-        if dataObj and dataObj.OnClick then
-            local origOnClick = dataObj.OnClick
-            dataObj.OnClick = function(self, button)
-                if button == "RightButton" then
-                    openSettings()
-                else
-                    origOnClick(self, button)
+    -- The LDB data object is registered on PLAYER_ENTERING_WORLD, so it
+    -- doesn't exist yet at ADDON_LOADED time.  Defer the hook.
+    local hookFrame = CreateFrame("Frame")
+    hookFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    hookFrame:SetScript("OnEvent", function(self)
+        self:UnregisterEvent("PLAYER_ENTERING_WORLD")
+        C_Timer.After(0, function()
+            local LDB = LibStub and LibStub("LibDataBroker-1.1", true)
+            if LDB then
+                local dataObj = LDB:GetDataObjectByName("LoonBestInSlot")
+                if dataObj and dataObj.OnClick then
+                    local origOnClick = dataObj.OnClick
+                    dataObj.OnClick = function(clickSelf, button)
+                        if button == "RightButton" then
+                            openSettings()
+                        else
+                            origOnClick(clickSelf, button)
+                        end
+                    end
                 end
             end
-        end
-    end
+        end)
+    end)
 end
 
 ------------------------------------------------------------------------
@@ -366,260 +368,3 @@ ns.patches["LoonBestInSlot_nilGuards"] = function()
     end
 end
 
-------------------------------------------------------------------------
--- 6. LoonBestInSlot_tooltipOptimize  (Performance)
---
--- The tooltip hot path in UpdateTooltips.lua has three inefficiencies:
---
---   a) Item ID extraction uses `{strsplit(":", itemString)}[2]` which
---      creates a temporary table of all colon-separated fields just to
---      grab the second one.  Replace with string.match for the item ID.
---
---   b) The buildTooltip function reconstructs the class icon font string
---      on every tooltip line:
---        "|T" .. iconpath .. ":14:14:::256:256:" .. iconOffset(...) .. "|t"
---      These are constant per class.  Pre-compute them once at patch
---      time and look them up by class name.
---
---   c) tooltip:GetName() is called multiple times per tooltip event
---      (once in onTooltipSetItem guard, once in onTooltipCleared).
---      Cache the name in a local.
---
--- We cannot directly replace the local functions in UpdateTooltips.lua,
--- but we CAN replace the hookScript stubs that were installed on the
--- tooltips.  The addon uses a custom hookScript function that stores
--- control tables keyed by [tooltip][script].  The prehook is stored at
--- control[1].  However, the hookStore is local and inaccessible.
---
--- Alternative approach: The addon registers tooltip hooks via
--- OnTooltipSetItem / OnTooltipCleared / OnTooltipSetSpell scripts.
--- We can re-set these scripts on the known tooltips with optimised
--- versions that call LBIS:GetItemInfo (which we already patched above).
---
--- Since the tooltip registration happens on PLAYER_ENTERING_WORLD and
--- our patches run on ADDON_LOADED (which fires before PEW), we hook
--- LBIS.RegisterEvent to intercept the PEW registration and install our
--- own optimised handlers instead.  Actually, the simpler approach is:
--- the hooks are already installed by the time ADDON_LOADED fires for
--- PatchWerk (since LoonBestInSlot loads first and PEW may have fired).
--- We just re-set the scripts on the known tooltip frames.
-------------------------------------------------------------------------
-ns.patches["LoonBestInSlot_tooltipOptimize"] = function()
-    if not LBIS then return end
-    if not LBIS.GetItemInfo then return end
-    if not LBIS.ClassSpec then return end
-    if not LBIS.ENGLISH_CLASS then return end
-
-    -- Pre-compute class icon font strings
-    local iconpath = "Interface\\GLUES\\CHARACTERCREATE\\UI-CharacterCreate-Classes"
-    local iconCutoff = 6
-
-    local function iconOffset(col, row)
-        local offsetString = (col * 64 + iconCutoff) .. ":" .. ((col + 1) * 64 - iconCutoff)
-        return offsetString .. ":" .. (row * 64 + iconCutoff) .. ":" .. ((row + 1) * 64 - iconCutoff)
-    end
-
-    -- Build the class icon cache: classNameUpper -> font string
-    local classIconCache = {}
-    if CLASS_ICON_TCOORDS then
-        for className, coords in pairs(CLASS_ICON_TCOORDS) do
-            classIconCache[className] = "|T" .. iconpath .. ":14:14:::256:256:" .. iconOffset(coords[1] * 4, coords[3] * 4) .. "|t"
-        end
-    end
-
-    -- Local references to functions that will be used in the hot path
-    local FindInPhase = LBIS.FindInPhase
-
-    local function isInEnabledPhase(phaseText)
-        if phaseText == "" then
-            return true
-        end
-        if LBISSettings.PhaseTooltip[LBIS.L["PreRaid"]] and LBIS.CurrentPhase >= 0 then
-            if LBIS:FindInPhase(phaseText, "0") then return true end
-        end
-        if LBISSettings.PhaseTooltip[LBIS.L["Phase 1"]] and LBIS.CurrentPhase >= 1 then
-            if LBIS:FindInPhase(phaseText, "1") then return true end
-        end
-        if LBISSettings.PhaseTooltip[LBIS.L["Phase 2"]] and LBIS.CurrentPhase >= 2 then
-            if LBIS:FindInPhase(phaseText, "2") then return true end
-        end
-        if LBISSettings.PhaseTooltip[LBIS.L["Phase 3"]] and LBIS.CurrentPhase >= 3 then
-            if LBIS:FindInPhase(phaseText, "3") then return true end
-        end
-        if LBISSettings.PhaseTooltip[LBIS.L["Phase 4"]] and LBIS.CurrentPhase >= 4 then
-            if LBIS:FindInPhase(phaseText, "4") then return true end
-        end
-        if LBISSettings.PhaseTooltip[LBIS.L["Phase 5"]] and LBIS.CurrentPhase >= 5 then
-            if LBIS:FindInPhase(phaseText, "5") then return true end
-        end
-        if LBIS.CurrentPhase >= 99 then
-            if LBIS:FindInPhase(phaseText, "99") then return true end
-        end
-        return false
-    end
-
-    local function buildCombinedTooltip(entry, combinedTooltip, foundCustom)
-        local classCount = {}
-        local combinedSpecs = {}
-
-        for k, v in pairs(entry) do
-            if LBISSettings.Tooltip[k] and isInEnabledPhase(v.Phase) and foundCustom[k] == nil then
-                local classSpec = LBIS.ClassSpec[k]
-
-                classCount[classSpec.Class .. v.Bis .. v.Phase] = (classCount[classSpec.Class .. v.Bis .. v.Phase] or 0) + 1
-                if combinedSpecs[classSpec.Class .. v.Bis .. v.Phase] == nil then
-                    combinedSpecs[classSpec.Class .. v.Bis .. v.Phase] = { Class = classSpec.Class, Spec = classSpec.Spec, Bis = v.Bis, Phase = v.Phase }
-                else
-                    combinedSpecs[classSpec.Class .. v.Bis .. v.Phase].Spec = combinedSpecs[classSpec.Class .. v.Bis .. v.Phase].Spec .. ", " .. classSpec.Spec
-                end
-            end
-        end
-
-        for _, v in pairs(combinedSpecs) do
-            if v.Class ~= "Druid" and classCount[v.Class .. v.Bis .. v.Phase] == 3 then
-                v.Spec = ""
-            elseif v.Class == "Druid" and classCount[v.Class .. v.Bis .. v.Phase] == 4 then
-                v.Spec = ""
-            end
-            table.insert(combinedTooltip, { Class = v.Class, Spec = v.Spec, Bis = v.Bis, Phase = v.Phase })
-        end
-    end
-
-    local function buildCustomTooltip(priorityEntry, combinedTooltip)
-        local foundCustom = {}
-        if LBISSettings.ShowCustom and priorityEntry ~= nil then
-            for k, v in pairs(priorityEntry) do
-                local classSpec = LBIS.ClassSpec[k]
-                foundCustom[k] = true
-                table.insert(combinedTooltip, { Class = classSpec.Class, Spec = classSpec.Spec, Bis = v.TooltipText, Phase = "" })
-            end
-        end
-        return foundCustom
-    end
-
-    -- Optimised buildTooltip: uses pre-computed class icon font strings
-    local function buildTooltip(tooltip, combinedTooltip)
-        if #combinedTooltip > 0 then
-            local r, g, b = .9, .8, .5
-            tooltip:AddLine(" ", r, g, b, true)
-            tooltip:AddLine(LBIS.L["# Best for:"], r, g, b, true)
-        end
-
-        for _, v in pairs(combinedTooltip) do
-            local classUpper = LBIS.ENGLISH_CLASS[v.Class]:upper()
-            local color = RAID_CLASS_COLORS[classUpper]
-            -- Use pre-computed icon string instead of rebuilding per line
-            local classfontstring = classIconCache[classUpper] or ""
-
-            if v.Phase == "0" or v.Phase == "99" then
-                tooltip:AddDoubleLine(classfontstring .. " " .. v.Class .. " " .. v.Spec, v.Bis, color.r, color.g, color.b, color.r, color.g, color.b, true)
-            else
-                tooltip:AddDoubleLine(classfontstring .. " " .. v.Class .. " " .. v.Spec, v.Bis .. " " .. string_gsub(v.Phase, "0", "P"), color.r, color.g, color.b, color.r, color.g, color.b, true)
-            end
-        end
-    end
-
-    -- Optimised tooltip handlers
-    local tooltip_modified = {}
-
-    local function onTooltipSetItem(tooltip)
-        local tipName = tooltip:GetName()  -- cache GetName() in a local
-        if tooltip_modified[tipName] then
-            return
-        end
-        tooltip_modified[tipName] = true
-
-        local _, itemLink = tooltip:GetItem()
-        if not itemLink then return end
-
-        -- Optimisation: use string.match to extract item ID directly
-        -- instead of {strsplit(":", itemString)}[2] which creates a
-        -- temporary table of all colon-separated fields
-        local itemId = tonumber(string_match(itemLink, "item:(%d+)"))
-        if not itemId then return end
-
-        LBIS:GetItemInfo(itemId, function(item)
-            local combinedTooltip = {}
-            local foundCustom = {}
-
-            if LBIS.CustomEditList and LBIS.CustomEditList.Items and LBIS.CustomEditList.Items[itemId] then
-                foundCustom = buildCustomTooltip(LBIS.CustomEditList.Items[itemId], combinedTooltip)
-            end
-
-            local itemEntries = {}
-            if LBIS.ItemsByIdAndSpec[itemId] then
-                for key, entry in pairs(LBIS.ItemsByIdAndSpec[itemId]) do
-                    itemEntries[key] = entry
-                end
-            end
-
-            if LBIS.TierSources and LBIS.TierSources[itemId] then
-                for _, v in pairs(LBIS.TierSources[itemId]) do
-                    if LBIS.CustomEditList and LBIS.CustomEditList.Items and LBIS.CustomEditList.Items[v] then
-                        foundCustom = buildCustomTooltip(LBIS.CustomEditList.Items[v], combinedTooltip)
-                    end
-
-                    if LBIS.ItemsByIdAndSpec[v] then
-                        for key, entry in pairs(LBIS.ItemsByIdAndSpec[v]) do
-                            itemEntries[key] = entry
-                        end
-                    end
-                end
-            end
-
-            buildCombinedTooltip(itemEntries, combinedTooltip, foundCustom)
-            buildTooltip(tooltip, combinedTooltip)
-        end)
-    end
-
-    local function onTooltipCleared(tooltip)
-        tooltip_modified[tooltip:GetName()] = nil
-    end
-
-    local function onTooltipSetSpell(tooltip)
-        local _, spellId = tooltip:GetSpell()
-        if not spellId then return end
-
-        local combinedTooltip = {}
-
-        if LBIS.SpellsByIdAndSpec[spellId] then
-            buildCombinedTooltip(LBIS.SpellsByIdAndSpec[spellId], combinedTooltip, {})
-        end
-
-        buildTooltip(tooltip, combinedTooltip)
-    end
-
-    -- The original addon hooks tooltips on PLAYER_ENTERING_WORLD via
-    -- a custom hookScript() function that calls tip:SetScript() with a
-    -- stub that chains prehook -> original.  We need to replace those
-    -- stubs with our optimised handlers.
-    --
-    -- Since PatchWerk patches run on ADDON_LOADED and the original
-    -- hooks are installed on PLAYER_ENTERING_WORLD (which fires after),
-    -- we register our own PEW handler with a one-frame delay to ensure
-    -- the original hooks are in place before we overwrite them.
-    local hookFrame = CreateFrame("Frame")
-    hookFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    hookFrame:SetScript("OnEvent", function(self)
-        self:UnregisterEvent("PLAYER_ENTERING_WORLD")
-        -- Defer one frame to ensure original hooks are in place
-        C_Timer.After(0, function()
-            local tooltips = {
-                GameTooltip,
-                ShoppingTooltip1,
-                ShoppingTooltip2,
-                ItemRefTooltip,
-                ItemRefShoppingTooltip1,
-                ItemRefShoppingTooltip2,
-            }
-
-            for _, tip in ipairs(tooltips) do
-                if tip then
-                    tip:SetScript("OnTooltipSetItem", onTooltipSetItem)
-                    tip:SetScript("OnTooltipSetSpell", onTooltipSetSpell)
-                    tip:SetScript("OnTooltipCleared", onTooltipCleared)
-                end
-            end
-        end)
-    end)
-end

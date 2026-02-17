@@ -283,10 +283,6 @@ local PATCH_INFO = {
       help = "Prevents Lua errors when item, gem, or enchant source data is missing.",
       detail = "LBIS:AddItem, LBIS:AddGem, and LBIS:AddEnchant access properties on source lookup tables (ItemSources, GemSources, EnchantSources) without checking for nil. If any source entry is missing, the error halts loading of all subsequent items for that spec. The fix wraps each function with a nil check.",
       impact = "FPS", impactLevel = "Medium" },
-    { key = "LoonBestInSlot_tooltipOptimize", group = "LoonBestInSlot", label = "Tooltip Performance",
-      help = "Optimises the tooltip hot path by avoiding temp tables and pre-computing class icons.",
-      detail = "The tooltip handler uses {strsplit(':', itemString)}[2] which allocates a temporary table on every hover. It also rebuilds class icon font strings per tooltip line. The fix uses string.match for item ID extraction, pre-computes class icon strings once at load, and caches tooltip:GetName() in a local.",
-      impact = "FPS", impactLevel = "Medium" },
     -- NovaInstanceTracker
     { key = "NovaInstanceTracker_weeklyResetGuard", group = "NovaInstanceTracker", label = "Weekly Reset API Guard",
       help = "Prevents a crash on login from missing C_DateAndTime API in TBC Classic.",
@@ -380,7 +376,6 @@ local PATCH_ESTIMATES = {
     LoonBestInSlot_settingsCompat = "Prevents Lua errors when opening settings on Classic",
     LoonBestInSlot_phaseUpdate = "All Phase 1-5 gear visible in browser and tooltips",
     LoonBestInSlot_nilGuards = "Prevents cascading Lua errors from missing source data",
-    LoonBestInSlot_tooltipOptimize = "~0.5-1 FPS from fewer temp table allocations on hover",
     -- NovaInstanceTracker
     NovaInstanceTracker_weeklyResetGuard = "Prevents addon crash on every login",
     NovaInstanceTracker_settingsCompat = "Prevents crash when opening settings on Classic",

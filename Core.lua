@@ -94,7 +94,6 @@ local defaults = {
     LoonBestInSlot_settingsCompat = true,
     LoonBestInSlot_phaseUpdate = true,
     LoonBestInSlot_nilGuards = true,
-    LoonBestInSlot_tooltipOptimize = true,
     -- NovaInstanceTracker
     NovaInstanceTracker_weeklyResetGuard = true,
     NovaInstanceTracker_settingsCompat = true,
