@@ -607,6 +607,7 @@ local function CreateAboutPanel()
             "|cffffd100/pw status|r  Print patch status to chat\n" ..
             "|cffffd100/pw toggle <name>|r  Toggle a specific patch\n" ..
             "|cffffd100/pw reset|r  Reset all settings to defaults\n" ..
+            "|cffffd100/pw wizard|r  Show the welcome wizard\n" ..
             "|cffffd100/pw help|r  Show command help in chat")
         content:SetHeight(800)
     end)
