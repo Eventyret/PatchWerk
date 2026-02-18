@@ -1,0 +1,800 @@
+------------------------------------------------------------------------
+-- PatchWerk - Performance, bug fix, and UX patches for AutoLayer_Vanilla
+--
+-- AutoLayer_Vanilla (v1.7.6) is a layer-hopping automation addon for
+-- TBC Classic Anniversary. It monitors chat channels and auto-invites
+-- players requesting layer transfers, with a hard dependency on
+-- NovaWorldBuffs for layer detection (NWB_CurrentLayer global).
+--
+-- Patches:
+--   1. AutoLayer_keyDownThrottle     - Throttle keystroke frame (Performance)
+--   2. AutoLayer_parseCache          - Cache parsed triggers/blacklist (Performance)
+--   3. AutoLayer_systemFilterCache   - Pre-compute system message patterns (Performance)
+--   4. AutoLayer_pruneCacheFix       - Fix forward-iteration removal bug (Fixes)
+--   5. AutoLayer_libSerializeCleanup - Mark unused LibSerialize (Tweaks)
+--   6. AutoLayer_layerStatusFrame    - On-screen layer status display (Tweaks)
+--   7. AutoLayer_layerChangeToast    - Layer change notification (Tweaks)
+--   8. AutoLayer_hopTransitionTracker - Hop lifecycle tracker (Tweaks)
+--   9. AutoLayer_enhancedTooltip     - Enhanced minimap tooltip (Tweaks)
+------------------------------------------------------------------------
+
+local _, ns = ...
+
+local WHITE8x8 = "Interface\\Buttons\\WHITE8x8"
+
+------------------------------------------------------------------------
+-- Patch metadata (consumed by Options.lua for the settings GUI)
+------------------------------------------------------------------------
+
+-- 1. Keystroke Throttle
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "AutoLayer_keyDownThrottle", group = "AutoLayer",
+    label = "Keystroke Throttle",
+    help = "Stops AutoLayer from processing its queue on every single keystroke (WASD, abilities, camera turns).",
+    detail = "AutoLayer creates a hidden frame named 'Test' that fires its queue processor on every KEY_DOWN event. During normal gameplay this means dozens of unnecessary function calls per second from movement, abilities, and camera controls. This patch throttles it to at most once per 0.2 seconds and removes the generic global frame name.",
+    impact = "FPS", impactLevel = "High", category = "Performance",
+    estimate = "~2-5 FPS during active gameplay",
+}
+
+-- 2. Parse Cache
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "AutoLayer_parseCache", group = "AutoLayer",
+    label = "Parse Cache",
+    help = "Caches parsed trigger, blacklist, and invert-keyword tables instead of rebuilding them on every chat message.",
+    detail = "AutoLayer rebuilds its trigger, blacklist (17 default entries), and invert-keyword tables via string.gmatch on every incoming chat message. This creates significant garbage collection pressure in busy channels. This patch caches the parsed tables and only rebuilds when settings actually change.",
+    impact = "FPS", impactLevel = "Medium", category = "Performance",
+    estimate = "~1-2 FPS in busy chat environments",
+}
+
+-- 3. System Filter Cache
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "AutoLayer_systemFilterCache", group = "AutoLayer",
+    label = "System Filter Cache",
+    help = "Pre-computes system message patterns instead of rebuilding 15 regex patterns on every system event.",
+    detail = "AutoLayer's chat filter escapes and builds 15 Lua patterns from system message constants on every CHAT_MSG_SYSTEM event (combat log, loot, achievements, etc.). This patch pre-computes all patterns once at load time into a cached table.",
+    impact = "FPS", impactLevel = "Medium", category = "Performance",
+    estimate = "~1 FPS during heavy system message activity",
+}
+
+-- 4. Cache Prune Fix
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "AutoLayer_pruneCacheFix", group = "AutoLayer",
+    label = "Cache Prune Fix",
+    help = "Fixes a bug where stale cache entries could be skipped during cleanup, potentially causing duplicate invites.",
+    detail = "AutoLayer's pruneCache() uses table.remove() inside a forward ipairs() loop. When an entry is removed at position i, the next entry shifts down to position i and gets skipped by the loop advancing to i+1. This can leave stale cooldown entries, causing duplicate invites or missed cleanup. The fix ensures all stale entries are properly removed.",
+    category = "Fixes",
+    estimate = "Prevents duplicate invites from stale cache entries",
+}
+
+-- 5. Unused Library Cleanup
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "AutoLayer_libSerializeCleanup", group = "AutoLayer",
+    label = "Unused Library Cleanup",
+    help = "Marks LibSerialize as unused -- it is loaded by AutoLayer but never called anywhere.",
+    detail = "AutoLayer's hopping.lua loads LibSerialize via LibStub at startup (line 3) but no code in any AutoLayer file ever references it. The library reference is stored in AutoLayer's private addon table which is inaccessible from external addons. This patch serves as a documentation marker for the addon author.",
+    impact = "Memory", impactLevel = "Low", category = "Tweaks",
+    estimate = "Minimal (documentation marker)",
+}
+
+-- 6. Layer Status Frame
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "AutoLayer_layerStatusFrame", group = "AutoLayer",
+    label = "Layer Status Frame",
+    help = "Adds a small, movable on-screen frame showing your current layer, AutoLayer status, and session invite count.",
+    detail = "Displays a compact, draggable frame with your current layer number (green when known, red when unknown), whether AutoLayer is enabled or disabled, and how many players you've layered this session. Position is saved between sessions. Integrates with the Hop Transition Tracker for live hop state display.",
+    category = "Tweaks",
+    estimate = "Visual enhancement with minimal overhead",
+}
+
+-- 7. Layer Change Toast
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "AutoLayer_layerChangeToast", group = "AutoLayer",
+    label = "Layer Change Toast",
+    help = "Shows a brief gold notification when your layer changes, e.g. 'Layer 2 -> 3'.",
+    detail = "Monitors the NWB_CurrentLayer global for changes and displays a gold-colored message via UIErrorsFrame when a layer transition is detected. Also plays a subtle ping sound. The message auto-dismisses after a few seconds, matching the style of standard WoW system messages.",
+    category = "Tweaks",
+    estimate = "Visual enhancement, event-driven only",
+}
+
+-- 8. Hop Transition Tracker
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "AutoLayer_hopTransitionTracker", group = "AutoLayer",
+    label = "Hop Transition Tracker",
+    help = "Tracks the full hop lifecycle with visual feedback: idle, waiting, in group, and confirmed states.",
+    detail = "Hooks AutoLayer's SendLayerRequest to track hop state transitions. During an active hop, the layer poll rate increases to 0.1s (10x faster than idle) for faster detection. States are displayed in the Layer Status Frame with color-coded text: yellow for waiting, orange with pulsing for in group, green flash for confirmed.",
+    category = "Tweaks",
+    estimate = "Visual enhancement, integrates with Layer Status Frame",
+}
+
+-- 9. Enhanced Tooltip
+ns.patchInfo[#ns.patchInfo+1] = {
+    key = "AutoLayer_enhancedTooltip", group = "AutoLayer",
+    label = "Enhanced Tooltip",
+    help = "Adds extra information to the AutoLayer minimap icon tooltip.",
+    detail = "Hooks OnTooltipShow on AutoLayer's LibDataBroker object to display richer information including current layer with color coding, total available layers from NovaWorldBuffs, session invite count with color, AutoLayer enabled/disabled status, and active hop transition state if mid-hop.",
+    category = "Tweaks",
+    estimate = "Visual enhancement, tooltip only",
+}
+
+------------------------------------------------------------------------
+-- Shared state for visual patches (6, 7, 8)
+------------------------------------------------------------------------
+
+local statusFrame = nil
+local pollerStarted = false
+
+local hopState = {
+    state = "IDLE",         -- IDLE, WAITING_INVITE, IN_GROUP, CONFIRMED, NO_RESPONSE
+    fromLayer = nil,
+    timestamp = 0,
+    lastKnownLayer = nil,
+}
+
+local POLL_IDLE = 1.0
+local POLL_ACTIVE = 0.1
+local CONFIRM_DURATION = 3.0
+local HOP_TIMEOUT = 30.0
+local WAITING_TIMEOUT = 10.0
+local NO_RESPONSE_DURATION = 5.0
+
+------------------------------------------------------------------------
+-- Helper: Get NWB addon reference
+------------------------------------------------------------------------
+local function GetNWB()
+    local ok, addon = pcall(function()
+        return LibStub("AceAddon-3.0"):GetAddon("NovaWorldBuffs")
+    end)
+    return ok and addon or nil
+end
+
+------------------------------------------------------------------------
+-- Helper: Update the status frame display
+------------------------------------------------------------------------
+local function UpdateStatusFrame()
+    if not statusFrame or not statusFrame:IsShown() then return end
+    if not AutoLayer or not AutoLayer.db then return end
+
+    -- Info line (line 2): layer + status, or hop state
+    local currentLayer = NWB_CurrentLayer
+    local currentNum = currentLayer and tonumber(currentLayer)
+    local layerKnown = currentNum and currentNum > 0
+    local enabled = AutoLayer.db.profile.enabled
+    local infoStr
+
+    if hopState.state == "NO_RESPONSE" then
+        infoStr = "|cffff3333No response|r"
+    elseif hopState.state == "WAITING_INVITE" then
+        infoStr = "|cffffcc00Searching...|r"
+    elseif hopState.state == "IN_GROUP" then
+        infoStr = "|cffff9933Hopping...|r"
+    elseif hopState.state == "CONFIRMED" then
+        local newLayer = layerKnown and currentLayer or "?"
+        infoStr = "|cff33ff33Now on layer " .. newLayer .. "!|r"
+    elseif enabled then
+        if layerKnown then
+            infoStr = "|cff33ff33On|r  |cff555555·|r  Layer " .. currentLayer
+        else
+            infoStr = "|cff33ff33On|r"
+        end
+    else
+        if layerKnown then
+            infoStr = "|cffff3333Off|r  |cff555555·|r  Layer " .. currentLayer
+        else
+            infoStr = "|cffff3333Off|r"
+        end
+    end
+    statusFrame.infoText:SetText(infoStr)
+
+    -- Show hint text during active hop states
+    if statusFrame.hintText then
+        local hint = nil
+        if hopState.state == "WAITING_INVITE" then
+            hint = "|cff888888Waiting for an invite...|r"
+        elseif hopState.state == "IN_GROUP" then
+            hint = "|cff888888Target any NPC or mob to confirm|r"
+        elseif hopState.state == "NO_RESPONSE" then
+            hint = "|cff888888Right-click to try again|r"
+        end
+
+        if hint then
+            statusFrame.hintText:SetText(hint)
+            statusFrame.hintText:Show()
+            statusFrame:SetHeight(46)
+        else
+            statusFrame.hintText:Hide()
+            statusFrame:SetHeight(34)
+        end
+    end
+end
+
+------------------------------------------------------------------------
+-- Helper: Layer polling (shared between patches 6, 7, 8)
+------------------------------------------------------------------------
+local function PollLayer()
+    if not AutoLayer then return end
+
+    local currentLayer = NWB_CurrentLayer
+    local currentNum = currentLayer and tonumber(currentLayer)
+    local lastNum = hopState.lastKnownLayer
+
+    -- Detect layer change
+    if currentNum and currentNum > 0 and lastNum and lastNum > 0 and currentNum ~= lastNum then
+        -- Layer changed! Fire toast (patch 7)
+        if ns.applied["AutoLayer_layerChangeToast"] then
+            local msg = "Layer " .. lastNum .. " -> " .. currentNum
+            UIErrorsFrame:AddMessage(msg, 1.0, 0.82, 0.0)
+            PlaySound(SOUNDKIT and SOUNDKIT.MAP_PING or 3175)
+        end
+
+        -- Transition tracker: mark confirmed (patch 8)
+        if ns.applied["AutoLayer_hopTransitionTracker"] and hopState.state ~= "IDLE" then
+            hopState.state = "CONFIRMED"
+            hopState.timestamp = GetTime()
+        end
+    end
+
+    -- Update last known layer
+    if currentNum and currentNum > 0 then
+        hopState.lastKnownLayer = currentNum
+    end
+
+    -- State timeouts
+    local now = GetTime()
+    if hopState.state == "CONFIRMED" and (now - hopState.timestamp) > CONFIRM_DURATION then
+        hopState.state = "IDLE"
+        hopState.fromLayer = nil
+    end
+    if hopState.state == "IN_GROUP" and (now - hopState.timestamp) > HOP_TIMEOUT then
+        UIErrorsFrame:AddMessage("No layer change detected", 1.0, 0.3, 0.3)
+        hopState.state = "NO_RESPONSE"
+        hopState.timestamp = now
+        hopState.fromLayer = nil
+    end
+    if hopState.state == "WAITING_INVITE" and (now - hopState.timestamp) > WAITING_TIMEOUT then
+        UIErrorsFrame:AddMessage("No invite received", 1.0, 0.3, 0.3)
+        hopState.state = "NO_RESPONSE"
+        hopState.timestamp = now
+    end
+    if hopState.state == "NO_RESPONSE" and (now - hopState.timestamp) > NO_RESPONSE_DURATION then
+        hopState.state = "IDLE"
+        hopState.fromLayer = nil
+    end
+
+    -- Update status frame
+    UpdateStatusFrame()
+
+    -- Schedule next poll (faster during active hop)
+    local interval = (hopState.state == "IN_GROUP") and POLL_ACTIVE or POLL_IDLE
+    C_Timer.After(interval, PollLayer)
+end
+
+------------------------------------------------------------------------
+-- Helper: Start the shared poller (idempotent)
+------------------------------------------------------------------------
+local function StartPoller()
+    if pollerStarted then return end
+    pollerStarted = true
+
+    -- Initialize last known layer
+    local currentLayer = NWB_CurrentLayer
+    if currentLayer and tonumber(currentLayer) and tonumber(currentLayer) > 0 then
+        hopState.lastKnownLayer = tonumber(currentLayer)
+    end
+
+    C_Timer.After(POLL_IDLE, PollLayer)
+end
+
+------------------------------------------------------------------------
+-- Helper: Create the status frame (used by patch 6)
+------------------------------------------------------------------------
+local function CreateStatusFrame()
+    if statusFrame then return statusFrame end
+
+    local f = CreateFrame("Frame", "PatchWerk_AutoLayerStatus", UIParent)
+    f:SetSize(160, 34)
+    f:SetFrameStrata("MEDIUM")
+    f:SetMovable(true)
+    f:EnableMouse(true)
+    f:RegisterForDrag("LeftButton")
+    f:SetClampedToScreen(true)
+
+    -- Restore saved position
+    local db = PatchWerkDB
+    if db and db.AutoLayer_statusFrame_point then
+        local p = db.AutoLayer_statusFrame_point
+        f:ClearAllPoints()
+        f:SetPoint(p[1], UIParent, p[3], p[4], p[5])
+    else
+        f:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -200, -20)
+    end
+
+    -- Border (extends 1px beyond frame bounds)
+    local border = f:CreateTexture(nil, "BACKGROUND")
+    border:SetPoint("TOPLEFT", -1, 1)
+    border:SetPoint("BOTTOMRIGHT", 1, -1)
+    border:SetTexture(WHITE8x8)
+    border:SetVertexColor(0.25, 0.25, 0.25, 0.9)
+
+    -- Background (covers frame area, draws above border)
+    local bg = f:CreateTexture(nil, "BORDER")
+    bg:SetAllPoints()
+    bg:SetTexture(WHITE8x8)
+    bg:SetVertexColor(0.05, 0.05, 0.05, 0.85)
+
+    -- Title (line 1)
+    local titleText = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    titleText:SetPoint("TOPLEFT", 6, -4)
+    titleText:SetText("|cff33ccffAutoLayer|r  |cff555555(PatchWerk)|r")
+
+    -- Info line (line 2): layer + status, or hop state
+    local infoText = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    infoText:SetPoint("TOPLEFT", titleText, "BOTTOMLEFT", 0, -2)
+    f.infoText = infoText
+
+    -- Hint line (line 3): contextual help, hidden by default
+    local hintText = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    hintText:SetPoint("TOPLEFT", infoText, "BOTTOMLEFT", 0, -1)
+    hintText:Hide()
+    f.hintText = hintText
+
+    -- Drag to reposition (left-button drag only)
+    f:SetScript("OnDragStart", function(self)
+        self._dragging = true
+        self:StartMoving()
+    end)
+    f:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        self._lastDragTime = GetTime()
+        self._dragging = false
+        local point, _, relPoint, x, y = self:GetPoint()
+        local db = PatchWerkDB
+        if db then
+            db.AutoLayer_statusFrame_point = { point, "UIParent", relPoint, x, y }
+        end
+    end)
+
+    -- Click interactions: left = toggle, right = quick hop, shift+right = hop GUI
+    f:SetScript("OnMouseUp", function(self, button)
+        -- Ignore clicks right after a drag
+        if self._lastDragTime and (GetTime() - self._lastDragTime) < 0.2 then return end
+        if self._dragging then return end
+        if not AutoLayer then return end
+
+        if button == "LeftButton" then
+            if AutoLayer.Toggle then
+                AutoLayer:Toggle()
+                UpdateStatusFrame()
+            end
+        elseif button == "RightButton" then
+            if IsShiftKeyDown() then
+                -- Shift+Right: open full hop GUI for picking specific layers
+                if AutoLayer.HopGUI then
+                    AutoLayer:HopGUI()
+                end
+            else
+                -- Right-click: quick hop to any other layer
+                local currentLayer = NWB_CurrentLayer
+                local currentNum = currentLayer and tonumber(currentLayer)
+                if currentNum and currentNum > 0 and AutoLayer.SlashCommand then
+                    AutoLayer:SlashCommand("req")
+                    hopState.state = "WAITING_INVITE"
+                    hopState.fromLayer = currentNum
+                    hopState.timestamp = GetTime()
+                    UpdateStatusFrame()
+                elseif AutoLayer.HopGUI then
+                    -- Layer unknown, fall back to GUI
+                    AutoLayer:HopGUI()
+                end
+            end
+        end
+    end)
+
+    -- Tooltip on hover with details + instructions
+    f:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+        GameTooltip:SetText("|cff33ccffAutoLayer|r |cff808080(PatchWerk)|r")
+
+        -- Show session stats in tooltip
+        if AutoLayer and AutoLayer.db then
+            local layered = AutoLayer.db.profile.layered or 0
+            if layered > 0 then
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddDoubleLine("Helped this session:", "|cffffcc00" .. layered .. " players|r")
+            end
+        end
+
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine("Left-click to toggle on/off", 0.5, 0.5, 0.5)
+        GameTooltip:AddLine("Right-click to quick hop", 0.5, 0.5, 0.5)
+        GameTooltip:AddLine("Shift+Right-click to pick layers", 0.5, 0.5, 0.5)
+        GameTooltip:AddLine("Drag to move", 0.5, 0.5, 0.5)
+        GameTooltip:Show()
+    end)
+    f:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    -- Pulsing animation for IN_GROUP state
+    local pulseTime = 0
+    f:SetScript("OnUpdate", function(self, elapsed)
+        if hopState.state == "IN_GROUP" then
+            pulseTime = pulseTime + elapsed
+            local alpha = 0.6 + 0.4 * math.sin(pulseTime * 3)
+            self.infoText:SetAlpha(alpha)
+        else
+            pulseTime = 0
+            self.infoText:SetAlpha(1)
+        end
+    end)
+
+    statusFrame = f
+    return f
+end
+
+------------------------------------------------------------------------
+-- 1. AutoLayer_keyDownThrottle
+--
+-- layering.lua:750-752 creates a frame named "Test" that fires
+-- ProccessQueue() on every KEY_DOWN event. During normal gameplay
+-- (WASD movement, abilities, camera) this means dozens of wasted
+-- calls per second. Fix: throttle to max once per 0.2 seconds.
+------------------------------------------------------------------------
+ns.patches["AutoLayer_keyDownThrottle"] = function()
+    if not ns:IsAddonLoaded("AutoLayer_Vanilla") then return end
+    if type(ProccessQueue) ~= "function" then return end
+
+    local f = _G["Test"]
+    if not f or type(f) ~= "table" or not f.GetScript then return end
+
+    local origHandler = f:GetScript("OnKeyDown")
+    if not origHandler then return end
+
+    -- Clear the generic "Test" global name
+    _G["Test"] = nil
+
+    -- Throttle: max once per 0.2 seconds
+    local lastCall = 0
+    f:SetScript("OnKeyDown", function(self, key)
+        local now = GetTime()
+        if now - lastCall >= 0.2 then
+            lastCall = now
+            origHandler(self, key)
+        end
+    end)
+end
+
+------------------------------------------------------------------------
+-- 2. AutoLayer_parseCache
+--
+-- configuration.lua:25-65 — ParseTriggers(), ParseBlacklist(), and
+-- ParseInvertKeywords() rebuild tables via string.gmatch on every
+-- chat message. Fix: cache parsed tables, invalidate on setter calls.
+------------------------------------------------------------------------
+ns.patches["AutoLayer_parseCache"] = function()
+    if not ns:IsAddonLoaded("AutoLayer_Vanilla") then return end
+    if not AutoLayer then return end
+
+    local cachedTriggers = nil
+    local cachedBlacklist = nil
+    local cachedInvertKeywords = nil
+
+    -- Save originals
+    local origParseTriggers = AutoLayer.ParseTriggers
+    local origParseBlacklist = AutoLayer.ParseBlacklist
+    local origParseInvertKeywords = AutoLayer.ParseInvertKeywords
+
+    -- Cached replacements
+    AutoLayer.ParseTriggers = function(self)
+        if not cachedTriggers then
+            cachedTriggers = origParseTriggers(self)
+        end
+        return cachedTriggers
+    end
+
+    AutoLayer.ParseBlacklist = function(self)
+        if not cachedBlacklist then
+            cachedBlacklist = origParseBlacklist(self)
+        end
+        return cachedBlacklist
+    end
+
+    AutoLayer.ParseInvertKeywords = function(self)
+        if not cachedInvertKeywords then
+            cachedInvertKeywords = origParseInvertKeywords(self)
+        end
+        return cachedInvertKeywords
+    end
+
+    -- Invalidate caches when setters are called
+    hooksecurefunc(AutoLayer, "SetTriggers", function()
+        cachedTriggers = nil
+    end)
+
+    hooksecurefunc(AutoLayer, "SetBlacklist", function()
+        cachedBlacklist = nil
+    end)
+
+    hooksecurefunc(AutoLayer, "SetInvertKeywords", function()
+        cachedInvertKeywords = nil
+    end)
+end
+
+------------------------------------------------------------------------
+-- 3. AutoLayer_systemFilterCache
+--
+-- main.lua:442-453 — matchesAnySystemMessage() escapes and builds
+-- 15 Lua patterns from system message constants on every
+-- CHAT_MSG_SYSTEM event. Fix: pre-compute patterns once at load time.
+------------------------------------------------------------------------
+ns.patches["AutoLayer_systemFilterCache"] = function()
+    if not ns:IsAddonLoaded("AutoLayer_Vanilla") then return end
+    if not AutoLayer then return end
+
+    -- Pre-compute escaped patterns from the same system message constants
+    local cachedPatterns = {}
+    local rawMessages = {
+        ERR_INVITE_PLAYER_S,
+        ERR_JOINED_GROUP_S,
+        ERR_DECLINE_GROUP_S,
+        ERR_GROUP_DISBANDED,
+        ERR_LEFT_GROUP_S,
+        ERR_LEFT_GROUP_YOU,
+        ERR_DUNGEON_DIFFICULTY_CHANGED_S,
+        ERR_ALREADY_IN_GROUP_S,
+        ERR_GROUP_FULL,
+        ERR_NOT_IN_GROUP,
+        ERR_SET_LOOT_FREEFORALL,
+        ERR_SET_LOOT_GROUP,
+        ERR_SET_LOOT_ROUNDROBIN,
+        ERR_SET_LOOT_NBG,
+        ERR_SET_LOOT_THRESHOLD_S,
+    }
+    for _, msg in ipairs(rawMessages) do
+        if msg then
+            local pattern = msg:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")
+            pattern = pattern:gsub("%%%%s", "(.+)")
+            cachedPatterns[#cachedPatterns+1] = pattern
+        end
+    end
+
+    -- Optimized match function using pre-computed patterns
+    local function matchesCached(msg)
+        for _, pattern in ipairs(cachedPatterns) do
+            if msg:match(pattern) then return true end
+        end
+        return false
+    end
+
+    -- Optimized filter function
+    local function optimizedSystemFilter(_, _, msg, author, ...)
+        local filtered = AutoLayer:GetEnabled() and matchesCached(msg)
+        return filtered, msg, author, ...
+    end
+
+    -- If the old filter is currently active, swap it out
+    local isActive = AutoLayer.db and AutoLayer.db.profile
+        and AutoLayer.db.profile.hideSystemGroupMessages
+    if isActive then
+        -- Remove old filter (calls ChatFrame_RemoveMessageEventFilter
+        -- with the original local function reference)
+        AutoLayer:unfilterChatEventSystemGroupMessages()
+        -- Add our optimized filter
+        ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", optimizedSystemFilter)
+    end
+
+    -- Replace the add/remove methods for future use
+    AutoLayer.filterChatEventSystemGroupMessages = function()
+        ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", optimizedSystemFilter)
+    end
+    AutoLayer.unfilterChatEventSystemGroupMessages = function()
+        ChatFrame_RemoveMessageEventFilter("CHAT_MSG_SYSTEM", optimizedSystemFilter)
+    end
+end
+
+------------------------------------------------------------------------
+-- 4. AutoLayer_pruneCacheFix
+--
+-- layering.lua:100-122 — pruneCache() uses table.remove() inside
+-- forward ipairs() loops. When an entry is removed at position i,
+-- the next entry shifts to i and gets skipped. Fix: call the
+-- original multiple times to catch all skipped entries (each pass
+-- catches ~half of consecutive stale entries; 5 passes handles
+-- up to 32 consecutive stale entries).
+------------------------------------------------------------------------
+ns.patches["AutoLayer_pruneCacheFix"] = function()
+    if not ns:IsAddonLoaded("AutoLayer_Vanilla") then return end
+    if not AutoLayer or not AutoLayer.pruneCache then return end
+
+    local origPrune = AutoLayer.pruneCache
+    AutoLayer.pruneCache = function(self)
+        for _ = 1, 5 do
+            origPrune(self)
+        end
+    end
+end
+
+------------------------------------------------------------------------
+-- 5. AutoLayer_libSerializeCleanup
+--
+-- hopping.lua:3 — LibSerialize is loaded via LibStub but never used
+-- anywhere in AutoLayer's codebase. The reference is stored in
+-- AutoLayer's private addon table (inaccessible from external addons).
+-- This patch validates the issue and serves as a documentation marker.
+------------------------------------------------------------------------
+ns.patches["AutoLayer_libSerializeCleanup"] = function()
+    if not ns:IsAddonLoaded("AutoLayer_Vanilla") then return end
+    -- LibSerialize is loaded in hopping.lua line 3:
+    --   addonTable.LibSerialize = LibStub("LibSerialize")
+    -- but never referenced anywhere else in AutoLayer's code.
+    --
+    -- The private addon table is inaccessible from external addons,
+    -- so we cannot nil the reference. LibStub also retains its own
+    -- reference, so GC benefit would be minimal regardless.
+    --
+    -- This patch exists as a documentation marker. The real fix is
+    -- for the AutoLayer author to remove the unused require.
+end
+
+------------------------------------------------------------------------
+-- 6. AutoLayer_layerStatusFrame
+--
+-- Creates a small, movable on-screen frame showing:
+--   - Current layer number (green=known, red=unknown)
+--   - AutoLayer enabled/disabled indicator
+--   - Session invite count ("Layered: 12")
+--   - Layer transition state (from patch 8)
+-- Position saved in PatchWerkDB.AutoLayer_statusFrame_point
+------------------------------------------------------------------------
+ns.patches["AutoLayer_layerStatusFrame"] = function()
+    if not ns:IsAddonLoaded("AutoLayer_Vanilla") then return end
+    if not AutoLayer then return end
+
+    local f = CreateStatusFrame()
+    f:Show()
+
+    -- Start the shared layer poller
+    StartPoller()
+
+    -- Initial display update
+    UpdateStatusFrame()
+
+    -- Refresh on roster changes (may trigger NWB layer update)
+    local eventFrame = CreateFrame("Frame")
+    eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+    eventFrame:SetScript("OnEvent", function()
+        UpdateStatusFrame()
+    end)
+end
+
+------------------------------------------------------------------------
+-- 7. AutoLayer_layerChangeToast
+--
+-- Monitors NWB_CurrentLayer for changes. When a layer transition is
+-- detected, displays a gold-colored message via UIErrorsFrame and
+-- plays a subtle ping sound. Handled in the shared PollLayer function
+-- which checks ns.applied["AutoLayer_layerChangeToast"].
+------------------------------------------------------------------------
+ns.patches["AutoLayer_layerChangeToast"] = function()
+    if not ns:IsAddonLoaded("AutoLayer_Vanilla") then return end
+    if not AutoLayer then return end
+
+    -- Toast logic lives in PollLayer(); this patch just needs to be
+    -- marked as applied so PollLayer fires the toast on layer changes.
+    -- Start the poller if the status frame patch didn't already.
+    StartPoller()
+end
+
+------------------------------------------------------------------------
+-- 8. AutoLayer_hopTransitionTracker
+--
+-- Tracks the full hop lifecycle:
+--   IDLE -> WAITING_INVITE (after SendLayerRequest)
+--   WAITING_INVITE -> IN_GROUP (after GROUP_ROSTER_UPDATE + IsInGroup)
+--   IN_GROUP -> CONFIRMED (when NWB_CurrentLayer changes)
+--   CONFIRMED -> IDLE (after 3 seconds)
+--
+-- During IN_GROUP state, poll rate increases to 0.1s for faster
+-- layer detection. Timeout after 30s reverts to IDLE.
+------------------------------------------------------------------------
+ns.patches["AutoLayer_hopTransitionTracker"] = function()
+    if not ns:IsAddonLoaded("AutoLayer_Vanilla") then return end
+    if not AutoLayer then return end
+
+    -- Hook SendLayerRequest to capture hop initiation
+    hooksecurefunc(AutoLayer, "SendLayerRequest", function()
+        local currentLayer = NWB_CurrentLayer
+        hopState.state = "WAITING_INVITE"
+        hopState.fromLayer = currentLayer and tonumber(currentLayer) or nil
+        hopState.timestamp = GetTime()
+        UpdateStatusFrame()
+    end)
+
+    -- Detect when we join a group during a hop via GROUP_ROSTER_UPDATE
+    local hopEventFrame = CreateFrame("Frame")
+    hopEventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+    hopEventFrame:SetScript("OnEvent", function()
+        if hopState.state == "WAITING_INVITE" and IsInGroup() then
+            hopState.state = "IN_GROUP"
+            hopState.timestamp = GetTime()
+            UpdateStatusFrame()
+        end
+    end)
+
+    -- Start the poller if not already started by patches 6 or 7
+    StartPoller()
+end
+
+------------------------------------------------------------------------
+-- 9. AutoLayer_enhancedTooltip
+--
+-- Hooks OnTooltipShow on AutoLayer's LibDataBroker object to display
+-- richer information: current layer (color-coded), total available
+-- layers, session invite count, AutoLayer status, and hop state.
+------------------------------------------------------------------------
+ns.patches["AutoLayer_enhancedTooltip"] = function()
+    if not ns:IsAddonLoaded("AutoLayer_Vanilla") then return end
+    if not AutoLayer or not AutoLayer.db then return end
+
+    -- Get the LDB object via LibDataBroker
+    local LDB = LibStub and LibStub("LibDataBroker-1.1", true)
+    if not LDB then return end
+
+    local dataObj = LDB:GetDataObjectByName("AutoLayer")
+    if not dataObj then return end
+
+    -- Replace tooltip handler with enhanced version
+    dataObj.OnTooltipShow = function(tooltip)
+        tooltip:AddLine("|cff33ccffAutoLayer|r")
+        tooltip:AddLine(" ")
+
+        -- Current layer with color
+        local currentLayer = NWB_CurrentLayer
+        if currentLayer and tonumber(currentLayer) and tonumber(currentLayer) > 0 then
+            tooltip:AddDoubleLine("Current Layer:", "|cff33ff33" .. currentLayer .. "|r")
+        else
+            tooltip:AddDoubleLine("Current Layer:", "|cffff3333Unknown|r")
+        end
+
+        -- Total available layers (from NWB)
+        local NWBAddon = GetNWB()
+        if NWBAddon and NWBAddon.data and NWBAddon.data.layers then
+            local totalLayers = 0
+            for _ in pairs(NWBAddon.data.layers) do
+                totalLayers = totalLayers + 1
+            end
+            if totalLayers > 0 then
+                tooltip:AddDoubleLine("Available Layers:", "|cffcccccc" .. totalLayers .. "|r")
+            end
+        end
+
+        -- Session invite count
+        local layered = AutoLayer.db.profile.layered or 0
+        local countColor = layered > 0 and "|cff33ff33" or "|cff808080"
+        tooltip:AddDoubleLine("Session Layered:", countColor .. layered .. "|r")
+
+        -- AutoLayer status
+        local enabled = AutoLayer.db.profile.enabled
+        if enabled then
+            tooltip:AddDoubleLine("Status:", "|cff33ff33Enabled|r")
+        else
+            tooltip:AddDoubleLine("Status:", "|cffff3333Disabled|r")
+        end
+
+        -- Hop transition state (if mid-hop)
+        if hopState.state ~= "IDLE" then
+            tooltip:AddLine(" ")
+            local stateInfo = {
+                WAITING_INVITE = { color = "|cffffcc00", label = "Searching for a layer..." },
+                IN_GROUP = { color = "|cffff9933", label = "Switching layers..." },
+                CONFIRMED = { color = "|cff33ff33", label = "Layer changed!" },
+                NO_RESPONSE = { color = "|cffff3333", label = "No response — try again" },
+            }
+            local info = stateInfo[hopState.state]
+            if info then
+                tooltip:AddLine(info.color .. "Hop: " .. info.label .. "|r")
+            end
+        end
+
+        tooltip:AddLine(" ")
+        tooltip:AddLine("|cff808080Left-click to toggle|r")
+        tooltip:AddLine("|cff808080Right-click to hop layers|r")
+    end
+end

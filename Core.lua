@@ -97,6 +97,16 @@ local defaults = {
     -- NovaInstanceTracker
     NovaInstanceTracker_weeklyResetGuard = true,
     NovaInstanceTracker_settingsCompat = true,
+    -- AutoLayer
+    AutoLayer_keyDownThrottle = true,
+    AutoLayer_parseCache = true,
+    AutoLayer_systemFilterCache = true,
+    AutoLayer_pruneCacheFix = true,
+    AutoLayer_libSerializeCleanup = true,
+    AutoLayer_layerStatusFrame = true,
+    AutoLayer_layerChangeToast = true,
+    AutoLayer_hopTransitionTracker = true,
+    AutoLayer_enhancedTooltip = true,
 }
 
 ns.defaults = defaults
@@ -133,6 +143,7 @@ ns.addonGroups = {
     { id = "BugSack",          label = "BugSack (Error Display)",    deps = { "BugSack" } },
     { id = "LoonBestInSlot",   label = "LoonBestInSlot (Gear Guide)", deps = { "LoonBestInSlot" } },
     { id = "NovaInstanceTracker", label = "Nova Instance Tracker",  deps = { "NovaInstanceTracker" } },
+    { id = "AutoLayer",          label = "AutoLayer (Layer Hopping)", deps = { "AutoLayer_Vanilla" } },
 }
 
 function ns:GetDB()
