@@ -60,16 +60,28 @@ local function BuildWelcomePage(container)
     page:SetAllPoints()
     page:Hide()
 
+    -- Patchwerk 3D model (NPC 16028 from Naxxramas)
+    local model = CreateFrame("PlayerModel", nil, page)
+    model:SetSize(100, 120)
+    model:SetPoint("TOP", 0, -4)
+    if model.SetCreature then
+        model:SetCreature(16028)
+    elseif model.SetDisplayInfo then
+        model:SetDisplayInfo(16174)
+    end
+    model:SetCamDistanceScale(1.5)
+    model:SetFacing(-0.2)
+
     local logo = page:CreateFontString(nil, "ARTWORK", "GameFontNormalHuge")
-    logo:SetPoint("TOP", 0, -30)
+    logo:SetPoint("TOP", 0, -126)
     logo:SetText("|cff33ccffPatchWerk|r")
 
     local sub = page:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    sub:SetPoint("TOP", logo, "BOTTOM", 0, -6)
+    sub:SetPoint("TOP", logo, "BOTTOM", 0, -4)
     sub:SetText("|cffaaaaaaPerformance patches for your addons|r")
 
     local body = page:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    body:SetPoint("TOP", sub, "BOTTOM", 0, -24)
+    body:SetPoint("TOP", sub, "BOTTOM", 0, -14)
     body:SetPoint("LEFT", container, "LEFT", 40, 0)
     body:SetPoint("RIGHT", container, "RIGHT", -40, 0)
     body:SetJustifyH("CENTER")
