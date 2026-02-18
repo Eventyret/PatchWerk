@@ -22,6 +22,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Cell checks debuff priority twice in a row for the same debuff during updates -- once from the debuff scan and once from the raid debuff check. The fix remembers the last result and skips the duplicate lookup.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "~1-2 FPS during debuff-heavy encounters",
+    targetVersion = "r274-release",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Cell_customIndicatorGuard", group = "Cell", label = "Custom Indicator Guard",
@@ -29,6 +30,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Cell processes custom indicators for every aura on every raid frame, even if you don't have any custom indicators set up. Most players use default settings, so this is wasted work on every update. The fix detects this and skips the whole system.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "~1-2 FPS for users without custom indicators",
+    targetVersion = "r274-release",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Cell_debuffGlowMemo", group = "Cell", label = "Debuff Glow Cache",
@@ -36,6 +38,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Cell checks which debuffs should glow immediately after checking their priority, using the same information both times. The fix remembers the last result and reuses it, cutting the work in half.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "~0.5-1 FPS during raid debuff tracking",
+    targetVersion = "r274-release",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Cell_inspectQueueThrottle", group = "Cell", label = "Inspect Queue Throttle",
@@ -43,6 +46,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "When you join a group, Cell's group info system fires inspect requests to the server every 0.25 seconds -- that's 4 per second. In a 25-man raid, it sends 24 inspect requests in just 6 seconds, most of which get silently dropped by the server and need retries. The fix spaces them to every 1.5 seconds, which the server handles cleanly.",
     impact = "Network", impactLevel = "Medium", category = "Performance",
     estimate = "83% fewer inspect server requests on group join",
+    targetVersion = "r274-release",
 }
 
 local pairs = pairs

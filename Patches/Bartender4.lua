@@ -23,6 +23,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Bartender4 scans all your action bar buttons for loss-of-control overlays (stun, silence, etc.) every time something happens in combat. These overlays don't exist on Classic, so every scan finds nothing and wastes resources. This adds up fast during busy fights.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "~1-2 FPS in combat on Classic",
+    targetVersion = "4.17.3",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Bartender4_usableThrottle", group = "Bartender4", label = "Button Update Batch",
@@ -30,6 +31,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Your action bars refresh on every mana tick, target change, and buff change, causing all your buttons to be rechecked multiple times per second. During intense combat, this can cause button highlights and range coloring to feel sluggish. The fix batches these updates together so your bars stay responsive without the overhead.",
     impact = "FPS", impactLevel = "High", category = "Performance",
     estimate = "~2-4 FPS during mana-heavy combat",
+    targetVersion = "4.17.3",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Bartender4_pressAndHoldGuard", group = "Bartender4", label = "Combat Error Flood Fix",
@@ -37,6 +39,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "TBC Anniversary includes newer action bar code meant for Retail WoW that conflicts with Bartender4 during combat. This triggers around 19 errors every time you enter combat, flooding your error log and wasting resources. The fix prevents the conflict from happening in the first place.",
     impact = "FPS", impactLevel = "High", category = "Fixes",
     estimate = "Eliminates ~19 error popups per combat encounter",
+    targetVersion = "4.17.3",
 }
 
 local pcall   = pcall

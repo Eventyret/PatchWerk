@@ -20,6 +20,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "During heavy AoE damage in raids, VuhDo's debuff checker fires 100+ times per second as aura updates flood in. This creates raid frame stuttering during encounters like Lurker or Vashj. The fix combines checks within 33ms windows.",
     impact = "FPS", impactLevel = "High", category = "Performance",
     estimate = "~2-5 FPS in 25-man raids during AoE encounters",
+    targetVersion = "3.197-tbcc",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "VuhDo_rangeSkipDead", group = "VuhDo", label = "Skip Dead Range Checks",
@@ -27,6 +28,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "VuhDo checks range on every raid member continuously, making multiple checks per person per update. Dead and disconnected players obviously can't change range, but VuhDo checks them anyway. In a 25-man with deaths, that's a lot of wasted work.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "~1-3 FPS during wipe recovery and rez phases",
+    targetVersion = "3.197-tbcc",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "VuhDo_inspectThrottle", group = "VuhDo", label = "Inspect Request Throttle",
@@ -34,6 +36,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "VuhDo sends inspect requests to the server every 2.1 seconds to determine raid members' specs and roles. In a 25-man raid, this means continuous inspect traffic for the entire session as members join, leave, or go out of range. The fix spaces requests to every 5 seconds, cutting server traffic by 60%.",
     impact = "Network", impactLevel = "Medium", category = "Performance",
     estimate = "60% fewer inspect server requests in raids",
+    targetVersion = "3.197-tbcc",
 }
 
 local GetTime = GetTime

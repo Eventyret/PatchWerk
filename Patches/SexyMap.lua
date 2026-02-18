@@ -17,6 +17,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "SexyMap uses Settings.OpenToCategory to open its config panel, but this API may not work correctly on TBC Classic Anniversary. This wraps the slash command with a fallback to the classic InterfaceOptionsFrame_OpenToCategory method.",
     impact = "Compatibility", impactLevel = "High", category = "Compatibility",
     estimate = "Makes /sexymap and right-click config work reliably",
+    targetVersion = "v12.0.2",
 }
 
 ------------------------------------------------------------------------

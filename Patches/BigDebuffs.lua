@@ -21,6 +21,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "BigDebuffs scans through its hidden debuff list one by one for every aura on every unit frame. With 40 aura slots checked per unit, this adds up fast during raid encounters. The fix uses instant lookups instead of scanning the whole list.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Faster debuff checks, biggest improvement with large debuff lists",
+    targetVersion = "v57",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "BigDebuffs_attachFrameGuard", group = "BigDebuffs", label = "Frame Anchor Cache",
@@ -28,6 +29,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "BigDebuffs searches through 9 different frame integrations (ElvUI, Cell, NDui, etc.) on every single aura update to figure out where to place icons. It finds the same answer every time until you reload. The fix remembers which frames go with which units.",
     impact = "FPS", impactLevel = "High", category = "Performance",
     estimate = "~1-3 FPS during raid aura storms",
+    targetVersion = "v57",
 }
 
 local pairs = pairs

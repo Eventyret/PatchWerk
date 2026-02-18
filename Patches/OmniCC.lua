@@ -19,6 +19,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Every time you press an ability and trigger the global cooldown, OmniCC checks it 20+ times across all your action bars. This creates micro-stuttering during ability spam, especially noticeable in PvP and fast raid rotations.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "~1-2 FPS during ability rotation",
+    targetVersion = "11.2.8",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "OmniCC_ruleMatchCache", group = "OmniCC", label = "Display Rule Cache",
@@ -26,6 +27,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "OmniCC figures out which display settings apply to each cooldown by checking every one against a list of rules. Since these never change during gameplay, it's doing hundreds of identical lookups for no reason.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Reduced microstutter when multiple cooldowns trigger",
+    targetVersion = "11.2.8",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "OmniCC_finishEffectGuard", group = "OmniCC", label = "Finish Effect Guard",
@@ -33,6 +35,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "OmniCC tries to play cooldown-finished animations even for abilities that are nowhere near ready. The fix skips this wasted work unless an ability is actually within 2 seconds of being usable again.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "~0.5-1 FPS during active combat with many abilities",
+    targetVersion = "11.2.8",
 }
 
 local GetTime = GetTime

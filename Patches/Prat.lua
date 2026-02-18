@@ -21,6 +21,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "With features like Hover Highlighting enabled, Prat recalculates every visible chat line 60 times per second. With 4 chat frames open that's thousands of updates per second. This patch drops it to 20 per second with no visible difference.",
     impact = "FPS", impactLevel = "High", category = "Performance",
     estimate = "~5-10 FPS when chat is visible, huge gain in raids",
+    targetVersion = "3.9.87",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Prat_timestampCache", group = "Prat", label = "Timestamp Cache",
@@ -28,6 +29,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Prat rebuilds the timestamp text from scratch for every single chat message, even when 10 messages arrive in the same second. During busy raid chat or trade spam, this causes unnecessary frame drops.",
     impact = "Memory", impactLevel = "Low", category = "Performance",
     estimate = "Less memory growth in high-traffic chat channels",
+    targetVersion = "3.9.87",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Prat_bubblesGuard", group = "Prat", label = "Bubble Scan Guard",
@@ -35,6 +37,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Prat scans for chat bubbles 10 times per second even when you're completely alone or in an instance where no one is talking. The fix skips this entirely when no bubbles exist.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "Reduces baseline overhead while solo or in instances",
+    targetVersion = "3.9.87",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Prat_playerNamesThrottle", group = "Prat", label = "Player Info Throttle",
@@ -42,6 +45,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Prat's player name coloring system reacts to every buff and debuff change in your raid to track player classes. In raids, these changes happen 20-50 times per second but player names never change when someone gains a buff. This patch limits those checks to 5 per second.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "~1-3 FPS in 25-man raids during heavy buff/debuff activity",
+    targetVersion = "3.9.87",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Prat_guildRosterThrottle", group = "Prat", label = "Guild Roster Rate Limit",
@@ -49,6 +53,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Prat requests a full guild roster refresh every time it receives a roster update from the server, creating a feedback loop that generates constant network traffic. In a large active guild with members logging in and out, this produces unnecessary server requests every few seconds. The fix limits roster requests to once per 15 seconds.",
     impact = "Network", impactLevel = "Medium", category = "Performance",
     estimate = "Eliminates guild roster feedback loop network traffic",
+    targetVersion = "3.9.87",
 }
 
 local GetTime = GetTime

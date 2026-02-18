@@ -21,6 +21,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "TipTac runs appearance updates constantly for every visible tooltip, including item and spell tooltips where no player or NPC is shown. This wastes resources when you're hovering items in bags or on vendors.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "~0.5-1 FPS while hovering items in bags",
+    targetVersion = "26.02.12",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "TipTac_inspectCache", group = "TipTac", label = "Extended Inspect Cache",
@@ -28,6 +29,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "TipTac re-inspects players every 5 seconds when you hover them, sending repeated requests to the server. In crowded cities or raids, this causes inspect delays for everyone. The fix extends the cache to 30 seconds.",
     impact = "Network", impactLevel = "Medium", category = "Performance",
     estimate = "80% fewer inspect requests, less server lag",
+    targetVersion = "26.02.12",
 }
 
 local pairs    = pairs

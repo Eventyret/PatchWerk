@@ -28,6 +28,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "NovaInstanceTracker tries to calculate your weekly reset timer during login using a method that does not exist in TBC Classic Anniversary. This causes the addon to throw an error on every login, potentially breaking its tracking features. This fix safely handles the missing timer so the addon loads without errors.",
     impact = "FPS", impactLevel = "High", category = "Fixes",
     estimate = "Fixes addon crash that happened every time you logged in",
+    targetVersion = "2.17",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "NovaInstanceTracker_settingsCompat", group = "NovaInstanceTracker", label = "Fix Settings Menu",
@@ -35,6 +36,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Typing '/nit config' to open the addon's settings tries to use a method that only exists in Retail WoW. On TBC Classic Anniversary, this causes a crash instead of showing the options panel. This fix makes the command open settings correctly on Classic.",
     impact = "FPS", impactLevel = "High", category = "Fixes",
     estimate = "Fixes settings menu that would crash on Classic",
+    targetVersion = "2.17",
 }
 
 ------------------------------------------------------------------------

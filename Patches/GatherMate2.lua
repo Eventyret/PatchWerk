@@ -20,6 +20,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "GatherMate2 updates your minimap gathering pins 60 times per second. This creates noticeable stuttering while flying or riding through zones with lots of nodes. The fix caps it at 20 per second -- still buttery smooth but much lighter.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "~2-4 FPS while moving through gathering zones",
+    targetVersion = "1.47.9-classic",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "GatherMate2_rebuildGuard", group = "GatherMate2", label = "Stationary Rebuild Skip",
@@ -27,6 +28,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Every 2 seconds, GatherMate2 rebuilds all minimap nodes by recalculating distances and positions, even when you're standing still at the auction house. The fix skips these pointless rebuilds when you haven't moved.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Eliminates minimap stutter when standing still",
+    targetVersion = "1.47.9-classic",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "GatherMate2_cleuUnregister", group = "GatherMate2", label = "Remove Unused Combat Handler",
@@ -34,6 +36,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "GatherMate2 processes every combat log event during fights looking for gas cloud extraction, but this feature is completely unused in TBC. In raids, that's 200+ wasted checks per second during boss encounters.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "~1-2 FPS in raid combat",
+    targetVersion = "1.47.9-classic",
 }
 
 local GetTime = GetTime

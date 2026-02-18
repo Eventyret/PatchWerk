@@ -21,6 +21,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Every addon message Gargul receives triggers a full raid roster scan -- iterating all 40 slots, calling GetRaidRosterInfo for each, and firing multiple internal events. During an active GDKP auction with rapid bidding, dozens of messages arrive per second, making this the single biggest performance bottleneck.",
     impact = "FPS", impactLevel = "High", category = "Performance",
     estimate = "~3-8 FPS during active GDKP auctions with many bidders",
+    targetVersion = "7.7.19",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Gargul_lootPollThrottle", group = "Gargul", label = "Loot Window Poll Throttle",
@@ -28,6 +29,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "While the loot window is open, Gargul runs a polling timer at 10 times per second to detect loot page changes. Loot page changes are not time-sensitive, so reducing this to twice per second is more than enough.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Reduces idle CPU usage while looting by ~80%",
+    targetVersion = "7.7.19",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Gargul_tradeTimerFix", group = "Gargul", label = "Trade Window Timer Fix",
@@ -35,6 +37,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "The trade window item-add processor runs with a 0-second interval, which means it fires every frame even when there are no items to add. This fix raises it to a sensible interval that still feels instant but doesn't burn CPU every frame.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Eliminates per-frame overhead while the trade window is open",
+    targetVersion = "7.7.19",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Gargul_commBoxPrune", group = "Gargul", label = "Message Cleanup",
@@ -42,6 +45,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Every comm message that expects a response is stored in a tracking table that is never pruned. Over a long GDKP session with hundreds of auctions, version checks every 30 minutes, and sync operations, this table grows unboundedly. This adds periodic cleanup of entries older than 5 minutes.",
     impact = "Memory", impactLevel = "Medium", category = "Performance",
     estimate = "Prevents slow memory growth during long GDKP sessions",
+    targetVersion = "7.7.19",
 }
 
 local GetTime = GetTime

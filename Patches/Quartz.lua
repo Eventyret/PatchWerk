@@ -20,6 +20,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Quartz animates cast bars at 60fps, but you can't visually tell the difference between 60fps and 30fps on a 1-3 second cast. The fix caps it at 30fps, cutting the work in half with zero visual difference.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "~1-2 FPS with multiple cast bars visible",
+    targetVersion = "3.7.17",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Quartz_swingBarThrottle", group = "Quartz", label = "Swing Timer 30fps Cap",
@@ -27,6 +28,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "The swing timer updates 60 times per second during auto-attack, but a 2-3 second swing looks identical at 30fps. This halves the animation work for melee classes and hunters.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "~0.5-1 FPS for melee classes during combat",
+    targetVersion = "3.7.17",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Quartz_gcdBarThrottle", group = "Quartz", label = "GCD Bar 30fps Cap",
@@ -34,6 +36,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "The GCD bar runs at 60fps during every 1.5 second global cooldown. That's complete overkill for such a short bar. The fix caps it at 30fps, which is still perfectly smooth.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "~0.5-1 FPS during ability spam",
+    targetVersion = "3.7.17",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Quartz_buffBucket", group = "Quartz", label = "Buff Bar Update Throttle",
@@ -41,6 +44,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "The Buff module checks up to 72 buffs and debuffs on every target or focus change. During rapid tab-targeting or healer mouse-over targeting, this can fire dozens of times per second. This patch batches those updates so they happen at most 10 times per second with no visible delay.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "~1-2 FPS for healers during rapid target switching",
+    targetVersion = "3.7.17",
 }
 
 ------------------------------------------------------------------------

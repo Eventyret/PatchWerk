@@ -20,6 +20,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Auctionator queries the server 60 times per second while you're on the Selling or Cancelling tabs. Your auction data only changes when you post or cancel, not every frame. The fix limits queries to once per second.",
     impact = "Network", impactLevel = "High", category = "Performance",
     estimate = "~10-20 FPS at the auction house",
+    targetVersion = "308",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Auctionator_throttleBroadcast", group = "Auctionator", label = "Timer Display Throttle",
@@ -27,6 +28,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "The auction throttle countdown timer updates 60 times per second just to show a number counting down. You don't need frame-perfect precision for a countdown. The fix drops it to 2 updates per second.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "~1-2 FPS during AH operations",
+    targetVersion = "308",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Auctionator_priceAgeOptimize", group = "Auctionator", label = "Price Age Optimizer",
@@ -34,6 +36,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Every time you hover over an item, Auctionator creates throwaway data, sorts it, then discards it just to check how old the price is. During quick auction scans this causes tooltip lag. The fix does it without any throwaway data.",
     impact = "Memory", impactLevel = "Medium", category = "Performance",
     estimate = "Less memory growth during long AH sessions",
+    targetVersion = "308",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Auctionator_dbKeyCache", group = "Auctionator", label = "Price Lookup Cache",
@@ -41,6 +44,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Auctionator converts item links to price lookups using expensive conversions every single time you hover an item. If you mouseover the same item 10 times, it does the same work 10 times. The fix remembers results.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Snappier tooltip on frequently hovered AH items",
+    targetVersion = "308",
 }
 
 local GetTime  = GetTime

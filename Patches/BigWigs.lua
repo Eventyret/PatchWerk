@@ -17,6 +17,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "The proximity display updates its text 20 times per second. Most monitors and human reaction times cannot benefit from updates faster than 10-12 per second. This throttles text rendering to ~12fps while keeping the proximity detection running at full speed.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "Small FPS improvement when proximity display is open during encounters",
+    targetVersion = "v406.4",
 }
 
 local GetTime = GetTime
