@@ -471,14 +471,15 @@ local function ShowPage(pageNum)
             end
         end
     end
-    -- Refresh dynamic content for the visible page
-    if pages[pageNum] and pages[pageNum].Refresh then
-        pages[pageNum].Refresh()
-    end
-    -- Update nav buttons
+    -- Update nav buttons (before Refresh so page Refresh can override button text)
     if wizardFrame then
         if pageNum > 1 then wizardFrame.backBtn:Show() else wizardFrame.backBtn:Hide() end
         wizardFrame.nextBtn:SetText(pageNum == NUM_PAGES and "Finish" or "Next")
+        wizardFrame.nextBtn:SetWidth(80)
+    end
+    -- Refresh dynamic content for the visible page
+    if pages[pageNum] and pages[pageNum].Refresh then
+        pages[pageNum].Refresh()
     end
 end
 
