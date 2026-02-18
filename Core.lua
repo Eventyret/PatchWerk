@@ -130,6 +130,9 @@ local defaults = {
     -- NovaWorldBuffs
     NovaWorldBuffs_openConfigFix = true,
     NovaWorldBuffs_markerThrottle = true,
+    NovaWorldBuffs_cAddOnsShim = true,
+    NovaWorldBuffs_cSummonInfoShim = true,
+    NovaWorldBuffs_pairsByKeysOptimize = true,
 }
 
 ns.defaults = defaults
