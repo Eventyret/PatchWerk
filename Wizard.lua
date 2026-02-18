@@ -123,14 +123,25 @@ local function BuildDetectedPage(container)
 
     local title = page:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 24, -14)
-    title:SetText("Detected Addons")
+    title:SetText("Your Addons")
 
     local summary = page:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     summary:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
 
+    -- Footer: suggest addons CTA
+    local footer = page:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    footer:SetPoint("BOTTOMLEFT", 24, 12)
+    footer:SetPoint("RIGHT", page, "RIGHT", -24, 0)
+    footer:SetJustifyH("LEFT")
+    footer:SetWordWrap(true)
+    footer:SetText(
+        "|cff888888Missing your favorite addon? Whisper |cff8788EEHexusPlexus|r|cff888888 on " ..
+        "Thunderstrike EU or suggest it at |cffffd100/pw about|r|cff888888!|r"
+    )
+
     local sf = CreateFrame("ScrollFrame", "PatchWerk_WizScroll2", page, "UIPanelScrollFrameTemplate")
     sf:SetPoint("TOPLEFT", 12, -48)
-    sf:SetPoint("BOTTOMRIGHT", -30, 8)
+    sf:SetPoint("BOTTOMRIGHT", -30, 30)
     local content = CreateFrame("Frame")
     content:SetSize(440, 800)
     sf:SetScrollChild(content)
@@ -177,7 +188,13 @@ local function BuildDetectedPage(container)
             end
         end
         content:SetHeight(math.max(-y + 8, 100))
-        summary:SetText("|cff33e633" .. installed .. "|r of " .. total .. " supported addons detected")
+        if installed == 0 then
+            summary:SetText("No supported addons detected yet — patches will apply when you install one!")
+        elseif installed == 1 then
+            summary:SetText("PatchWerk found |cff33e6331 addon|r to optimize!  |cff808080(" .. total .. " supported)|r")
+        else
+            summary:SetText("PatchWerk found patches for |cff33e633" .. installed .. " of your addons|r!  |cff808080(" .. total .. " supported)|r")
+        end
     end
 
     return page
@@ -400,10 +417,12 @@ local function BuildDonePage(container)
         "Made by |cffffd100Eventyret|r  (|cff8788EEHexusPlexus|r - Thunderstrike EU)\n\n" ..
         "If PatchWerk made your UI smoother, tell your guild!\n" ..
         "Every raider deserves more frames and fewer hateful strikes.\n\n" ..
+        "Got an addon you wish we supported? Whisper |cff8788EEHexusPlexus|r\n" ..
+        "on Thunderstrike EU — we're always looking for new bosses to patch.\n\n" ..
         "Changes take effect after |cffffd100/reload|r.\n\n" ..
-        "|cffffd100/pw|r — Open settings panel\n" ..
-        "|cffffd100/pw status|r — Check patch status\n" ..
-        "|cffffd100/pw reset|r — Reset to defaults"
+        "|cffffd100/pw|r — Open settings  |cff666666|||r  " ..
+        "|cffffd100/pw status|r — Patch status  |cff666666|||r  " ..
+        "|cffffd100/pw reset|r — Reset"
     )
 
     page.Refresh = function()
