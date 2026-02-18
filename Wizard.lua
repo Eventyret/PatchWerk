@@ -75,12 +75,16 @@ local function BuildWelcomePage(container)
     body:SetJustifyH("CENTER")
     body:SetWordWrap(true)
     body:SetText(
-        "PatchWerk automatically fixes performance issues hiding inside " ..
-        "your other addons — throttling excessive updates, caching " ..
-        "repeated work, and fixing bugs.\n\n" ..
-        "Your addons keep working exactly the same, just smoother.\n\n" ..
-        "All patches are safe to toggle and nothing is modified " ..
-        "permanently. Change settings anytime with |cffffd100/pw|r."
+        "Your addons are great — but some of them are working harder " ..
+        "than a Patchwerk tank and leaking more memory than a boss " ..
+        "with no mechanics.\n\n" ..
+        "PatchWerk patches your addons at load time: throttling " ..
+        "excessive updates, caching repeated work, and fixing bugs " ..
+        "the developers didn't catch.\n\n" ..
+        "No enrage timer. No tank swap. Just pure, uninterrupted " ..
+        "performance. Your addons keep working the same — just " ..
+        "without the lag.\n\n" ..
+        "All patches are safe to toggle. Type |cffffd100/pw|r anytime."
     )
 
     local hint = page:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
@@ -122,39 +126,36 @@ local function BuildDetectedPage(container)
         local y = 0
         local installed, total = 0, #ns.addonGroups
         for _, groupInfo in ipairs(ns.addonGroups) do
-            local isInst = detectedAddons[groupInfo.id]
-            if isInst then installed = installed + 1 end
+            if detectedAddons[groupInfo.id] then
+                installed = installed + 1
 
-            local row = CreateFrame("Frame", nil, content)
-            row:SetPoint("TOPLEFT", 0, y)
-            row:SetPoint("RIGHT", 0, 0)
-            row:SetHeight(24)
+                local row = CreateFrame("Frame", nil, content)
+                row:SetPoint("TOPLEFT", 0, y)
+                row:SetPoint("RIGHT", 0, 0)
+                row:SetHeight(24)
 
-            local mark = row:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-            mark:SetPoint("LEFT", 8, 0)
-            mark:SetText(isInst and "|cff33e633+|r" or "|cff555555-|r")
+                local label = row:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+                label:SetPoint("LEFT", 12, 0)
+                label:SetText(groupInfo.label)
 
-            local label = row:CreateFontString(nil, "ARTWORK", isInst and "GameFontHighlight" or "GameFontDisable")
-            label:SetPoint("LEFT", mark, "RIGHT", 8, 0)
-            label:SetText(groupInfo.label)
+                local patchCount = 0
+                for _, p in ipairs(ns.patchInfo) do
+                    if p.group == groupInfo.id then patchCount = patchCount + 1 end
+                end
+                local info = row:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+                info:SetPoint("RIGHT", -8, 0)
+                info:SetText("|cff808080" .. patchCount .. " patches|r")
 
-            local patchCount = 0
-            for _, p in ipairs(ns.patchInfo) do
-                if p.group == groupInfo.id then patchCount = patchCount + 1 end
+                if y < 0 then
+                    local sep = row:CreateTexture(nil, "BACKGROUND")
+                    sep:SetHeight(1)
+                    sep:SetPoint("TOPLEFT", 4, 0)
+                    sep:SetPoint("TOPRIGHT", -4, 0)
+                    SetSolidColor(sep, 0.25, 0.25, 0.25, 0.4)
+                end
+
+                y = y - 24
             end
-            local info = row:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-            info:SetPoint("RIGHT", -8, 0)
-            info:SetText(isInst and ("|cff808080" .. patchCount .. " patches|r") or "|cff444444not installed|r")
-
-            if y < 0 then
-                local sep = row:CreateTexture(nil, "BACKGROUND")
-                sep:SetHeight(1)
-                sep:SetPoint("TOPLEFT", 4, 0)
-                sep:SetPoint("TOPRIGHT", -4, 0)
-                SetSolidColor(sep, 0.25, 0.25, 0.25, 0.4)
-            end
-
-            y = y - 24
         end
         content:SetHeight(math.max(-y + 8, 100))
         summary:SetText("|cff33e633" .. installed .. "|r of " .. total .. " supported addons detected")
@@ -179,28 +180,41 @@ local function BuildConfigPage(container)
     desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
     desc:SetText("Choose which patches to enable. |cff33e633Recommended: leave everything on.|r")
 
-    -- Preset buttons
+    -- Preset buttons (row 1)
     local recBtn = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
     recBtn:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -6)
     recBtn:SetSize(130, 20)
     recBtn:SetText("All On (Recommended)")
     recBtn:GetFontString():SetFont(recBtn:GetFontString():GetFont(), 10)
 
-    local minBtn = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
-    minBtn:SetPoint("LEFT", recBtn, "RIGHT", 6, 0)
-    minBtn:SetSize(100, 20)
-    minBtn:SetText("Fixes Only")
-    minBtn:GetFontString():SetFont(minBtn:GetFontString():GetFont(), 10)
-
     local offBtn = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
-    offBtn:SetPoint("LEFT", minBtn, "RIGHT", 6, 0)
-    offBtn:SetSize(70, 20)
+    offBtn:SetPoint("LEFT", recBtn, "RIGHT", 6, 0)
+    offBtn:SetSize(60, 20)
     offBtn:SetText("All Off")
     offBtn:GetFontString():SetFont(offBtn:GetFontString():GetFont(), 10)
 
+    -- Preset buttons (row 2: by category)
+    local minBtn = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
+    minBtn:SetPoint("TOPLEFT", recBtn, "BOTTOMLEFT", 0, -2)
+    minBtn:SetSize(80, 20)
+    minBtn:SetText("Fixes Only")
+    minBtn:GetFontString():SetFont(minBtn:GetFontString():GetFont(), 10)
+
+    local perfBtn = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
+    perfBtn:SetPoint("LEFT", minBtn, "RIGHT", 6, 0)
+    perfBtn:SetSize(110, 20)
+    perfBtn:SetText("Performance Only")
+    perfBtn:GetFontString():SetFont(perfBtn:GetFontString():GetFont(), 10)
+
+    local tweakBtn = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
+    tweakBtn:SetPoint("LEFT", perfBtn, "RIGHT", 6, 0)
+    tweakBtn:SetSize(90, 20)
+    tweakBtn:SetText("Tweaks Only")
+    tweakBtn:GetFontString():SetFont(tweakBtn:GetFontString():GetFont(), 10)
+
     -- Scrollable patch list
     local sf = CreateFrame("ScrollFrame", "PatchWerk_WizScroll3", page, "UIPanelScrollFrameTemplate")
-    sf:SetPoint("TOPLEFT", 12, -72)
+    sf:SetPoint("TOPLEFT", 12, -94)
     sf:SetPoint("BOTTOMRIGHT", -30, 8)
     local content = CreateFrame("Frame")
     content:SetSize(440, 1400)
@@ -260,12 +274,35 @@ local function BuildConfigPage(container)
                                     cc.r * 255, cc.g * 255, cc.b * 255, p.category)
                             end
                             cbText:SetText(catTag .. p.label)
+                            -- Help icon
+                            local hb = CreateFrame("Frame", nil, content)
+                            hb:SetSize(16, 16)
+                            hb:SetPoint("LEFT", cbText, "RIGHT", 2, 0)
+                            hb:EnableMouse(true)
+                            local qm = hb:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+                            qm:SetPoint("CENTER", 0, 0)
+                            qm:SetText("|cff66bbff(?)|r")
+                            hb:SetScript("OnEnter", function(self)
+                                qm:SetText("|cffffffff(?)|r")
+                                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                                GameTooltip:SetText(p.label, 1, 1, 1)
+                                if p.help then GameTooltip:AddLine(p.help, 1, 0.82, 0, true) end
+                                if p.detail then
+                                    GameTooltip:AddLine(" ")
+                                    GameTooltip:AddLine(p.detail, 0.8, 0.8, 0.8, true)
+                                end
+                                GameTooltip:Show()
+                            end)
+                            hb:SetScript("OnLeave", function()
+                                qm:SetText("|cff66bbff(?)|r")
+                                GameTooltip:Hide()
+                            end)
                         end
 
                         cb:SetScript("OnEnter", function(self)
                             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                             GameTooltip:SetText(p.label, 1, 1, 1)
-                            GameTooltip:AddLine(p.help, 1, 0.82, 0, true)
+                            if p.help then GameTooltip:AddLine(p.help, 1, 0.82, 0, true) end
                             GameTooltip:Show()
                         end)
                         cb:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -300,6 +337,20 @@ local function BuildConfigPage(container)
             cb:SetChecked(false)
         end
     end)
+    perfBtn:SetScript("OnClick", function()
+        for _, cb in ipairs(wizardCheckboxes) do
+            local on = cb.patchCategory == "Performance"
+            ns:SetOption(cb.optionKey, on)
+            cb:SetChecked(on)
+        end
+    end)
+    tweakBtn:SetScript("OnClick", function()
+        for _, cb in ipairs(wizardCheckboxes) do
+            local on = cb.patchCategory == "Tweaks"
+            ns:SetOption(cb.optionKey, on)
+            cb:SetChecked(on)
+        end
+    end)
 
     return page
 end
@@ -314,7 +365,7 @@ local function BuildDonePage(container)
 
     local check = page:CreateFontString(nil, "ARTWORK", "GameFontNormalHuge")
     check:SetPoint("TOP", 0, -40)
-    check:SetText("|cff33e633Done!|r")
+    check:SetText("|cff33e633Patched Up!|r")
 
     local summaryFs = page:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     summaryFs:SetPoint("TOP", check, "BOTTOM", 0, -12)
@@ -327,8 +378,10 @@ local function BuildDonePage(container)
     body:SetJustifyH("CENTER")
     body:SetWordWrap(true)
     body:SetText(
+        "Made by |cffffd100Eventyret|r  (|cff8788EEHexusPlexus|r - Thunderstrike EU)\n\n" ..
+        "If PatchWerk made your UI smoother, tell your guild!\n" ..
+        "Every raider deserves more frames and fewer hateful strikes.\n\n" ..
         "Changes take effect after |cffffd100/reload|r.\n\n" ..
-        "You can adjust settings anytime:\n" ..
         "|cffffd100/pw|r — Open settings panel\n" ..
         "|cffffd100/pw status|r — Check patch status\n" ..
         "|cffffd100/pw reset|r — Reset to defaults"
