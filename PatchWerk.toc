@@ -35,5 +35,6 @@ Patches\SexyMap.lua
 Patches\MoveAny.lua
 Patches\Attune.lua
 Patches\NovaWorldBuffs.lua
+VersionCheck.lua
 Wizard.lua
 Options.lua

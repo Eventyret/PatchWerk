@@ -133,6 +133,9 @@ local defaults = {
     NovaWorldBuffs_cAddOnsShim = true,
     NovaWorldBuffs_cSummonInfoShim = true,
     NovaWorldBuffs_pairsByKeysOptimize = true,
+    -- Version checking
+    showOutdatedWarnings = true,
+    showUpdateNotification = true,
 }
 
 ns.defaults = defaults
