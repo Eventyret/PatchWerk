@@ -28,4 +28,5 @@ Patches\BugSack.lua
 Patches\LoonBestInSlot.lua
 Patches\NovaInstanceTracker.lua
 Patches\AutoLayer.lua
+Wizard.lua
 Options.lua

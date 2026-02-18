@@ -185,6 +185,7 @@ loader:SetScript("OnEvent", function(self, event, addon)
     self:UnregisterEvent("ADDON_LOADED")
 
     -- Initialize saved variables (migrate from old name if needed)
+    local isNewInstall = not PatchWerkDB and not AddonTweaksDB
     if not PatchWerkDB then
         PatchWerkDB = AddonTweaksDB or {}
         AddonTweaksDB = nil
@@ -195,6 +196,13 @@ loader:SetScript("OnEvent", function(self, event, addon)
         if PatchWerkDB[key] == nil then
             PatchWerkDB[key] = value
         end
+    end
+
+    -- Wizard: new installs see the wizard, existing users skip it
+    if isNewInstall then
+        PatchWerkDB.wizardCompleted = false
+    elseif PatchWerkDB.wizardCompleted == nil then
+        PatchWerkDB.wizardCompleted = true
     end
 
     -- Apply patches, counting successes
