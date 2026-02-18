@@ -58,10 +58,11 @@ ns.patches["BigWigs_proxTextThrottle"] = function()
             local anchor = _G["BigWigsProximityAnchor"]
             if not anchor then return end
 
+            patched = true
+
             -- Throttle the main text body (player list)
             local textObj = anchor.text
             if textObj then
-                patched = true
                 local lastTextTime = 0
                 local origSetText = textObj.SetText
                 textObj.SetText = function(self, text, ...)
@@ -78,6 +79,21 @@ ns.patches["BigWigs_proxTextThrottle"] = function()
                         if now - lastTextTime < 0.08 then return end
                         lastTextTime = now
                         return origSetFmtText(self, fmt, ...)
+                    end
+                end
+            end
+
+            -- Throttle the title bar (range/count display)
+            local titleObj = anchor.title
+            if titleObj then
+                local lastTitleTime = 0
+                local origTitleFmt = titleObj.SetFormattedText
+                if origTitleFmt then
+                    titleObj.SetFormattedText = function(self, fmt, ...)
+                        local now = GetTime()
+                        if now - lastTitleTime < 0.08 then return end
+                        lastTitleTime = now
+                        return origTitleFmt(self, fmt, ...)
                     end
                 end
             end
