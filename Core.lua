@@ -123,6 +123,13 @@ local defaults = {
     -- MoveAny
     MoveAny_thinkHelpFrameSkip = true,
     MoveAny_updateMoveFramesDebounce = true,
+    -- Attune
+    Attune_spairsOptimize = true,
+    Attune_bagUpdateDebounce = true,
+    Attune_cleuEarlyExit = true,
+    -- NovaWorldBuffs
+    NovaWorldBuffs_openConfigFix = true,
+    NovaWorldBuffs_markerThrottle = true,
 }
 
 ns.defaults = defaults
@@ -165,6 +172,8 @@ ns.addonGroups = {
     { id = "Gargul",             label = "Gargul (Loot Distribution)", deps = { "Gargul" } },
     { id = "SexyMap",            label = "SexyMap (Minimap)",         deps = { "SexyMap" } },
     { id = "MoveAny",            label = "MoveAny (UI Mover)",       deps = { "MoveAny" } },
+    { id = "Attune",             label = "Attune (Attunement Tracker)", deps = { "Attune" } },
+    { id = "NovaWorldBuffs",     label = "NovaWorldBuffs (World Buff Timers)", deps = { "NovaWorldBuffs" } },
 }
 
 function ns:GetDB()
