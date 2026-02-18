@@ -230,6 +230,18 @@ local function PollLayer()
         if ns.applied["AutoLayer_hopTransitionTracker"] and hopState.state ~= "IDLE" then
             hopState.state = "CONFIRMED"
             hopState.timestamp = GetTime()
+            -- Auto-leave the hop group after confirmed layer change
+            if IsInGroup() then
+                C_Timer.After(0.5, function()
+                    if IsInGroup() then
+                        LeaveParty()
+                        local layerStr = (currentNum and currentNum > 0) and tostring(currentNum) or "new"
+                        UIErrorsFrame:AddMessage(
+                            "PatchWerk: Left group — layer " .. layerStr .. " confirmed",
+                            0.2, 0.8, 1.0)
+                    end
+                end)
+            end
         end
     end
 
