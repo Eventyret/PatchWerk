@@ -118,6 +118,11 @@ local defaults = {
     Gargul_lootPollThrottle = true,
     Gargul_tradeTimerFix = true,
     Gargul_commBoxPrune = true,
+    -- SexyMap
+    SexyMap_slashCmdFix = true,
+    -- MoveAny
+    MoveAny_thinkHelpFrameSkip = true,
+    MoveAny_updateMoveFramesDebounce = true,
 }
 
 ns.defaults = defaults
@@ -158,6 +163,8 @@ ns.addonGroups = {
     { id = "AtlasLootClassic",   label = "AtlasLoot Classic (Loot Browser)", deps = { "AtlasLootClassic" } },
     { id = "BigWigs",            label = "BigWigs (Boss Mods)",      deps = { "BigWigs" } },
     { id = "Gargul",             label = "Gargul (Loot Distribution)", deps = { "Gargul" } },
+    { id = "SexyMap",            label = "SexyMap (Minimap)",         deps = { "SexyMap" } },
+    { id = "MoveAny",            label = "MoveAny (UI Mover)",       deps = { "MoveAny" } },
 }
 
 function ns:GetDB()
