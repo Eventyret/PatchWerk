@@ -37,6 +37,15 @@ local pages = {}
 local pageDots = {}
 local detectedAddons = {}
 local wizardCheckboxes = {}
+local wizardSnapshot = {}
+
+-- Check if any patch settings changed since the wizard opened
+local function HasWizardChanges()
+    for key, oldVal in pairs(wizardSnapshot) do
+        if ns:GetOption(key) ~= oldVal then return true end
+    end
+    return false
+end
 
 ---------------------------------------------------------------------------
 -- Detect which supported addons are installed
@@ -420,7 +429,6 @@ local function BuildDonePage(container)
         "Every raider deserves more frames and fewer hateful strikes.\n\n" ..
         "Got an addon you wish we supported? Whisper |cff8788EEHexusPlexus|r\n" ..
         "on Thunderstrike EU — we're always looking for new bosses to patch.\n\n" ..
-        "Changes take effect after |cffffd100/reload|r.\n\n" ..
         "|cffffd100/pw|r — Open settings  |cff666666|||r  " ..
         "|cffffd100/pw status|r — Patch status  |cff666666|||r  " ..
         "|cffffd100/pw reset|r — Reset"
@@ -430,6 +438,12 @@ local function BuildDonePage(container)
         local enabled, addons = 0, 0
         for _, cb in ipairs(wizardCheckboxes) do
             if ns:GetOption(cb.optionKey) then enabled = enabled + 1 end
+        end
+        -- Update Finish button: show "Finish & Reload" if settings changed
+        if wizardFrame and wizardFrame.nextBtn then
+            local changed = HasWizardChanges()
+            wizardFrame.nextBtn:SetText(changed and "Finish & Reload" or "Finish")
+            wizardFrame.nextBtn:SetWidth(changed and 110 or 80)
         end
         for _, g in ipairs(ns.addonGroups) do
             if detectedAddons[g.id] then addons = addons + 1 end
@@ -565,7 +579,11 @@ local function CreateWizardFrame()
         if currentPage < NUM_PAGES then
             ShowPage(currentPage + 1)
         else
+            local needsReload = HasWizardChanges()
             ns:CompleteWizard()
+            if needsReload then
+                ReloadUI()
+            end
         end
     end)
     f.nextBtn = nextBtn
@@ -588,6 +606,11 @@ end
 ---------------------------------------------------------------------------
 
 function ns:ShowWizard()
+    -- Snapshot current settings to detect changes on Finish
+    wipe(wizardSnapshot)
+    for _, p in ipairs(ns.patchInfo) do
+        wizardSnapshot[p.key] = ns:GetOption(p.key)
+    end
     local f = CreateWizardFrame()
     f.overlay:Show()
     f:Show()
