@@ -783,6 +783,14 @@ local function CreateMainPanel()
         reloadBtn:SetSize(140, 26)
         reloadBtn:SetText("Apply Changes (Reload)")
         reloadBtn:SetScript("OnClick", ReloadUI)
+        local wizardBtn = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
+        wizardBtn:SetPoint("TOPLEFT", resetBtn, "BOTTOMLEFT", 0, -6)
+        wizardBtn:SetSize(160, 26)
+        wizardBtn:SetText("Show Welcome Wizard")
+        wizardBtn:SetScript("OnClick", function()
+            if ns.ResetWizard then ns:ResetWizard() end
+            if ns.ShowWizard then ns:ShowWizard() end
+        end)
         RefreshDashboard()
         Relayout()
     end)
@@ -953,6 +961,9 @@ SlashCmdList["PATCHWERK"] = function(msg)
         else
             ShowStatus()
         end
+    elseif cmd == "wizard" or cmd == "setup" then
+        if ns.ResetWizard then ns:ResetWizard() end
+        if ns.ShowWizard then ns:ShowWizard() end
     elseif cmd == "help" then
         ns:Print("Usage:")
         ns:Print("  /pw                Open settings panel")
@@ -963,6 +974,7 @@ SlashCmdList["PATCHWERK"] = function(msg)
         ns:Print("  /pw status         Show all patch status")
         ns:Print("  /pw toggle X       Toggle a patch on/off")
         ns:Print("  /pw reset          Reset to defaults")
+        ns:Print("  /pw wizard         Show the setup wizard")
     else
         ShowStatus()
     end
