@@ -607,6 +607,8 @@ local function CreateAboutPanel()
             "|cffffd100/pw status|r  Print patch status to chat\n" ..
             "|cffffd100/pw toggle <name>|r  Toggle a specific patch\n" ..
             "|cffffd100/pw reset|r  Reset all settings to defaults\n" ..
+            "|cffffd100/pw outdated|r  Check for outdated patches\n" ..
+            "|cffffd100/pw version|r  Show version info\n" ..
             "|cffffd100/pw wizard|r  Show the welcome wizard\n" ..
             "|cffffd100/pw help|r  Show command help in chat")
         content:SetHeight(800)
@@ -962,6 +964,15 @@ SlashCmdList["PATCHWERK"] = function(msg)
         else
             ShowStatus()
         end
+    elseif cmd == "outdated" then
+        ns:ScanOutdatedPatches()
+        ns:ReportOutdatedPatches()
+    elseif cmd == "version" then
+        ns:Print("PatchWerk v" .. ns.VERSION)
+        local db = ns:GetDB()
+        if db and db.lastSeenPatchWerkVersion then
+            ns:Print("Newest seen in guild/group: v" .. db.lastSeenPatchWerkVersion)
+        end
     elseif cmd == "wizard" or cmd == "setup" then
         if ns.ResetWizard then ns:ResetWizard() end
         if ns.ShowWizard then ns:ShowWizard() end
@@ -975,6 +986,8 @@ SlashCmdList["PATCHWERK"] = function(msg)
         ns:Print("  /pw status         Show all patch status")
         ns:Print("  /pw toggle X       Toggle a patch on/off")
         ns:Print("  /pw reset          Reset to defaults")
+        ns:Print("  /pw outdated       Check for outdated patches")
+        ns:Print("  /pw version        Show version info")
         ns:Print("  /pw wizard         Show the setup wizard")
     else
         ShowStatus()
