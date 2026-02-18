@@ -62,15 +62,22 @@ local function BuildWelcomePage(container)
 
     -- Patchwerk 3D model (NPC 16028 from Naxxramas)
     local model = CreateFrame("PlayerModel", nil, page)
-    model:SetSize(100, 120)
-    model:SetPoint("TOP", 0, -4)
-    if model.SetCreature then
-        model:SetCreature(16028)
-    elseif model.SetDisplayInfo then
-        model:SetDisplayInfo(16174)
-    end
-    model:SetCamDistanceScale(1.5)
-    model:SetFacing(-0.2)
+    model:SetSize(120, 140)
+    model:SetPoint("TOP", 0, 0)
+    -- Model must load AFTER the frame is visible (fails silently when hidden)
+    model:SetScript("OnShow", function(self)
+        self:ClearModel()
+        -- SetDisplayInfo is more reliable than SetCreature (no creature cache needed)
+        if self.SetDisplayInfo then
+            self:SetDisplayInfo(16174)
+        end
+        C_Timer.After(0, function()
+            if self:GetModelFileID() then
+                self:SetCamDistanceScale(1.5)
+                self:SetFacing(-0.2)
+            end
+        end)
+    end)
 
     local logo = page:CreateFontString(nil, "ARTWORK", "GameFontNormalHuge")
     logo:SetPoint("TOP", 0, -126)
