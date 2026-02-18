@@ -107,6 +107,17 @@ local defaults = {
     AutoLayer_layerChangeToast = true,
     AutoLayer_hopTransitionTracker = true,
     AutoLayer_enhancedTooltip = true,
+    -- AtlasLootClassic
+    AtlasLootClassic_searchDebounce = true,
+    AtlasLootClassic_rosterDebounce = true,
+    AtlasLootClassic_searchLowerCache = true,
+    -- BigWigs
+    BigWigs_proxTextThrottle = true,
+    -- Gargul
+    Gargul_commRefreshSkip = true,
+    Gargul_lootPollThrottle = true,
+    Gargul_tradeTimerFix = true,
+    Gargul_commBoxPrune = true,
 }
 
 ns.defaults = defaults
@@ -144,6 +155,9 @@ ns.addonGroups = {
     { id = "LoonBestInSlot",   label = "LoonBestInSlot (Gear Guide)", deps = { "LoonBestInSlot" } },
     { id = "NovaInstanceTracker", label = "Nova Instance Tracker",  deps = { "NovaInstanceTracker" } },
     { id = "AutoLayer",          label = "AutoLayer (Layer Hopping)", deps = { "AutoLayer_Vanilla" } },
+    { id = "AtlasLootClassic",   label = "AtlasLoot Classic (Loot Browser)", deps = { "AtlasLootClassic" } },
+    { id = "BigWigs",            label = "BigWigs (Boss Mods)",      deps = { "BigWigs" } },
+    { id = "Gargul",             label = "Gargul (Loot Distribution)", deps = { "Gargul" } },
 }
 
 function ns:GetDB()
