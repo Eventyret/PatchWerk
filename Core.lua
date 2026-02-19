@@ -135,6 +135,18 @@ local defaults = {
     NovaWorldBuffs_cAddOnsShim = true,
     NovaWorldBuffs_cSummonInfoShim = true,
     NovaWorldBuffs_pairsByKeysOptimize = true,
+    -- Leatrix Maps
+    LeatrixMaps_areaLabelThrottle = true,
+    -- Leatrix Plus
+    LeatrixPlus_taxiOnUpdateThrottle = true,
+    -- NameplateSCT
+    NameplateSCT_animationThrottle = true,
+    -- QuestXP
+    QuestXP_questLogDebounce = true,
+    -- RatingBuster
+    RatingBuster_debugstackOptimize = true,
+    -- ClassTrainerPlus
+    ClassTrainerPlus_shiftKeyThrottle = true,
     -- Version checking
     showOutdatedWarnings = true,
     showUpdateNotification = true,
@@ -182,6 +194,12 @@ ns.addonGroups = {
     { id = "MoveAny",            label = "MoveAny (UI Mover)",       deps = { "MoveAny" } },
     { id = "Attune",             label = "Attune (Attunement Tracker)", deps = { "Attune" } },
     { id = "NovaWorldBuffs",     label = "NovaWorldBuffs (World Buff Timers)", deps = { "NovaWorldBuffs" } },
+    { id = "LeatrixMaps",      label = "Leatrix Maps",              deps = { "Leatrix_Maps" } },
+    { id = "LeatrixPlus",      label = "Leatrix Plus (QOL)",        deps = { "Leatrix_Plus" } },
+    { id = "NameplateSCT",     label = "NameplateSCT (Combat Text)", deps = { "NameplateSCT" } },
+    { id = "QuestXP",          label = "QuestXP (Quest XP Display)", deps = { "QuestXP" } },
+    { id = "RatingBuster",     label = "RatingBuster (Stat Comparison)", deps = { "RatingBuster" } },
+    { id = "ClassTrainerPlus", label = "ClassTrainerPlus (Trainer Enhancement)", deps = { "ClassTrainerPlus" } },
 }
 
 function ns:GetDB()
@@ -215,7 +233,7 @@ function ns:Print(msg)
     DEFAULT_CHAT_FRAME:AddMessage(CHAT_PREFIX .. msg)
 end
 
--- Initialization on ADDON_LOADED
+-- Phase 1: Initialize saved variables on our own ADDON_LOADED
 local loader = CreateFrame("Frame")
 loader:RegisterEvent("ADDON_LOADED")
 loader:SetScript("OnEvent", function(self, event, addon)
@@ -242,8 +260,14 @@ loader:SetScript("OnEvent", function(self, event, addon)
     elseif PatchWerkDB.wizardCompleted == nil then
         PatchWerkDB.wizardCompleted = true
     end
+end)
 
-    -- Apply patches, counting successes
+-- Phase 2: Apply patches at PLAYER_LOGIN (all addons are loaded by then)
+local patcher = CreateFrame("Frame")
+patcher:RegisterEvent("PLAYER_LOGIN")
+patcher:SetScript("OnEvent", function(self)
+    self:UnregisterEvent("PLAYER_LOGIN")
+
     local count = 0
     local skipped = 0
     for name, patchFn in pairs(ns.patches) do
