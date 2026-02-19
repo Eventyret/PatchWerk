@@ -4,7 +4,7 @@
 ## Author: Eventyret
 ## IconTexture: Interface\Icons\Trade_Engineering
 ## Version: @project-version@
-## OptionalDeps: Details, Plater, Pawn, TipTac, TipTacTalents, Questie, LFGBulletinBoard, Bartender4, Titan, TitanBag, TitanPerformance, TitanReputations, OmniCC, OmniCC_Config, Prat-3.0, GatherMate2, Quartz, Auctionator, VuhDo, VuhDoOptions, Cell, BigDebuffs, EasyFrames, BugSack, !BugGrabber, LoonBestInSlot, NovaInstanceTracker, AutoLayer_Vanilla, AtlasLootClassic, Baganator, BigWigs, Gargul, SexyMap, MoveAny, Attune, NovaWorldBuffs, Leatrix_Maps, NameplateSCT, QuestXP, Leatrix_Plus, RatingBuster, StatLogic, ClassTrainerPlus
+## OptionalDeps: !BugGrabber, AtlasLootClassic, Attune, Auctionator, AutoLayer_Vanilla, Baganator, Bartender4, BigDebuffs, BigWigs, BugSack, Cell, ClassTrainerPlus, Details, EasyFrames, Gargul, GatherMate2, Leatrix_Maps, Leatrix_Plus, LFGBulletinBoard, LoonBestInSlot, MoveAny, NameplateSCT, NovaInstanceTracker, NovaWorldBuffs, OmniCC, OmniCC_Config, Pawn, Plater, Prat-3.0, Quartz, QuestXP, Questie, RatingBuster, SexyMap, StatLogic, TipTac, TipTacTalents, Titan, TitanBag, TitanPerformance, TitanReputations, VuhDo, VuhDoOptions
 ## SavedVariables: PatchWerkDB
 ## X-Curse-Project-ID: 1466413
 ## X-Wago-ID: 56ndBWG9
@@ -12,41 +12,41 @@
 
 Core.lua
 Registry.lua
-Patches\Details.lua
-Patches\Plater.lua
-Patches\Pawn.lua
-Patches\TipTac.lua
-Patches\Questie.lua
-Patches\LFGBulletinBoard.lua
-Patches\Bartender4.lua
-Patches\TitanPanel.lua
-Patches\OmniCC.lua
-Patches\Prat.lua
-Patches\GatherMate2.lua
-Patches\Quartz.lua
-Patches\Auctionator.lua
-Patches\VuhDo.lua
-Patches\Cell.lua
-Patches\BigDebuffs.lua
-Patches\EasyFrames.lua
-Patches\BugSack.lua
-Patches\LoonBestInSlot.lua
-Patches\NovaInstanceTracker.lua
-Patches\AutoLayer.lua
 Patches\AtlasLootClassic.lua
-Patches\BigWigs.lua
-Patches\Gargul.lua
-Patches\SexyMap.lua
-Patches\MoveAny.lua
 Patches\Attune.lua
-Patches\NovaWorldBuffs.lua
-Patches\LeatrixMaps.lua
-Patches\NameplateSCT.lua
-Patches\QuestXP.lua
-Patches\LeatrixPlus.lua
-Patches\RatingBuster.lua
-Patches\ClassTrainerPlus.lua
+Patches\Auctionator.lua
+Patches\AutoLayer.lua
 Patches\Baganator.lua
+Patches\Bartender4.lua
+Patches\BigDebuffs.lua
+Patches\BigWigs.lua
+Patches\BugSack.lua
+Patches\Cell.lua
+Patches\ClassTrainerPlus.lua
+Patches\Details.lua
+Patches\EasyFrames.lua
+Patches\Gargul.lua
+Patches\GatherMate2.lua
+Patches\LeatrixMaps.lua
+Patches\LeatrixPlus.lua
+Patches\LFGBulletinBoard.lua
+Patches\LoonBestInSlot.lua
+Patches\MoveAny.lua
+Patches\NameplateSCT.lua
+Patches\NovaInstanceTracker.lua
+Patches\NovaWorldBuffs.lua
+Patches\OmniCC.lua
+Patches\Pawn.lua
+Patches\Plater.lua
+Patches\Prat.lua
+Patches\Quartz.lua
+Patches\QuestXP.lua
+Patches\Questie.lua
+Patches\RatingBuster.lua
+Patches\SexyMap.lua
+Patches\TipTac.lua
+Patches\TitanPanel.lua
+Patches\VuhDo.lua
 VersionOverrides.lua
 VersionCheck.lua
 Wizard.lua
