@@ -640,6 +640,16 @@ end
 -- solid-color texture. TBC Classic does NOT have this method.
 -- We patch the shared Texture metatable so ALL textures gain the method.
 -- Uses WHITE8x8 + SetVertexColor as the safe TBC workaround.
+--
+-- KNOWN TRADE-OFF: Writing to the shared C++ Texture __index taints all
+-- texture method dispatch game-wide. This can cause cosmetic
+-- ADDON_ACTION_BLOCKED warnings for action bar repositioning in specific
+-- edge cases (EditMode, stance bar updates). The taint does not crash
+-- the game and popular addons (Bartender4, Dominos) produce similar
+-- warnings. The alternative — deferring to PLAYER_LOGIN — causes 2 Lua
+-- errors in Leatrix Maps every login (worse UX, makes PatchWerk look
+-- broken). Once all known file-scope SetColorTexture callers are patched
+-- per-addon in Patches/, this metatable shim can be removed.
 ------------------------------------------------------------------------
 
 do
