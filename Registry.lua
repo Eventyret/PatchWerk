@@ -67,6 +67,11 @@ for _, entry in ipairs(ns.registry) do
     registryById[entry.id] = entry
 end
 
+-- Sort addon groups alphabetically by label for consistent display
+table.sort(ns.addonGroups, function(a, b)
+    return a.label:lower() < b.label:lower()
+end)
+
 ------------------------------------------------------------------------
 -- ns:RegisterPatch(groupId, info)
 --

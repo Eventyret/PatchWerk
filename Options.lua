@@ -144,23 +144,27 @@ end
 local function RefreshSummary()
     if not summaryLabel then return end
     RebuildLookups()
-    local installedCount, totalActive = 0, 0
+    local installedCount, totalInstalled, activeInstalled = 0, 0, 0
     for _, g in ipairs(ns.addonGroups) do
+        local installed = false
         for _, dep in ipairs(g.deps) do
-            if ns:IsAddonLoaded(dep) then
-                installedCount = installedCount + 1
-                break
+            if ns:IsAddonLoaded(dep) then installed = true; break end
+        end
+        if installed then
+            installedCount = installedCount + 1
+            local groupPatches = PATCHES_BY_GROUP[g.id]
+            if groupPatches then
+                for _, p in ipairs(groupPatches) do
+                    totalInstalled = totalInstalled + 1
+                    if ns:GetOption(p.key) then activeInstalled = activeInstalled + 1 end
+                end
             end
         end
     end
-    local totalPatches = #PATCH_INFO
-    for _, p in ipairs(PATCH_INFO) do
-        if ns:GetOption(p.key) then totalActive = totalActive + 1 end
-    end
-    if totalActive == totalPatches then
-        summaryLabel:SetText("|cff33e633All good|r -- " .. totalActive .. " patches active for " .. installedCount .. " addons")
-    elseif totalActive > 0 then
-        summaryLabel:SetText(totalActive .. "/" .. totalPatches .. " patches active for " .. installedCount .. " addons")
+    if activeInstalled == totalInstalled and totalInstalled > 0 then
+        summaryLabel:SetText("|cff33e633All good|r -- " .. activeInstalled .. " patches active for " .. installedCount .. " addons")
+    elseif activeInstalled > 0 then
+        summaryLabel:SetText(activeInstalled .. "/" .. totalInstalled .. " patches active for " .. installedCount .. " addons")
     else
         summaryLabel:SetText("|cff808080No patches active|r")
     end
