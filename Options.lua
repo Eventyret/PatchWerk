@@ -113,21 +113,18 @@ local function FormatCategoryBadge(category)
 end
 
 ---------------------------------------------------------------------------
--- GUI Panel (Multi-Page Interface)
+-- GUI Panel (Single Addon-Centric Panel)
 ---------------------------------------------------------------------------
 
--- Shared state across all pages
 local pendingReload = false
 local allCheckboxes = {}
 local groupCheckboxes = {}
 local groupCountLabels = {}
 local statusLabels = {}
 local collapsed = {}
-local reloadBanners = {}
-local relayoutFuncs = {}
-local parentCategory = nil
-local subCategories = {}
-local mainDashboardRefresh = nil
+local reloadBanner = nil
+local relayoutFunc = nil
+local summaryLabel = nil
 
 local function RefreshStatusLabels()
     for _, info in ipairs(statusLabels) do
@@ -164,278 +161,326 @@ local function RefreshGroupCounts()
     end
 end
 
-local function ComputeTally()
+local function RefreshSummary()
+    if not summaryLabel then return end
     RebuildLookups()
-    local installedGroups, installedCount = {}, 0
+    local installedCount, totalActive, totalPatches = 0, 0, 0
     for _, g in ipairs(ns.addonGroups) do
         for _, dep in ipairs(g.deps) do
             if ns:IsAddonLoaded(dep) then
-                installedGroups[g.id] = true
                 installedCount = installedCount + 1
                 break
             end
         end
     end
-    local fps, mem, net, high = 0, 0, 0, 0
-    local catTotal = { Fixes = 0, Performance = 0, Tweaks = 0 }
-    local catActive = { Fixes = 0, Performance = 0, Tweaks = 0 }
-    local totalActive = 0
     for _, p in ipairs(PATCH_INFO) do
-        if catTotal[p.category] then catTotal[p.category] = catTotal[p.category] + 1 end
-        if installedGroups[p.group] and ns:GetOption(p.key) then
-            totalActive = totalActive + 1
-            if p.impact == "FPS" then fps = fps + 1
-            elseif p.impact == "Memory" then mem = mem + 1
-            elseif p.impact == "Network" then net = net + 1 end
-            if p.impactLevel == "High" then high = high + 1 end
-            if catActive[p.category] then catActive[p.category] = catActive[p.category] + 1 end
-        end
+        totalPatches = totalPatches + 1
+        if ns:GetOption(p.key) then totalActive = totalActive + 1 end
     end
-    return {
-        installed = installedCount, totalGroups = #ns.addonGroups,
-        totalActive = totalActive, totalPatches = #PATCH_INFO,
-        fps = fps, mem = mem, net = net, high = high,
-        catTotal = catTotal, catActive = catActive,
-    }
-end
-
-local function CreateReloadBanner(parent, pageKey)
-    local banner = CreateFrame("Frame", nil, parent)
-    banner:SetHeight(30)
-    banner:Hide()
-    local bg = banner:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints()
-    SetSolidColor(bg, 0.6, 0.4, 0.0, 0.25)
-    local text = banner:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    text:SetPoint("LEFT", 12, 0)
-    text:SetText("|cffffcc00Changes pending|r -- click Apply or /reload to take effect")
-    local btn = CreateFrame("Button", nil, banner, "UIPanelButtonTemplate")
-    btn:SetPoint("RIGHT", -8, 0)
-    btn:SetSize(120, 20)
-    btn:SetText("Apply (Reload)")
-    btn:SetScript("OnClick", ReloadUI)
-    reloadBanners[pageKey] = banner
-    return banner
+    if totalActive == totalPatches then
+        summaryLabel:SetText("|cff33e633All good|r -- " .. totalActive .. " patches active for " .. installedCount .. " addons")
+    elseif totalActive > 0 then
+        summaryLabel:SetText(totalActive .. "/" .. totalPatches .. " patches active for " .. installedCount .. " addons")
+    else
+        summaryLabel:SetText("|cff808080No patches active|r")
+    end
 end
 
 local function ShowReloadBanner()
     if not pendingReload then
         pendingReload = true
-        for _, b in pairs(reloadBanners) do b:Show() end
-        for _, fn in pairs(relayoutFuncs) do fn() end
+        if reloadBanner then reloadBanner:Show() end
+        if relayoutFunc then relayoutFunc() end
     end
 end
 
 ---------------------------------------------------------------------------
--- BuildCategoryPage — reusable group builder for one category
+-- BuildAddonGroup — build all patches for one addon group (no category filter)
 ---------------------------------------------------------------------------
-local function BuildCategoryPage(content, categoryFilter)
+local function BuildAddonGroup(content, groupInfo, installed)
     RebuildLookups()
-    local installedData, uninstalledData = {}, {}
-    for _, groupInfo in ipairs(ns.addonGroups) do
-        local groupId = groupInfo.id
-        local patches = {}
-        for _, p in ipairs(PATCHES_BY_GROUP[groupId] or {}) do
-            if p.category == categoryFilter then table.insert(patches, p) end
-        end
-        if #patches > 0 then
-        local installed = false
-        for _, dep in ipairs(groupInfo.deps) do
-            if ns:IsAddonLoaded(dep) then installed = true; break end
-        end
-        local ck = groupId .. "_" .. categoryFilter
-        if collapsed[ck] == nil then collapsed[ck] = true end
+    local groupId = groupInfo.id
+    local patches = PATCHES_BY_GROUP[groupId] or {}
+    if #patches == 0 then return nil end
 
-        local gf = CreateFrame("Frame", nil, content)
-        local hf = CreateFrame("Frame", nil, gf)
-        hf:SetPoint("TOPLEFT", 0, 0)
-        hf:SetPoint("TOPRIGHT", 0, 0)
-        hf:SetHeight(38)
-        hf:EnableMouse(true)
-        local sep = hf:CreateTexture(nil, "BACKGROUND")
-        sep:SetHeight(1)
-        sep:SetPoint("TOPLEFT", 12, -2)
-        sep:SetPoint("TOPRIGHT", -12, -2)
-        SetSolidColor(sep, 0.6, 0.6, 0.6, installed and 0.35 or 0.15)
-        local toggle = hf:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-        toggle:SetPoint("TOPLEFT", 8, -12)
-        toggle:SetText("|cffcccccc[+]|r")
-        local hlabel = hf:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-        hlabel:SetPoint("LEFT", toggle, "RIGHT", 4, 0)
-        hlabel:SetText(installed and groupInfo.label or ("|cff666666" .. groupInfo.label .. "|r"))
-        local gc = hf:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-        gc:SetPoint("LEFT", hlabel, "RIGHT", 10, 0)
-        groupCountLabels[ck] = gc
-        if not installed then
-            local note = hf:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-            note:SetPoint("LEFT", gc, "RIGHT", 8, 0)
-            note:SetText("(not installed)")
+    local ck = groupId
+    if collapsed[ck] == nil then collapsed[ck] = true end
+
+    local gf = CreateFrame("Frame", nil, content)
+    local hf = CreateFrame("Frame", nil, gf)
+    hf:SetPoint("TOPLEFT", 0, 0)
+    hf:SetPoint("TOPRIGHT", 0, 0)
+    hf:SetHeight(38)
+    hf:EnableMouse(true)
+
+    local sep = hf:CreateTexture(nil, "BACKGROUND")
+    sep:SetHeight(1)
+    sep:SetPoint("TOPLEFT", 12, -2)
+    sep:SetPoint("TOPRIGHT", -12, -2)
+    SetSolidColor(sep, 0.6, 0.6, 0.6, installed and 0.35 or 0.15)
+
+    local toggle = hf:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    toggle:SetPoint("TOPLEFT", 8, -12)
+    toggle:SetText("|cffcccccc[+]|r")
+
+    local hlabel = hf:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    hlabel:SetPoint("LEFT", toggle, "RIGHT", 4, 0)
+    hlabel:SetText(installed and groupInfo.label or ("|cff666666" .. groupInfo.label .. "|r"))
+
+    -- Outdated indicator (dev builds only — normal users don't need version mismatch noise)
+    local outdatedIcon
+    if ns.VERSION == "dev" and installed and ns.versionResults and ns.versionResults[groupId]
+        and not ns:IsOutdatedDismissed(groupId) then
+        outdatedIcon = CreateFrame("Frame", nil, hf)
+        outdatedIcon:SetSize(20, 20)
+        outdatedIcon:SetPoint("LEFT", hlabel, "RIGHT", 4, 0)
+        outdatedIcon:EnableMouse(true)
+        local warn = outdatedIcon:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+        warn:SetPoint("CENTER", 0, 0)
+        warn:SetText("|cffffff00(!)|r")
+        local vr = ns.versionResults[groupId]
+        outdatedIcon:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Addon Updated", 1, 0.82, 0)
+            GameTooltip:AddLine("Written for v" .. vr.expected .. ", installed v" .. vr.installed, 1, 1, 1, true)
+            GameTooltip:AddLine("Patches still work but may need verification.", 0.8, 0.8, 0.8, true)
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine("Click to dismiss", 0.5, 0.5, 0.5)
+            GameTooltip:Show()
+        end)
+        outdatedIcon:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        outdatedIcon:SetScript("OnMouseDown", function()
+            ns:DismissOutdatedForGroup(groupId)
+            outdatedIcon:Hide()
+            GameTooltip:Hide()
+        end)
+    end
+
+    local gc = hf:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    gc:SetPoint("LEFT", outdatedIcon or hlabel, "RIGHT", outdatedIcon and 4 or 10, 0)
+    groupCountLabels[ck] = gc
+
+    if not installed then
+        local note = hf:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+        note:SetPoint("LEFT", gc, "RIGHT", 8, 0)
+        note:SetText("(not installed)")
+    end
+
+    local allBtn = CreateFrame("Button", nil, hf, "UIPanelButtonTemplate")
+    allBtn:SetPoint("TOPRIGHT", hf, "TOPRIGHT", -12, -8)
+    allBtn:SetSize(40, 18)
+    allBtn:SetText("All")
+    allBtn:GetFontString():SetFont(allBtn:GetFontString():GetFont(), 10)
+
+    local hoverBg = hf:CreateTexture(nil, "BACKGROUND")
+    hoverBg:SetAllPoints()
+    SetSolidColor(hoverBg, 1, 1, 1, 0)
+    hf:SetScript("OnEnter", function() hoverBg:SetVertexColor(1, 1, 1, 0.03) end)
+    hf:SetScript("OnLeave", function() hoverBg:SetVertexColor(1, 1, 1, 0) end)
+
+    local bf = CreateFrame("Frame", nil, gf)
+    bf:SetPoint("TOPLEFT", hf, "BOTTOMLEFT", 0, 0)
+    bf:SetPoint("TOPRIGHT", hf, "BOTTOMRIGHT", 0, 0)
+    if not groupCheckboxes[ck] then groupCheckboxes[ck] = {} end
+
+    local by = 0
+    for _, pi in ipairs(patches) do
+        local cb = CreateFrame("CheckButton", "PatchWerk_CB_" .. pi.key, bf, "UICheckButtonTemplate")
+        cb:SetPoint("TOPLEFT", 20, by)
+        cb.optionKey = pi.key
+        if not installed then cb:Disable(); cb:SetAlpha(0.4) end
+        local cbn = cb:GetName()
+        local cbl = _G[cbn .. "Text"]
+        if cbl then
+            local catBadge = FormatCategoryBadge(pi.category)
+            cbl:SetText(pi.label .. "  " .. catBadge .. " " .. FormatBadge(pi.impact, pi.impactLevel))
+            cbl:SetFontObject(installed and "GameFontHighlight" or "GameFontDisable")
         end
-        local allOnBtn = CreateFrame("Button", nil, hf, "UIPanelButtonTemplate")
-        allOnBtn:SetPoint("TOPRIGHT", hf, "TOPRIGHT", -80, -8)
-        allOnBtn:SetSize(60, 18)
-        allOnBtn:SetText("All On")
-        allOnBtn:GetFontString():SetFont(allOnBtn:GetFontString():GetFont(), 10)
-        local allOffBtn = CreateFrame("Button", nil, hf, "UIPanelButtonTemplate")
-        allOffBtn:SetPoint("LEFT", allOnBtn, "RIGHT", 4, 0)
-        allOffBtn:SetSize(60, 18)
-        allOffBtn:SetText("All Off")
-        allOffBtn:GetFontString():SetFont(allOffBtn:GetFontString():GetFont(), 10)
-        local hoverBg = hf:CreateTexture(nil, "BACKGROUND")
-        hoverBg:SetAllPoints()
-        SetSolidColor(hoverBg, 1, 1, 1, 0)
-        hf:SetScript("OnEnter", function() hoverBg:SetVertexColor(1, 1, 1, 0.03) end)
-        hf:SetScript("OnLeave", function() hoverBg:SetVertexColor(1, 1, 1, 0) end)
-
-        local bf = CreateFrame("Frame", nil, gf)
-        bf:SetPoint("TOPLEFT", hf, "BOTTOMLEFT", 0, 0)
-        bf:SetPoint("TOPRIGHT", hf, "BOTTOMRIGHT", 0, 0)
-        if not groupCheckboxes[ck] then groupCheckboxes[ck] = {} end
-
-        local by = 0
-        for _, pi in ipairs(patches) do
-            local cb = CreateFrame("CheckButton", "PatchWerk_CB_" .. pi.key, bf, "UICheckButtonTemplate")
-            cb:SetPoint("TOPLEFT", 20, by)
-            cb.optionKey = pi.key
-            if not installed then cb:Disable(); cb:SetAlpha(0.4) end
-            local cbn = cb:GetName()
-            local cbl = _G[cbn .. "Text"]
-            if cbl then
-                cbl:SetText(pi.label .. "  " .. FormatBadge(pi.impact, pi.impactLevel))
-                cbl:SetFontObject(installed and "GameFontHighlight" or "GameFontDisable")
-            end
-            if pi.detail and cbl then
-                local hb = CreateFrame("Frame", nil, bf)
-                hb:SetSize(16, 16)
-                hb:SetPoint("LEFT", cbl, "RIGHT", 4, 0)
-                hb:EnableMouse(true)
-                local qm = hb:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-                qm:SetPoint("CENTER", 0, 0)
-                qm:SetText("|cff66bbff(?)|r")
-                if not installed then hb:SetAlpha(0.4) end
-                hb:SetScript("OnEnter", function(self)
-                    qm:SetText("|cffffffff(?)|r")
-                    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                    GameTooltip:SetText("What does this fix?", 0.4, 0.8, 1.0)
-                    GameTooltip:AddLine(pi.detail, 1, 0.82, 0, true)
-                    local est = PATCH_ESTIMATES[pi.key]
-                    if est then
-                        GameTooltip:AddLine(" ")
-                        GameTooltip:AddLine("Estimated gain: " .. est, 0.2, 0.9, 0.2, true)
-                    end
-                    GameTooltip:Show()
-                end)
-                hb:SetScript("OnLeave", function()
-                    qm:SetText("|cff66bbff(?)|r")
-                    GameTooltip:Hide()
-                end)
-            end
-            local sb = bf:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-            sb:SetPoint("TOPRIGHT", bf, "TOPRIGHT", -20, by - 5)
-            table.insert(statusLabels, { key = pi.key, fontString = sb })
-            local ht = bf:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-            ht:SetPoint("TOPLEFT", cb, "BOTTOMLEFT", 26, 2)
-            ht:SetPoint("RIGHT", bf, "RIGHT", -70, 0)
-            ht:SetText(installed and pi.help or ("|cff555555" .. pi.help .. "|r"))
-            ht:SetJustifyH("LEFT")
-            ht:SetWordWrap(true)
-            cb:SetScript("OnEnter", function(self)
+        if pi.detail and cbl then
+            local hb = CreateFrame("Frame", nil, bf)
+            hb:SetSize(16, 16)
+            hb:SetPoint("LEFT", cbl, "RIGHT", 4, 0)
+            hb:EnableMouse(true)
+            local qm = hb:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+            qm:SetPoint("CENTER", 0, 0)
+            qm:SetText("|cff66bbff(?)|r")
+            if not installed then hb:SetAlpha(0.4) end
+            hb:SetScript("OnEnter", function(self)
+                qm:SetText("|cffffffff(?)|r")
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetText(pi.label, 1, 1, 1)
-                GameTooltip:AddLine(pi.help, 1, 0.82, 0, true)
-                if pi.impact then
+                GameTooltip:SetText("What does this fix?", 0.4, 0.8, 1.0)
+                GameTooltip:AddLine(pi.detail, 1, 0.82, 0, true)
+                local est = PATCH_ESTIMATES[pi.key]
+                if est then
                     GameTooltip:AddLine(" ")
-                    local bc = BADGE_COLORS[pi.impact] or BADGE_COLORS.FPS
-                    local lc = LEVEL_COLORS[pi.impactLevel] or LEVEL_COLORS.Medium
-                    GameTooltip:AddLine(IMPACT_DESC[pi.impact] or pi.impact, bc.r, bc.g, bc.b)
-                    local how = LEVEL_DESC[pi.impactLevel] or ""
-                    if how ~= "" then GameTooltip:AddLine(how, lc.r, lc.g, lc.b) end
-                end
-                GameTooltip:AddLine(" ")
-                if not installed then
-                    GameTooltip:AddLine("Target addon not installed", 0.5, 0.5, 0.5)
-                elseif ns.applied[pi.key] then
-                    GameTooltip:AddLine("Status: Active", 0, 1, 0)
-                else
-                    GameTooltip:AddLine("Requires /reload to take effect", 1, 1, 0)
+                    GameTooltip:AddLine("Estimated gain: " .. est, 0.2, 0.9, 0.2, true)
                 end
                 GameTooltip:Show()
             end)
-            cb:SetScript("OnLeave", function() GameTooltip:Hide() end)
-            cb:SetScript("OnClick", function(self)
-                ns:SetOption(self.optionKey, self:GetChecked() and true or false)
-                RefreshStatusLabels()
-                RefreshGroupCounts()
-                if mainDashboardRefresh then mainDashboardRefresh() end
-                ShowReloadBanner()
+            hb:SetScript("OnLeave", function()
+                qm:SetText("|cff66bbff(?)|r")
+                GameTooltip:Hide()
             end)
-            table.insert(allCheckboxes, cb)
-            table.insert(groupCheckboxes[ck], cb)
-            by = by - 42
         end
-        local bh = -by + 2
-        bf:SetHeight(bh)
-        local grpCbs = groupCheckboxes[ck]
-        allOnBtn:SetScript("OnClick", function()
-            for _, cb in ipairs(grpCbs) do ns:SetOption(cb.optionKey, true); cb:SetChecked(true) end
-            RefreshStatusLabels(); RefreshGroupCounts()
-            if mainDashboardRefresh then mainDashboardRefresh() end
+        local sb = bf:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+        sb:SetPoint("TOPRIGHT", bf, "TOPRIGHT", -20, by - 5)
+        table.insert(statusLabels, { key = pi.key, fontString = sb })
+        local ht = bf:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+        ht:SetPoint("TOPLEFT", cb, "BOTTOMLEFT", 26, 2)
+        ht:SetPoint("RIGHT", bf, "RIGHT", -70, 0)
+        ht:SetText(installed and pi.help or ("|cff555555" .. pi.help .. "|r"))
+        ht:SetJustifyH("LEFT")
+        ht:SetWordWrap(true)
+        cb:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText(pi.label, 1, 1, 1)
+            GameTooltip:AddLine(pi.help, 1, 0.82, 0, true)
+            if pi.impact then
+                GameTooltip:AddLine(" ")
+                local bc = BADGE_COLORS[pi.impact] or BADGE_COLORS.FPS
+                local lc = LEVEL_COLORS[pi.impactLevel] or LEVEL_COLORS.Medium
+                GameTooltip:AddLine(IMPACT_DESC[pi.impact] or pi.impact, bc.r, bc.g, bc.b)
+                local how = LEVEL_DESC[pi.impactLevel] or ""
+                if how ~= "" then GameTooltip:AddLine(how, lc.r, lc.g, lc.b) end
+            end
+            GameTooltip:AddLine(" ")
+            if not installed then
+                GameTooltip:AddLine("Target addon not installed", 0.5, 0.5, 0.5)
+            elseif ns.applied[pi.key] then
+                GameTooltip:AddLine("Status: Active", 0, 1, 0)
+            else
+                GameTooltip:AddLine("Requires /reload to take effect", 1, 1, 0)
+            end
+            GameTooltip:Show()
+        end)
+        cb:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        cb:SetScript("OnClick", function(self)
+            ns:SetOption(self.optionKey, self:GetChecked() and true or false)
+            RefreshStatusLabels()
+            RefreshGroupCounts()
+            RefreshSummary()
             ShowReloadBanner()
         end)
-        allOffBtn:SetScript("OnClick", function()
-            for _, cb in ipairs(grpCbs) do ns:SetOption(cb.optionKey, false); cb:SetChecked(false) end
-            RefreshStatusLabels(); RefreshGroupCounts()
-            if mainDashboardRefresh then mainDashboardRefresh() end
-            ShowReloadBanner()
-        end)
-        if not installed then
-            allOnBtn:Disable(); allOffBtn:Disable()
-            allOnBtn:SetAlpha(0.4); allOffBtn:SetAlpha(0.4)
-        end
-        local data = {
-            ck = ck, gf = gf, hf = hf, bf = bf, toggle = toggle,
-            hh = 38, bh = bh, installed = installed,
-        }
-        table.insert(installed and installedData or uninstalledData, data)
-        end -- #patches > 0
+        table.insert(allCheckboxes, cb)
+        table.insert(groupCheckboxes[ck], cb)
+        by = by - 42
     end
-    local nif = CreateFrame("Frame", nil, content)
-    nif:SetHeight(32)
-    local niSep = nif:CreateTexture(nil, "BACKGROUND")
-    niSep:SetHeight(1)
-    niSep:SetPoint("TOPLEFT", 12, -4)
-    niSep:SetPoint("TOPRIGHT", -12, -4)
-    SetSolidColor(niSep, 0.5, 0.5, 0.5, 0.4)
-    local niLabel = nif:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    niLabel:SetPoint("TOPLEFT", 16, -12)
-    niLabel:SetText("|cff666666Not Installed|r")
-    if #uninstalledData == 0 then nif:Hide() end
-    return installedData, uninstalledData, nif
+
+    -- AutoLayer-specific settings: hop whisper toggle + custom message
+    if groupId == "AutoLayer" and installed then
+        by = by - 10
+        local whisperSep = bf:CreateTexture(nil, "BACKGROUND")
+        whisperSep:SetHeight(1)
+        whisperSep:SetPoint("TOPLEFT", 24, by)
+        whisperSep:SetPoint("RIGHT", bf, "RIGHT", -20, 0)
+        SetSolidColor(whisperSep, 0.4, 0.4, 0.4, 0.3)
+        by = by - 10
+
+        local whisperCb = CreateFrame("CheckButton", "PatchWerk_CB_hopWhisper", bf, "UICheckButtonTemplate")
+        whisperCb:SetPoint("TOPLEFT", 20, by)
+        whisperCb.optionKey = "AutoLayer_hopWhisperEnabled"
+        local wcbn = whisperCb:GetName()
+        local wcbl = _G[wcbn .. "Text"]
+        if wcbl then
+            wcbl:SetText("Whisper thank you after auto-leave")
+            wcbl:SetFontObject("GameFontHighlight")
+        end
+        whisperCb:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Hop Whisper", 1, 1, 1)
+            GameTooltip:AddLine("Send a thank-you whisper to the group host when auto-leaving after a layer hop.", 1, 0.82, 0, true)
+            GameTooltip:Show()
+        end)
+        whisperCb:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        whisperCb:SetScript("OnClick", function(self)
+            ns:SetOption(self.optionKey, self:GetChecked() and true or false)
+        end)
+        table.insert(allCheckboxes, whisperCb)
+        by = by - 28
+
+        local msgLabel = bf:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+        msgLabel:SetPoint("TOPLEFT", 48, by)
+        msgLabel:SetText("Message:")
+
+        local msgBox = CreateFrame("EditBox", "PatchWerk_HopWhisperMsg", bf, "InputBoxTemplate")
+        msgBox:SetPoint("LEFT", msgLabel, "RIGHT", 8, 0)
+        msgBox:SetPoint("RIGHT", bf, "RIGHT", -24, 0)
+        msgBox:SetHeight(20)
+        msgBox:SetAutoFocus(false)
+        msgBox:SetMaxLetters(100)
+        msgBox:SetText(ns:GetOption("AutoLayer_hopWhisperMessage") or "[PatchWerk] Thanks for the hop!")
+        msgBox:SetScript("OnEnterPressed", function(self)
+            local text = self:GetText()
+            if text == "" then text = "[PatchWerk] Thanks for the hop!" end
+            ns:SetOption("AutoLayer_hopWhisperMessage", text)
+            self:ClearFocus()
+        end)
+        msgBox:SetScript("OnEscapePressed", function(self)
+            self:SetText(ns:GetOption("AutoLayer_hopWhisperMessage") or "[PatchWerk] Thanks for the hop!")
+            self:ClearFocus()
+        end)
+
+        local msgHint = bf:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+        msgHint:SetPoint("TOPLEFT", 48, by - 22)
+        msgHint:SetText("|cff555555Sent to the group host when auto-leaving after a hop.|r")
+        by = by - 44
+    end
+
+    local bh = -by + 2
+    bf:SetHeight(bh)
+
+    local grpCbs = groupCheckboxes[ck]
+    allBtn:SetScript("OnClick", function()
+        -- Toggle: if any are on, turn all off; otherwise turn all on
+        local anyOn = false
+        for _, cb in ipairs(grpCbs) do
+            if ns:GetOption(cb.optionKey) then anyOn = true; break end
+        end
+        local newVal = not anyOn
+        for _, cb in ipairs(grpCbs) do
+            ns:SetOption(cb.optionKey, newVal)
+            cb:SetChecked(newVal)
+        end
+        RefreshStatusLabels(); RefreshGroupCounts(); RefreshSummary()
+        ShowReloadBanner()
+    end)
+    if not installed then
+        allBtn:Disable()
+        allBtn:SetAlpha(0.4)
+    end
+
+    return {
+        ck = ck, gf = gf, hf = hf, bf = bf, toggle = toggle,
+        hh = 38, bh = bh, installed = installed,
+    }
 end
 
 ---------------------------------------------------------------------------
--- Category Sub-Page Builder
+-- Single Options Panel
 ---------------------------------------------------------------------------
-local function CreateCategorySubPanel(name, catFilter, desc)
-    local sub = CreateFrame("Frame")
-    sub.name = name
-    sub.parent = "PatchWerk"
-    sub:Hide()
+local function CreateOptionsPanel()
+    local panel = CreateFrame("Frame")
+    panel.name = "PatchWerk"
+    panel:Hide()
     local built = false
-    sub:SetScript("OnShow", function(self)
+
+    panel:SetScript("OnShow", function(self)
         if built then
             for _, cb in ipairs(allCheckboxes) do cb:SetChecked(ns:GetOption(cb.optionKey)) end
-            RefreshStatusLabels(); RefreshGroupCounts()
-            local b = reloadBanners[catFilter]
-            if b then if pendingReload then b:Show() else b:Hide() end end
-            if relayoutFuncs[catFilter] then relayoutFuncs[catFilter]() end
+            RefreshStatusLabels(); RefreshGroupCounts(); RefreshSummary()
+            if reloadBanner then
+                if pendingReload then reloadBanner:Show() else reloadBanner:Hide() end
+            end
+            if relayoutFunc then relayoutFunc() end
             return
         end
         built = true
+
         local bg = self:CreateTexture(nil, "BACKGROUND")
         bg:SetAllPoints()
         SetSolidColor(bg, 0.08, 0.08, 0.08, 1)
-        local sf = CreateFrame("ScrollFrame", "PatchWerk_Scroll_" .. catFilter, self, "UIPanelScrollFrameTemplate")
+
+        local sf = CreateFrame("ScrollFrame", "PatchWerk_Scroll_Main", self, "UIPanelScrollFrameTemplate")
         sf:SetPoint("TOPLEFT", 0, -10)
         sf:SetPoint("BOTTOMRIGHT", -26, 10)
         local content = CreateFrame("Frame")
@@ -445,17 +490,151 @@ local function CreateCategorySubPanel(name, catFilter, desc)
         local contentBg = content:CreateTexture(nil, "BACKGROUND")
         contentBg:SetAllPoints()
         SetSolidColor(contentBg, 0.08, 0.08, 0.08, 1)
+
+        -- Header
         local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
         title:SetPoint("TOPLEFT", 16, -16)
-        title:SetText(name)
-        local descFs = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-        descFs:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
-        descFs:SetPoint("RIGHT", content, "RIGHT", -20, 0)
-        descFs:SetText(desc)
-        descFs:SetJustifyH("LEFT")
-        local banner = CreateReloadBanner(content, catFilter)
-        local headerBot = -50
-        local iData, uData, nif = BuildCategoryPage(content, catFilter)
+        title:SetText("|cff33ccffPatchWerk|r")
+        local ver = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+        ver:SetPoint("LEFT", title, "RIGHT", 6, 0)
+        ver:SetText("v" .. ns.VERSION)
+
+        summaryLabel = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+        summaryLabel:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+        summaryLabel:SetJustifyH("LEFT")
+
+        -- Enable All / Disable All buttons
+        local enableAllBtn = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
+        enableAllBtn:SetPoint("TOPLEFT", summaryLabel, "BOTTOMLEFT", 0, -8)
+        enableAllBtn:SetSize(80, 22)
+        enableAllBtn:SetText("Enable All")
+        enableAllBtn:GetFontString():SetFont(enableAllBtn:GetFontString():GetFont(), 10)
+        enableAllBtn:SetScript("OnClick", function()
+            for _, cb in ipairs(allCheckboxes) do
+                ns:SetOption(cb.optionKey, true)
+                cb:SetChecked(true)
+            end
+            RefreshStatusLabels(); RefreshGroupCounts(); RefreshSummary()
+            ShowReloadBanner()
+        end)
+
+        local disableAllBtn = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
+        disableAllBtn:SetPoint("LEFT", enableAllBtn, "RIGHT", 6, 0)
+        disableAllBtn:SetSize(80, 22)
+        disableAllBtn:SetText("Disable All")
+        disableAllBtn:GetFontString():SetFont(disableAllBtn:GetFontString():GetFont(), 10)
+        disableAllBtn:SetScript("OnClick", function()
+            for _, cb in ipairs(allCheckboxes) do
+                ns:SetOption(cb.optionKey, false)
+                cb:SetChecked(false)
+            end
+            RefreshStatusLabels(); RefreshGroupCounts(); RefreshSummary()
+            ShowReloadBanner()
+        end)
+
+        -- Reload banner
+        local banner = CreateFrame("Frame", nil, content)
+        banner:SetHeight(30)
+        banner:Hide()
+        local bannerBg = banner:CreateTexture(nil, "BACKGROUND")
+        bannerBg:SetAllPoints()
+        SetSolidColor(bannerBg, 0.6, 0.4, 0.0, 0.25)
+        local bannerText = banner:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+        bannerText:SetPoint("LEFT", 12, 0)
+        bannerText:SetText("|cffffcc00Changes pending|r -- click Apply or /reload to take effect")
+        local bannerBtn = CreateFrame("Button", nil, banner, "UIPanelButtonTemplate")
+        bannerBtn:SetPoint("RIGHT", -8, 0)
+        bannerBtn:SetSize(120, 20)
+        bannerBtn:SetText("Apply (Reload)")
+        bannerBtn:SetScript("OnClick", ReloadUI)
+        reloadBanner = banner
+
+        local headerBot = -78
+
+        -- Build addon groups
+        RebuildLookups()
+        local installedData, uninstalledData = {}, {}
+        for _, groupInfo in ipairs(ns.addonGroups) do
+            local installed = false
+            for _, dep in ipairs(groupInfo.deps) do
+                if ns:IsAddonLoaded(dep) then installed = true; break end
+            end
+            local data = BuildAddonGroup(content, groupInfo, installed)
+            if data then
+                table.insert(installed and installedData or uninstalledData, data)
+            end
+        end
+
+        -- "Not Installed" separator
+        local nif = CreateFrame("Frame", nil, content)
+        nif:SetHeight(32)
+        local niSep = nif:CreateTexture(nil, "BACKGROUND")
+        niSep:SetHeight(1)
+        niSep:SetPoint("TOPLEFT", 12, -4)
+        niSep:SetPoint("TOPRIGHT", -12, -4)
+        SetSolidColor(niSep, 0.5, 0.5, 0.5, 0.4)
+        local niLabel = nif:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+        niLabel:SetPoint("TOPLEFT", 16, -12)
+        niLabel:SetText("|cff666666Not Installed|r")
+        if #uninstalledData == 0 then nif:Hide() end
+
+        -- Footer / About section
+        local footer = CreateFrame("Frame", nil, content)
+        footer:SetHeight(120)
+        local footerSep = footer:CreateTexture(nil, "BACKGROUND")
+        footerSep:SetHeight(1)
+        footerSep:SetPoint("TOPLEFT", 12, -2)
+        footerSep:SetPoint("TOPRIGHT", -12, -2)
+        SetSolidColor(footerSep, 0.5, 0.5, 0.5, 0.3)
+
+        -- About blurb
+        local aboutTitle = footer:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+        aboutTitle:SetPoint("TOPLEFT", 16, -12)
+        aboutTitle:SetText("|cff33ccffPatchWerk|r  |cff808080v" .. ns.VERSION .. "|r")
+
+        local aboutText = footer:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+        aboutText:SetPoint("TOPLEFT", aboutTitle, "BOTTOMLEFT", 0, -4)
+        aboutText:SetPoint("RIGHT", footer, "RIGHT", -16, 0)
+        aboutText:SetJustifyH("LEFT")
+        aboutText:SetWordWrap(true)
+        aboutText:SetText("Runtime patches for popular addons on TBC Classic Anniversary. "
+            .. "Same addons, same features, no more lag. Nothing on disk is ever changed.")
+
+        -- Author + links
+        local linksText = footer:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+        linksText:SetPoint("TOPLEFT", aboutText, "BOTTOMLEFT", 0, -8)
+        linksText:SetText("|cffccccccEventyret|r  |cff555555(HexusPlexus/HokusFokus - Thunderstrike EU)|r")
+
+        local linksText2 = footer:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+        linksText2:SetPoint("TOPLEFT", linksText, "BOTTOMLEFT", 0, -2)
+        linksText2:SetText("|cff888888github.com/Eventyret/PatchWerk  |cff555555·|r  curseforge.com/wow/addons/patchwerk|r")
+
+        local linksText3 = footer:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+        linksText3:SetPoint("TOPLEFT", linksText2, "BOTTOMLEFT", 0, -2)
+        linksText3:SetText("|cff555555Type /pw help for commands|r")
+
+        -- Reset Defaults button
+        local resetBtn = CreateFrame("Button", nil, footer, "UIPanelButtonTemplate")
+        resetBtn:SetPoint("TOPRIGHT", footer, "TOPRIGHT", -16, -10)
+        resetBtn:SetSize(100, 18)
+        resetBtn:SetText("Reset Defaults")
+        resetBtn:GetFontString():SetFont(resetBtn:GetFontString():GetFont(), 10)
+        resetBtn:SetScript("OnClick", function()
+            if PatchWerkDB then
+                local wizardState = PatchWerkDB.wizardCompleted
+                local dismissed = PatchWerkDB.dismissedOutdated
+                wipe(PatchWerkDB)
+                for key, value in pairs(ns.defaults) do PatchWerkDB[key] = value end
+                PatchWerkDB.wizardCompleted = wizardState
+                PatchWerkDB.dismissedOutdated = dismissed or {}
+            end
+            for _, cb in ipairs(allCheckboxes) do cb:SetChecked(ns:GetOption(cb.optionKey)) end
+            RefreshStatusLabels(); RefreshGroupCounts(); RefreshSummary()
+            ShowReloadBanner()
+            ns:Print("Settings reset to defaults. Reload to apply.")
+        end)
+
+        -- Layout function
         local function Relayout()
             local y = headerBot
             if pendingReload then
@@ -463,8 +642,10 @@ local function CreateCategorySubPanel(name, catFilter, desc)
                 banner:SetPoint("TOPLEFT", content, "TOPLEFT", 12, y)
                 banner:SetPoint("RIGHT", content, "RIGHT", -12, 0)
                 banner:Show(); y = y - 34
-            else banner:Hide() end
-            for _, dd in ipairs(iData) do
+            else
+                banner:Hide()
+            end
+            for _, dd in ipairs(installedData) do
                 dd.gf:ClearAllPoints()
                 dd.gf:SetPoint("TOPLEFT", content, "TOPLEFT", 0, y)
                 dd.gf:SetPoint("RIGHT", content, "RIGHT", 0, 0)
@@ -474,13 +655,15 @@ local function CreateCategorySubPanel(name, catFilter, desc)
                     dd.bf:Show(); local h = dd.hh + dd.bh; dd.gf:SetHeight(h); y = y - h
                 end
             end
-            if #uData > 0 then
+            if #uninstalledData > 0 then
                 nif:ClearAllPoints()
                 nif:SetPoint("TOPLEFT", content, "TOPLEFT", 0, y)
                 nif:SetPoint("RIGHT", content, "RIGHT", 0, 0)
                 nif:Show(); y = y - 32
-            else nif:Hide() end
-            for _, dd in ipairs(uData) do
+            else
+                nif:Hide()
+            end
+            for _, dd in ipairs(uninstalledData) do
                 dd.gf:ClearAllPoints()
                 dd.gf:SetPoint("TOPLEFT", content, "TOPLEFT", 0, y)
                 dd.gf:SetPoint("RIGHT", content, "RIGHT", 0, 0)
@@ -490,370 +673,53 @@ local function CreateCategorySubPanel(name, catFilter, desc)
                     dd.bf:Show(); local h = dd.hh + dd.bh; dd.gf:SetHeight(h); y = y - h
                 end
             end
+            footer:ClearAllPoints()
+            footer:SetPoint("TOPLEFT", content, "TOPLEFT", 0, y - 8)
+            footer:SetPoint("RIGHT", content, "RIGHT", 0, 0)
+            y = y - 8 - 120
             content:SetHeight(-y + 20)
         end
-        relayoutFuncs[catFilter] = Relayout
-        for _, dd in ipairs(iData) do
+        relayoutFunc = Relayout
+
+        -- Wire collapse toggles
+        for _, dd in ipairs(installedData) do
             dd.hf:SetScript("OnMouseDown", function()
                 collapsed[dd.ck] = not collapsed[dd.ck]
                 dd.toggle:SetText(collapsed[dd.ck] and "|cffcccccc[+]|r" or "|cffcccccc[-]|r")
                 Relayout()
             end)
         end
-        for _, dd in ipairs(uData) do
+        for _, dd in ipairs(uninstalledData) do
             dd.hf:SetScript("OnMouseDown", function()
                 collapsed[dd.ck] = not collapsed[dd.ck]
                 dd.toggle:SetText(collapsed[dd.ck] and "|cffcccccc[+]|r" or "|cffcccccc[-]|r")
                 Relayout()
             end)
         end
-        Relayout()
-        -- Initialize checkbox states on first build (same as the re-show branch)
+
+        -- Initialize
         for _, cb in ipairs(allCheckboxes) do cb:SetChecked(ns:GetOption(cb.optionKey)) end
         RefreshStatusLabels()
         RefreshGroupCounts()
-    end)
-    return sub
-end
-
----------------------------------------------------------------------------
--- About Sub-Page
----------------------------------------------------------------------------
-local function CreateAboutPanel()
-    local ap = CreateFrame("Frame")
-    ap.name = "About"
-    ap.parent = "PatchWerk"
-    ap:Hide()
-    local built = false
-    ap:SetScript("OnShow", function(self)
-        if built then return end
-        built = true
-        local bg = self:CreateTexture(nil, "BACKGROUND")
-        bg:SetAllPoints()
-        SetSolidColor(bg, 0.08, 0.08, 0.08, 1)
-        local sf = CreateFrame("ScrollFrame", "PatchWerk_Scroll_About", self, "UIPanelScrollFrameTemplate")
-        sf:SetPoint("TOPLEFT", 0, -10)
-        sf:SetPoint("BOTTOMRIGHT", -26, 10)
-        local content = CreateFrame("Frame")
-        content:SetSize(580, 800)
-        sf:SetScrollChild(content)
-        sf:SetScript("OnSizeChanged", function(s, w) if w and w > 0 then content:SetWidth(w) end end)
-        local contentBg = content:CreateTexture(nil, "BACKGROUND")
-        contentBg:SetAllPoints()
-        SetSolidColor(contentBg, 0.08, 0.08, 0.08, 1)
-        local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-        title:SetPoint("TOPLEFT", 16, -16)
-        title:SetText("|cff33ccffPatchWerk|r")
-        local ver = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-        ver:SetPoint("LEFT", title, "RIGHT", 6, 0)
-        ver:SetText("v" .. ns.VERSION)
-        local author = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-        author:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
-        author:SetText("by |cffffd100Eventyret|r  (|cff8788EEHexusPlexus|r - Thunderstrike EU)")
-        local flavor = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-        flavor:SetPoint("TOPLEFT", author, "BOTTOMLEFT", 0, -12)
-        flavor:SetPoint("RIGHT", content, "RIGHT", -20, 0)
-        flavor:SetJustifyH("LEFT"); flavor:SetWordWrap(true)
-        flavor:SetText(
-            "No enrage timer. No tank swap. Just pure, uninterrupted performance.\n\n" ..
-            "PatchWerk fixes performance problems hiding inside your other addons -- " ..
-            "things like addons refreshing way too fast, doing the same work twice, " ..
-            "or leaking memory like a boss with no mechanics. Your addons keep " ..
-            "working exactly the same, just without the lag.\n\n" ..
-            "All patches are enabled by default and everything is safe to toggle. " ..
-            "Most players can just leave it all on and enjoy the extra frames. " ..
-            "If Patchwerk himself had this kind of efficiency, he wouldn't need " ..
-            "a hateful strike.")
-        local legendSep = content:CreateTexture(nil, "BACKGROUND")
-        legendSep:SetHeight(1)
-        legendSep:SetPoint("TOPLEFT", flavor, "BOTTOMLEFT", -4, -16)
-        legendSep:SetPoint("RIGHT", content, "RIGHT", -16, 0)
-        SetSolidColor(legendSep, 0.6, 0.6, 0.6, 0.35)
-        local legendTitle = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-        legendTitle:SetPoint("TOPLEFT", legendSep, "BOTTOMLEFT", 4, -8)
-        legendTitle:SetText("Badge Legend")
-        local legendText = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-        legendText:SetPoint("TOPLEFT", legendTitle, "BOTTOMLEFT", 0, -6)
-        legendText:SetPoint("RIGHT", content, "RIGHT", -20, 0)
-        legendText:SetJustifyH("LEFT"); legendText:SetWordWrap(true)
-        legendText:SetText(
-            "|cffff9999Categories:|r\n" ..
-            "  |cffff6666[Fixes]|r  Crash or error fix for TBC Classic Anniversary\n" ..
-            "  |cff66b3ff[Performance]|r  FPS, memory, or network optimization\n" ..
-            "  |cffe6b3ff[Tweaks]|r  Behavior or display improvement\n\n" ..
-            "|cff99ccffImpact Type:|r\n" ..
-            "  |cff33e633[FPS]|r  Smoother gameplay\n" ..
-            "  |cff33cce6[Memory]|r  Less memory usage and fewer slowdowns\n" ..
-            "  |cffff9933[Network]|r  Less server traffic\n\n" ..
-            "|cffffffccImpact Level:|r\n" ..
-            "  |cffffd100High|r  Very noticeable improvement\n" ..
-            "  |cffbfbfbfMedium|r  Helps in busy situations\n" ..
-            "  |cff996633Low|r  Small improvement")
-        local cmdSep = content:CreateTexture(nil, "BACKGROUND")
-        cmdSep:SetHeight(1)
-        cmdSep:SetPoint("TOPLEFT", legendText, "BOTTOMLEFT", -4, -16)
-        cmdSep:SetPoint("RIGHT", content, "RIGHT", -16, 0)
-        SetSolidColor(cmdSep, 0.6, 0.6, 0.6, 0.35)
-        local cmdTitle = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-        cmdTitle:SetPoint("TOPLEFT", cmdSep, "BOTTOMLEFT", 4, -8)
-        cmdTitle:SetText("Slash Commands")
-        local cmdText = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-        cmdText:SetPoint("TOPLEFT", cmdTitle, "BOTTOMLEFT", 0, -6)
-        cmdText:SetPoint("RIGHT", content, "RIGHT", -20, 0)
-        cmdText:SetJustifyH("LEFT"); cmdText:SetWordWrap(true)
-        cmdText:SetText(
-            "|cffffd100/pw|r or |cffffd100/patchwerk|r  Open main settings panel\n" ..
-            "|cffffd100/pw fixes|r  Open Fixes page\n" ..
-            "|cffffd100/pw performance|r  Open Performance page\n" ..
-            "|cffffd100/pw tweaks|r  Open Tweaks page\n" ..
-            "|cffffd100/pw about|r  Open this page\n" ..
-            "|cffffd100/pw status|r  Print patch status to chat\n" ..
-            "|cffffd100/pw toggle <name>|r  Toggle a specific patch\n" ..
-            "|cffffd100/pw reset|r  Reset all settings to defaults\n" ..
-            "|cffffd100/pw outdated|r  Check for outdated patches\n" ..
-            "|cffffd100/pw version|r  Show version info\n" ..
-            "|cffffd100/pw wizard|r  Show the welcome wizard\n" ..
-            "|cffffd100/pw help|r  Show command help in chat")
-        content:SetHeight(800)
-    end)
-    return ap
-end
-
----------------------------------------------------------------------------
--- Main "At a Glance" Dashboard Page
----------------------------------------------------------------------------
-local function CreateMainPanel()
-    local panel = CreateFrame("Frame")
-    panel.name = "PatchWerk"
-    panel:Hide()
-    local built = false
-    local mainCountLabel, mainCatLabel, mainTallyLabel
-    local cardCounts = {}
-    local function RefreshDashboard()
-        if not mainCountLabel then return end
-        local t = ComputeTally()
-        mainCountLabel:SetText(t.installed .. " of " .. t.totalGroups .. " supported addons installed — " ..
-            "|cff33e633" .. t.totalActive .. "/" .. t.totalPatches .. " patches active|r")
-        local parts = {}
-        if t.catActive.Performance > 0 then table.insert(parts, "|cff66b3ff" .. t.catActive.Performance .. " Performance|r") end
-        if t.catActive.Fixes > 0 then table.insert(parts, "|cffff6666" .. t.catActive.Fixes .. " Fixes|r") end
-        if t.catActive.Tweaks > 0 then table.insert(parts, "|cffe6b3ff" .. t.catActive.Tweaks .. " Tweaks|r") end
-        mainCatLabel:SetText(#parts > 0 and table.concat(parts, "  |cff666666|||r  ") or "|cff808080No active patches|r")
-        local iparts = {}
-        if t.fps > 0 then table.insert(iparts, "|cff33e633" .. t.fps .. " FPS|r") end
-        if t.mem > 0 then table.insert(iparts, "|cff33cce6" .. t.mem .. " Memory|r") end
-        if t.net > 0 then table.insert(iparts, "|cffff9933" .. t.net .. " Network|r") end
-        if #iparts > 0 then
-            local txt = table.concat(iparts, "  |cff666666|||r  ")
-            if t.high > 0 then txt = txt .. "  —  |cffffd100" .. t.high .. " high-impact|r" end
-            mainTallyLabel:SetText(txt)
-        else
-            mainTallyLabel:SetText("|cff808080No active patches for installed addons|r")
-        end
-        for cat, fs in pairs(cardCounts) do
-            if t.catTotal[cat] then fs:SetText(t.catTotal[cat] .. " patches") end
-        end
-    end
-    mainDashboardRefresh = RefreshDashboard
-    panel:SetScript("OnShow", function(self)
-        if built then
-            RefreshDashboard()
-            local b = reloadBanners["main"]
-            if b then if pendingReload then b:Show() else b:Hide() end end
-            if relayoutFuncs["main"] then relayoutFuncs["main"]() end
-            return
-        end
-        built = true
-        local bg = self:CreateTexture(nil, "BACKGROUND")
-        bg:SetAllPoints()
-        SetSolidColor(bg, 0.08, 0.08, 0.08, 1)
-        local sf = CreateFrame("ScrollFrame", "PatchWerk_Scroll_Main", self, "UIPanelScrollFrameTemplate")
-        sf:SetPoint("TOPLEFT", 0, -10)
-        sf:SetPoint("BOTTOMRIGHT", -26, 10)
-        local content = CreateFrame("Frame")
-        content:SetSize(580, 800)
-        sf:SetScrollChild(content)
-        sf:SetScript("OnSizeChanged", function(s, w) if w and w > 0 then content:SetWidth(w) end end)
-        local contentBg = content:CreateTexture(nil, "BACKGROUND")
-        contentBg:SetAllPoints()
-        SetSolidColor(contentBg, 0.08, 0.08, 0.08, 1)
-        local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-        title:SetPoint("TOPLEFT", 16, -16)
-        title:SetText("PatchWerk")
-        local ver = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-        ver:SetPoint("LEFT", title, "RIGHT", 6, 0)
-        ver:SetText("v" .. ns.VERSION)
-        local subtitle = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-        subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
-        subtitle:SetText("Performance patches for popular addons")
-        subtitle:SetJustifyH("LEFT")
-        mainCountLabel = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-        mainCountLabel:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -6)
-        mainCountLabel:SetJustifyH("LEFT")
-        mainCatLabel = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-        mainCatLabel:SetPoint("TOPLEFT", mainCountLabel, "BOTTOMLEFT", 0, -2)
-        mainCatLabel:SetJustifyH("LEFT")
-        mainTallyLabel = content:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-        mainTallyLabel:SetPoint("TOPLEFT", mainCatLabel, "BOTTOMLEFT", 0, -2)
-        mainTallyLabel:SetJustifyH("LEFT")
-        local banner = CreateReloadBanner(content, "main")
-        local cardsTop = -110
-        local cardDefs = {
-            { name = "Fixes", color = {1,0.4,0.4}, catID = "PatchWerk_Fixes", desc = "Prevents crashes and errors" },
-            { name = "Performance", color = {0.4,0.7,1}, catID = "PatchWerk_Performance", desc = "FPS, memory, and network optimizations" },
-            { name = "Tweaks", color = {0.9,0.7,1}, catID = "PatchWerk_Tweaks", desc = "Behavior improvements" },
-            { name = "About", color = {0.6,0.6,0.6}, catID = "PatchWerk_About", desc = "Info, commands, and credits" },
-        }
-        local cardFrames = {}
-        local function Relayout()
-            local y = cardsTop
-            if pendingReload then
-                banner:ClearAllPoints()
-                banner:SetPoint("TOPLEFT", content, "TOPLEFT", 12, y)
-                banner:SetPoint("RIGHT", content, "RIGHT", -12, 0)
-                banner:Show(); y = y - 34
-            else banner:Hide() end
-            for _, card in ipairs(cardFrames) do
-                card:ClearAllPoints()
-                card:SetPoint("TOPLEFT", content, "TOPLEFT", 16, y)
-                card:SetPoint("RIGHT", content, "RIGHT", -16, 0)
-                y = y - 52
-            end
-            if panel.resetBtn then
-                panel.resetBtn:ClearAllPoints()
-                panel.resetBtn:SetPoint("TOPLEFT", content, "TOPLEFT", 16, y - 10)
-            end
-            content:SetHeight(-(y - 10) + 60)
-        end
-        relayoutFuncs["main"] = Relayout
-        for _, def in ipairs(cardDefs) do
-            local card = CreateFrame("Frame", nil, content)
-            card:SetHeight(44)
-            card:EnableMouse(true)
-            local bg = card:CreateTexture(nil, "BACKGROUND")
-            bg:SetAllPoints()
-            SetSolidColor(bg, 0.12, 0.12, 0.12, 0.8)
-            local bar = card:CreateTexture(nil, "ARTWORK")
-            bar:SetPoint("TOPLEFT", 0, 0); bar:SetPoint("BOTTOMLEFT", 0, 0)
-            bar:SetWidth(4)
-            SetSolidColor(bar, def.color[1], def.color[2], def.color[3], 1)
-            local ct = card:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-            ct:SetPoint("TOPLEFT", 14, -6)
-            ct:SetText(def.name)
-            if def.name ~= "About" then
-                local countFs = card:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-                countFs:SetPoint("LEFT", ct, "RIGHT", 8, 0)
-                cardCounts[def.name] = countFs
-            end
-            local cd = card:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-            cd:SetPoint("TOPLEFT", ct, "BOTTOMLEFT", 0, -2)
-            cd:SetText("|cff999999" .. def.desc .. "|r")
-            local arrow = card:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-            arrow:SetPoint("RIGHT", -12, 0)
-            arrow:SetText("|cffaaaaaa>|r")
-            card:SetScript("OnEnter", function()
-                bg:SetVertexColor(0.18, 0.18, 0.18, 0.9)
-                arrow:SetText("|cffcccccc>|r")
-            end)
-            card:SetScript("OnLeave", function()
-                bg:SetVertexColor(0.12, 0.12, 0.12, 0.8)
-                arrow:SetText("|cffaaaaaa>|r")
-            end)
-            local targetID = def.catID
-            card:SetScript("OnMouseDown", function()
-                if Settings and Settings.OpenToCategory then
-                    Settings.OpenToCategory(targetID)
-                elseif InterfaceOptionsFrame_OpenToCategory and subCategories[def.name] then
-                    InterfaceOptionsFrame_OpenToCategory(subCategories[def.name])
-                    InterfaceOptionsFrame_OpenToCategory(subCategories[def.name])
-                end
-            end)
-            table.insert(cardFrames, card)
-        end
-        local resetBtn = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
-        resetBtn:SetSize(160, 26)
-        resetBtn:SetText("Reset to Defaults (All On)")
-        resetBtn:SetScript("OnClick", function()
-            if PatchWerkDB then
-                wipe(PatchWerkDB)
-                for key, value in pairs(ns.defaults) do PatchWerkDB[key] = value end
-            end
-            for _, cb in ipairs(allCheckboxes) do cb:SetChecked(ns:GetOption(cb.optionKey)) end
-            RefreshStatusLabels(); RefreshGroupCounts(); RefreshDashboard()
-            ShowReloadBanner()
-            ns:Print("Settings reset to defaults. Reload to apply.")
-        end)
-        panel.resetBtn = resetBtn
-        local reloadBtn = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
-        reloadBtn:SetPoint("LEFT", resetBtn, "RIGHT", 10, 0)
-        reloadBtn:SetSize(140, 26)
-        reloadBtn:SetText("Apply Changes (Reload)")
-        reloadBtn:SetScript("OnClick", ReloadUI)
-        local wizardBtn = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
-        wizardBtn:SetPoint("TOPLEFT", resetBtn, "BOTTOMLEFT", 0, -6)
-        wizardBtn:SetSize(160, 26)
-        wizardBtn:SetText("Show Welcome Wizard")
-        wizardBtn:SetScript("OnClick", function()
-            if ns.ResetWizard then ns:ResetWizard() end
-            if ns.ShowWizard then ns:ShowWizard() end
-        end)
-        RefreshDashboard()
+        RefreshSummary()
         Relayout()
     end)
     return panel
 end
 
 ---------------------------------------------------------------------------
--- Register All Panels
+-- Register Panel
 ---------------------------------------------------------------------------
-local function RegisterAllPanels()
-    local mainPanel = CreateMainPanel()
-    ns.optionsPanel = mainPanel
+local function RegisterPanel()
+    local panel = CreateOptionsPanel()
+    ns.optionsPanel = panel
     if Settings and Settings.RegisterCanvasLayoutCategory then
-        parentCategory = Settings.RegisterCanvasLayoutCategory(mainPanel, "PatchWerk")
-        parentCategory.ID = "PatchWerk"
-        Settings.RegisterAddOnCategory(parentCategory)
+        local category = Settings.RegisterCanvasLayoutCategory(panel, "PatchWerk")
+        category.ID = "PatchWerk"
+        Settings.RegisterAddOnCategory(category)
         ns.settingsCategoryID = "PatchWerk"
     elseif InterfaceOptions_AddCategory then
-        InterfaceOptions_AddCategory(mainPanel)
-    end
-    local subDefs = {
-        { name = "Fixes", filter = "Fixes", desc = "Patches that prevent crashes or errors on TBC Classic Anniversary" },
-        { name = "Performance", filter = "Performance", desc = "Optimizations for FPS, memory usage, and network traffic" },
-        { name = "Tweaks", filter = "Tweaks", desc = "Behavior and display improvements" },
-    }
-    for _, def in ipairs(subDefs) do
-        local subPanel = CreateCategorySubPanel(def.name, def.filter, def.desc)
-        subCategories[def.name] = subPanel
-        if Settings and parentCategory then
-            local sc = Settings.RegisterCanvasLayoutSubcategory(parentCategory, subPanel, def.name)
-            sc.ID = "PatchWerk_" .. def.filter
-            Settings.RegisterAddOnCategory(sc)
-        elseif InterfaceOptions_AddCategory then
-            InterfaceOptions_AddCategory(subPanel)
-        end
-    end
-    local aboutPanel = CreateAboutPanel()
-    subCategories["About"] = aboutPanel
-    if Settings and parentCategory then
-        local sc = Settings.RegisterCanvasLayoutSubcategory(parentCategory, aboutPanel, "About")
-        sc.ID = "PatchWerk_About"
-        Settings.RegisterAddOnCategory(sc)
-    elseif InterfaceOptions_AddCategory then
-        InterfaceOptions_AddCategory(aboutPanel)
-    end
-end
-
----------------------------------------------------------------------------
--- Navigate to Sub-Page
----------------------------------------------------------------------------
-local function OpenSubPage(pageKey)
-    local catID = "PatchWerk_" .. pageKey
-    if Settings and Settings.OpenToCategory then
-        Settings.OpenToCategory(catID)
-    elseif InterfaceOptionsFrame_OpenToCategory and subCategories[pageKey] then
-        InterfaceOptionsFrame_OpenToCategory(subCategories[pageKey])
-        InterfaceOptionsFrame_OpenToCategory(subCategories[pageKey])
+        InterfaceOptions_AddCategory(panel)
     end
 end
 
@@ -861,10 +727,9 @@ end
 -- Slash Commands
 ---------------------------------------------------------------------------
 
-local function ShowStatus()
+local function ShowStatus(verbose)
     RebuildLookups()
-    ns:Print("Patch Status (v" .. ns.VERSION .. "):")
-    ns:Print("-----------------------------")
+    ns:Print("Status (v" .. ns.VERSION .. "):")
     for _, groupInfo in ipairs(ns.addonGroups) do
         local installed = false
         for _, dep in ipairs(groupInfo.deps) do
@@ -872,56 +737,119 @@ local function ShowStatus()
         end
 
         local groupPatches = PATCHES_BY_GROUP[groupInfo.id]
-        if groupPatches and #groupPatches > 0 then
-            if installed then
-                ns:Print("|cffffffff" .. groupInfo.label .. "|r")
-            else
-                ns:Print("|cff666666" .. groupInfo.label .. " (not installed)|r")
-            end
-
+        if groupPatches and #groupPatches > 0 and installed then
+            local active, total, disabled = 0, #groupPatches, 0
             for _, p in ipairs(groupPatches) do
-                local enabled = ns:GetOption(p.key)
-                local applied = ns.applied[p.key]
-                local status
-                if applied then
-                    status = "|cff00ff00active|r"
-                elseif enabled and installed then
-                    status = "|cffffff00enabled (reload needed)|r"
-                elseif not installed then
-                    status = "|cff666666not installed|r"
-                else
-                    status = "|cffff0000disabled|r"
+                if ns.applied[p.key] then
+                    active = active + 1
+                elseif not ns:GetOption(p.key) then
+                    disabled = disabled + 1
                 end
-                local catBadge = FormatCategoryBadge(p.category)
-                ns:Print("  " .. catBadge .. " " .. p.label .. ": " .. status)
+            end
+            local short = groupInfo.label:match("^(.-)%s*%(") or groupInfo.label
+            local color = active == total and "|cff33e633" or (active > 0 and "|cffffff00" or "|cff808080")
+            local suffix = disabled > 0 and (" (" .. disabled .. " disabled)") or ""
+            ns:Print("  " .. short .. ": " .. color .. active .. "/" .. total .. " active|r" .. suffix)
+
+            if verbose then
+                for _, p in ipairs(groupPatches) do
+                    local status
+                    if ns.applied[p.key] then
+                        status = "|cff00ff00active|r"
+                    elseif ns:GetOption(p.key) then
+                        status = "|cffffff00enabled (reload needed)|r"
+                    else
+                        status = "|cffff0000disabled|r"
+                    end
+                    local catBadge = FormatCategoryBadge(p.category)
+                    ns:Print("    " .. catBadge .. " " .. p.label .. ": " .. status)
+                end
             end
         end
     end
 end
 
-local function HandleToggle(input)
+local function HandleToggle(args)
     RebuildLookups()
-    local patchKey = PATCH_NAMES_LOWER[input:lower()]
+    local target = args[2] and args[2]:lower() or ""
+    local forceState = args[3] and args[3]:lower() or nil
+
+    -- Try addon-level toggle first
+    local canonicalId = ns.addonGroupsByIdLower[target]
+    if canonicalId then
+        local groupPatches = PATCHES_BY_GROUP[canonicalId]
+        if groupPatches and #groupPatches > 0 then
+            local newVal
+            if forceState == "on" then
+                newVal = true
+            elseif forceState == "off" then
+                newVal = false
+            else
+                -- Toggle: if any are on, turn all off; otherwise turn all on
+                local anyOn = false
+                for _, p in ipairs(groupPatches) do
+                    if ns:GetOption(p.key) then anyOn = true; break end
+                end
+                newVal = not anyOn
+            end
+            for _, p in ipairs(groupPatches) do
+                ns:SetOption(p.key, newVal)
+            end
+            local short = target
+            for _, g in ipairs(ns.addonGroups) do
+                if g.id == canonicalId then
+                    short = g.label:match("^(.-)%s*%(") or g.label
+                    break
+                end
+            end
+            local stateStr = newVal and "|cff00ff00enabled|r" or "|cffff0000disabled|r"
+            ns:Print("All " .. short .. " patches " .. stateStr .. ". Reload UI to apply.")
+            return
+        end
+    end
+
+    -- Fall back to single patch toggle
+    local patchKey = PATCH_NAMES_LOWER[target]
     if not patchKey then
-        ns:Print("Unknown patch: " .. tostring(input))
-        ns:Print("Use /patchwerk status to see available patches.")
+        ns:Print("Unknown addon or patch: " .. tostring(args[2]))
+        ns:Print("Use /pw status to see available patches.")
         return
     end
 
-    local current = ns:GetOption(patchKey)
-    ns:SetOption(patchKey, not current)
-    local newState = not current and "|cff00ff00enabled|r" or "|cffff0000disabled|r"
+    local newVal
+    if forceState == "on" then
+        newVal = true
+    elseif forceState == "off" then
+        newVal = false
+    else
+        newVal = not ns:GetOption(patchKey)
+    end
+    ns:SetOption(patchKey, newVal)
+    local newState = newVal and "|cff00ff00enabled|r" or "|cffff0000disabled|r"
     ns:Print(patchKey .. " is now " .. newState .. ". Reload UI to apply.")
 end
 
 local function HandleReset()
     if PatchWerkDB then
+        local wizardState = PatchWerkDB.wizardCompleted
+        local dismissed = PatchWerkDB.dismissedOutdated
         wipe(PatchWerkDB)
         for key, value in pairs(ns.defaults) do
             PatchWerkDB[key] = value
         end
+        PatchWerkDB.wizardCompleted = wizardState
+        PatchWerkDB.dismissedOutdated = dismissed or {}
     end
     ns:Print("All settings reset to defaults. Reload UI to apply.")
+end
+
+local function OpenOptionsPanel()
+    if ns.settingsCategoryID and Settings and Settings.OpenToCategory then
+        Settings.OpenToCategory(ns.settingsCategoryID)
+    elseif InterfaceOptionsFrame_OpenToCategory and ns.optionsPanel then
+        InterfaceOptionsFrame_OpenToCategory(ns.optionsPanel)
+        InterfaceOptionsFrame_OpenToCategory(ns.optionsPanel)
+    end
 end
 
 SLASH_PATCHWERK1 = "/patchwerk"
@@ -936,64 +864,30 @@ SlashCmdList["PATCHWERK"] = function(msg)
     local cmd = args[1] and args[1]:lower() or ""
 
     if cmd == "" then
-        if ns.settingsCategoryID and Settings and Settings.OpenToCategory then
-            Settings.OpenToCategory(ns.settingsCategoryID)
-        elseif InterfaceOptionsFrame_OpenToCategory and ns.optionsPanel then
-            InterfaceOptionsFrame_OpenToCategory(ns.optionsPanel)
-            InterfaceOptionsFrame_OpenToCategory(ns.optionsPanel)
-        else
-            ShowStatus()
-        end
+        OpenOptionsPanel()
     elseif cmd == "status" then
-        ShowStatus()
+        local verbose = args[2] and args[2]:lower() == "verbose"
+        ShowStatus(verbose)
     elseif cmd == "toggle" and args[2] then
-        HandleToggle(args[2])
+        HandleToggle(args)
     elseif cmd == "reset" then
         HandleReset()
-    elseif cmd == "fixes" then
-        OpenSubPage("Fixes")
-    elseif cmd == "performance" or cmd == "perf" then
-        OpenSubPage("Performance")
-    elseif cmd == "tweaks" then
-        OpenSubPage("Tweaks")
-    elseif cmd == "about" then
-        OpenSubPage("About")
-    elseif cmd == "config" or cmd == "options" then
-        if ns.settingsCategoryID and Settings and Settings.OpenToCategory then
-            Settings.OpenToCategory(ns.settingsCategoryID)
-        elseif InterfaceOptionsFrame_OpenToCategory and ns.optionsPanel then
-            InterfaceOptionsFrame_OpenToCategory(ns.optionsPanel)
-            InterfaceOptionsFrame_OpenToCategory(ns.optionsPanel)
-        else
-            ShowStatus()
-        end
     elseif cmd == "outdated" then
         ns:ScanOutdatedPatches()
         ns:ReportOutdatedPatches()
-    elseif cmd == "version" then
-        ns:Print("PatchWerk v" .. ns.VERSION)
-        local db = ns:GetDB()
-        if db and db.lastSeenPatchWerkVersion then
-            ns:Print("Newest seen in guild/group: v" .. db.lastSeenPatchWerkVersion)
-        end
     elseif cmd == "wizard" or cmd == "setup" then
         if ns.ResetWizard then ns:ResetWizard() end
         if ns.ShowWizard then ns:ShowWizard() end
     elseif cmd == "help" then
         ns:Print("Usage:")
-        ns:Print("  /pw                Open settings panel")
-        ns:Print("  /pw fixes          Open Fixes page")
-        ns:Print("  /pw performance    Open Performance page")
-        ns:Print("  /pw tweaks         Open Tweaks page")
-        ns:Print("  /pw about          Open About page")
-        ns:Print("  /pw status         Show all patch status")
-        ns:Print("  /pw toggle X       Toggle a patch on/off")
-        ns:Print("  /pw reset          Reset to defaults")
-        ns:Print("  /pw outdated       Check for outdated patches")
-        ns:Print("  /pw version        Show version info")
-        ns:Print("  /pw wizard         Show the setup wizard")
+        ns:Print("  /pw              Open settings panel")
+        ns:Print("  /pw status       Show patched addons summary")
+        ns:Print("  /pw toggle X     Toggle addon or patch (e.g. details, details off)")
+        ns:Print("  /pw reset        Reset all settings to defaults")
+        ns:Print("  /pw outdated     Check for addon version changes")
+        ns:Print("  /pw wizard       Re-run the setup wizard")
     else
-        ShowStatus()
+        ns:Print("Unknown command: " .. tostring(args[1]) .. ". Type /pw help for usage.")
     end
 end
 
@@ -1005,5 +899,5 @@ local loader = CreateFrame("Frame")
 loader:RegisterEvent("PLAYER_LOGIN")
 loader:SetScript("OnEvent", function(self)
     self:UnregisterAllEvents()
-    RegisterAllPanels()
+    RegisterPanel()
 end)
