@@ -1,5 +1,35 @@
 # PatchWerk Changelog
 
+## v1.2.0 — "The One Where Everything Got a Little Shinier"
+
+Think of this as a world buff for your addon folder.
+
+**Shiny new things:**
+- In-game changelog popup — shows you what changed after each update so you're never out of the loop
+- Baganator patches moved in-house — bag sorting and lock fixes no longer need a separate addon
+- Addon registry centralized — one source of truth for all 35 addons instead of metadata scattered across every file
+- Setup wizard got a glow-up — "Skip setup" is actually readable now, and it tells you about `/pw` if things go sideways
+
+**Bugs that got /kicked:**
+- BugGrabber was hiding ALL your errors, not just the taint ones — real bugs are back on the meter where they belong
+- NovaWorldBuffs marker throttle no longer crashes 34 times when layer is nil — that's more wipes than C'Thun prog
+- EasyFrames health text finally says "K" and "M" instead of "T" — your target does NOT have 30 trillion HP
+- AutoLayer status frame can't teleport to 0,0 anymore — that trick only works for mages
+- Details meter respects your speed setting now instead of going full Leeroy on refresh rates
+- Auctionator timeout no longer argues with itself about when to give up
+- Settings summary counts patches for addons you actually have, not your entire wishlist
+
+**Behind the curtain:**
+- Settings panel is alphabetical now — find your addon without a Questie arrow
+- Installed addon groups open by default — no more clicking to see your own stuff
+- All On / All Off button tells you which way it's going before you press it
+- `/pw toggle` now actually tells you how to use it instead of staring blankly
+- Update notifications come with a summon portal (download link) now
+- Tooltips got a haste buff across the board
+
+---
+*97 patches. 35 addons. Zero enrage timers.*
+
 ## v1.1.0 — "The One Where PatchWerk Got a Makeover"
 
 No realm restart required. We fixed it while you were farming Primal Mana.

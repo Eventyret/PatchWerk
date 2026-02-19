@@ -26,24 +26,35 @@ ns.changelog = {
         flavor = "Think of this as a world buff for your addon folder.",
         sections = {
             {
+                header = "Shiny new things:",
+                entries = {
+                    "In-game changelog popup — you're reading it right now, grats",
+                    "Baganator patches moved in-house — bag sorting and lock fixes no longer need a separate addon",
+                    "Addon registry centralized — one source of truth instead of 35 files whispering different stories",
+                    "Setup wizard got a glow-up — 'Skip setup' is actually readable now, and it tells you about /pw if things go sideways",
+                },
+            },
+            {
                 header = "Squashed like Razorgore's eggs:",
                 entries = {
-                    "Ghost 'Reload' labels no longer haunt patches for addons you haven't even installed",
-                    "BigWigs proximity display got a smoother glow-up mid-encounter",
-                    "BugSack search no longer eats frames while you type — it learned patience",
-                    "Details meter respects your speed setting now instead of going full Leeroy on refresh rates",
-                    "AutoLayer status frame can't teleport to 0,0 anymore — that trick only works for mages",
+                    "BugGrabber was hiding ALL your errors, not just the taint ones — real bugs are back on the meter",
+                    "NovaWorldBuffs marker throttle no longer crashes 34 times when layer is nil — that's more wipes than C'Thun prog",
                     "EasyFrames health text finally says 'K' and 'M' instead of 'T' — your target does NOT have 30 trillion HP",
+                    "AutoLayer status frame can't teleport to 0,0 anymore — that trick only works for mages",
+                    "Details meter respects your speed setting now instead of going full Leeroy on refresh rates",
+                    "Auctionator timeout no longer argues with itself about when to give up",
+                    "Settings summary counts patches for addons you actually have, not your entire wishlist",
                 },
             },
             {
                 header = "Behind the curtain:",
                 entries = {
-                    "Tooltips got a haste buff across the board",
+                    "Settings panel is alphabetical now — find your addon without a Questie arrow",
+                    "Installed addon groups open by default — no more clicking to see your own stuff",
+                    "All On / All Off button tells you which way it's going before you press it",
                     "/pw toggle now actually tells you how to use it instead of staring blankly",
                     "Update notifications come with a summon portal (download link) now",
-                    "Settings panel footer points you to /pw changelog because you deserve nice things",
-                    "Installed addon groups open by default — no more clicking to see your own stuff",
+                    "Tooltips got a haste buff across the board",
                 },
             },
         },
