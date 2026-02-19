@@ -44,6 +44,7 @@ Patches\QuestXP.lua
 Patches\LeatrixPlus.lua
 Patches\RatingBuster.lua
 Patches\ClassTrainerPlus.lua
+VersionOverrides.lua
 VersionCheck.lua
 Wizard.lua
 Options.lua
