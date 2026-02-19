@@ -1,5 +1,8 @@
 package-as: PatchWerk
 
+move-folders:
+  PatchWerk/!PatchWerk: !PatchWerk
+
 ignore:
   - tools
   - README.md
@@ -8,3 +11,5 @@ ignore:
   - .github
   - .luacheckrc
   - Patchwerk.png
+  - CLAUDE.md
+  - .claude

@@ -21,7 +21,7 @@ Desktop.ini
 .DS_Store
 
 # Dev tooling output
-tools/versions.json
+tools/
 
 # CurseForge upload assets
 Patchwerk_400x400.png

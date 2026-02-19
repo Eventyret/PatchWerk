@@ -1,0 +1,10 @@
+## Interface: 20505
+## Title: !PatchWerk
+## Notes: TBC Classic Anniversary API compatibility shims
+## Author: Eventyret
+## Version: @project-version@
+## X-Curse-Project-ID: 1466413
+## X-Wago-ID: 56ndBWG9
+## DefaultState: enabled
+
+Shims.lua
