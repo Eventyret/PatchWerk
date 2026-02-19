@@ -1,0 +1,36 @@
+name: Addon Patch Request
+description: Suggest an addon for PatchWerk to patch
+title: "[Request]: "
+labels: ["enhancement", "addon-request"]
+body:
+  - type: input
+    id: addon-name
+    attributes:
+      label: Addon Name
+      description: What addon would you like PatchWerk to patch?
+      placeholder: "e.g. Recount"
+    validations:
+      required: true
+
+  - type: input
+    id: addon-url
+    attributes:
+      label: CurseForge / Wago URL
+      description: Link to the addon page (helps us find it quickly).
+      placeholder: "https://www.curseforge.com/wow/addons/..."
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem should PatchWerk fix?
+      description: Describe the performance issue, bug, or compatibility problem you've noticed.
+      placeholder: "This addon causes FPS drops when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: how-noticed
+    attributes:
+      label: How did you notice the issue?
+      description: Any details on when or how the problem occurs (combat, AH, specific zones, etc.).
+      placeholder: "I noticed FPS drops from 60 to 30 during raid boss fights with this addon enabled..."
