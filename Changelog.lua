@@ -53,8 +53,8 @@ ns.changelog = {
 ---------------------------------------------------------------------------
 -- Frame state
 ---------------------------------------------------------------------------
-local CHANGELOG_WIDTH = 520
-local CHANGELOG_HEIGHT = 440
+local CHANGELOG_WIDTH = 560
+local CHANGELOG_HEIGHT = 520
 
 local changelogFrame = nil
 
@@ -63,6 +63,7 @@ local changelogFrame = nil
 ---------------------------------------------------------------------------
 local function BuildChangelogContent(parent, entry)
     local y = 0
+    local ROW_PAD = 4  -- breathing room between entries
 
     for i, section in ipairs(entry.sections) do
         -- Section header (gold)
@@ -71,9 +72,9 @@ local function BuildChangelogContent(parent, entry)
         header:SetPoint("RIGHT", parent, "RIGHT", 0, 0)
         header:SetJustifyH("LEFT")
         header:SetText("|cffffd100" .. section.header .. "|r")
-        y = y - 18
+        y = y - 20
 
-        -- Bullet entries (white)
+        -- Bullet entries (white, word-wrapped — measure real height)
         for _, text in ipairs(section.entries) do
             local bullet = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
             bullet:SetPoint("TOPLEFT", 12, y)
@@ -81,12 +82,17 @@ local function BuildChangelogContent(parent, entry)
             bullet:SetJustifyH("LEFT")
             bullet:SetWordWrap(true)
             bullet:SetText("|cffdddddd\194\183|r  " .. text)
-            y = y - 18
+
+            -- GetStringHeight returns the actual rendered height including
+            -- word wrap.  Falls back to 18 if layout hasn't run yet.
+            local h = bullet:GetStringHeight()
+            if not h or h < 10 then h = 18 end
+            y = y - h - ROW_PAD
         end
 
         -- Spacing between sections
         if i < #entry.sections then
-            y = y - 10
+            y = y - 12
         end
     end
 
@@ -181,7 +187,7 @@ local function CreateChangelogFrame()
     sf:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -44, 50)
 
     local content = CreateFrame("Frame", nil, sf)
-    content:SetWidth(sf:GetWidth() > 0 and sf:GetWidth() or 420)
+    content:SetWidth(sf:GetWidth() > 0 and sf:GetWidth() or 460)
     content:SetHeight(800)
     sf:SetScrollChild(content)
     sf:SetScript("OnSizeChanged", function(s, w)
@@ -189,7 +195,7 @@ local function CreateChangelogFrame()
     end)
 
     local contentHeight = BuildChangelogContent(content, entry)
-    content:SetHeight(math.max(contentHeight + 8, 100))
+    content:SetHeight(math.max(contentHeight + 20, 100))
 
     -- Nav separator (above button bar)
     local navSep = f:CreateTexture(nil, "ARTWORK")
