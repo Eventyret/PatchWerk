@@ -62,7 +62,9 @@ function ns:ScanOutdatedPatches()
             local dep = groupAddon[pi.group]
             if dep then
                 local installed = GetInstalledVersion(dep)
-                if installed and installed ~= pi.targetVersion then
+                -- Use centralized override if available, fall back to per-patch targetVersion
+                local expectedVersion = (self.versionOverrides and self.versionOverrides[pi.group]) or pi.targetVersion
+                if installed and installed ~= expectedVersion then
                     if not self.versionResults[pi.group] then
                         self.versionResults[pi.group] = {
                             addonName = dep,
@@ -97,6 +99,37 @@ function ns:ReportOutdatedPatches()
     end
     self:Print("These patches still work but should be verified.")
     self:Print("Report issues: |cff66bbff" .. self.GITHUB_URL .. "|r")
+end
+
+-- Count outdated groups, excluding dismissed ones
+function ns:CountUndismissedOutdated()
+    local db = self:GetDB()
+    local dismissed = db and db.dismissedOutdated or {}
+    local count = 0
+    for groupId, data in pairs(self.versionResults) do
+        local key = groupId .. "_" .. data.installed
+        if not dismissed[key] then
+            count = count + 1
+        end
+    end
+    return count
+end
+
+function ns:DismissOutdatedForGroup(groupId)
+    local db = self:GetDB()
+    if not db or not db.dismissedOutdated then return end
+    local data = self.versionResults[groupId]
+    if data then
+        db.dismissedOutdated[groupId .. "_" .. data.installed] = true
+    end
+end
+
+function ns:IsOutdatedDismissed(groupId)
+    local db = self:GetDB()
+    if not db or not db.dismissedOutdated then return false end
+    local data = self.versionResults[groupId]
+    if not data then return false end
+    return db.dismissedOutdated[groupId .. "_" .. data.installed] or false
 end
 
 ---------------------------------------------------------------------------
@@ -160,8 +193,16 @@ frame:SetScript("OnEvent", function(self, event, ...)
 
         ns:ScanOutdatedPatches()
 
-        if ns:GetOption("showOutdatedWarnings") and #ns.outdatedPatches > 0 then
-            C_Timer.After(3, function() ns:ReportOutdatedPatches() end)
+        -- Only show outdated warnings on login for dev builds (running from source).
+        -- Released builds have a real version; normal users don't need this noise.
+        if ns.VERSION == "dev" and ns:GetOption("showOutdatedWarnings") and #ns.outdatedPatches > 0 then
+            C_Timer.After(3, function()
+                local count = ns:CountUndismissedOutdated()
+                if count > 0 then
+                    ns:Print("|cffffff00" .. count .. " addon" .. (count > 1 and "s" or "")
+                        .. " updated since patches were written.|r /pw outdated for details.")
+                end
+            end)
         end
 
         if ns:GetOption("showUpdateNotification") then

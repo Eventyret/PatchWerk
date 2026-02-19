@@ -108,6 +108,8 @@ local defaults = {
     AutoLayer_layerStatusFrame = true,
     AutoLayer_layerChangeToast = true,
     AutoLayer_hopTransitionTracker = true,
+    AutoLayer_hopWhisperEnabled = true,
+    AutoLayer_hopWhisperMessage = "[PatchWerk] Thanks for the hop!",
     AutoLayer_enhancedTooltip = true,
     -- AtlasLootClassic
     AtlasLootClassic_searchDebounce = true,
@@ -165,42 +167,49 @@ ns.patchInfo = {}
 ns.applied = {}
 
 -- Addon grouping metadata for the GUI
+-- status: "verified" = tested, "shim-fixed" = needs !PatchWerk shims, "untested" = not re-verified
 ns.addonGroups = {
-    { id = "Details",           label = "Details (Damage Meter)",    deps = { "Details" } },
-    { id = "Plater",            label = "Plater (Nameplates)",       deps = { "Plater" } },
-    { id = "Pawn",              label = "Pawn (Item Comparison)",    deps = { "Pawn" } },
-    { id = "TipTac",            label = "TipTac (Tooltips)",         deps = { "TipTac" } },
-    { id = "Questie",           label = "Questie (Quest Helper)",    deps = { "Questie" } },
-    { id = "LFGBulletinBoard",  label = "LFG Bulletin Board",       deps = { "LFGBulletinBoard" } },
-    { id = "Bartender4",        label = "Bartender4 (Action Bars)",  deps = { "Bartender4" } },
-    { id = "TitanPanel",        label = "Titan Panel",               deps = { "Titan" } },
-    { id = "OmniCC",            label = "OmniCC (Cooldown Text)",    deps = { "OmniCC" } },
-    { id = "Prat",              label = "Prat-3.0 (Chat)",           deps = { "Prat-3.0" } },
-    { id = "GatherMate2",       label = "GatherMate2 (Gathering)",   deps = { "GatherMate2" } },
-    { id = "Quartz",            label = "Quartz (Cast Bars)",        deps = { "Quartz" } },
-    { id = "Auctionator",       label = "Auctionator (Auction House)", deps = { "Auctionator" } },
-    { id = "VuhDo",             label = "VuhDo (Raid Frames)",       deps = { "VuhDo" } },
-    { id = "Cell",              label = "Cell (Raid Frames)",        deps = { "Cell" } },
-    { id = "BigDebuffs",        label = "BigDebuffs (Debuff Display)", deps = { "BigDebuffs" } },
-    { id = "EasyFrames",       label = "EasyFrames (Unit Frames)",    deps = { "EasyFrames" } },
-    { id = "BugSack",          label = "BugSack (Error Display)",    deps = { "BugSack" } },
-    { id = "LoonBestInSlot",   label = "LoonBestInSlot (Gear Guide)", deps = { "LoonBestInSlot" } },
-    { id = "NovaInstanceTracker", label = "Nova Instance Tracker",  deps = { "NovaInstanceTracker" } },
-    { id = "AutoLayer",          label = "AutoLayer (Layer Hopping)", deps = { "AutoLayer_Vanilla" } },
-    { id = "AtlasLootClassic",   label = "AtlasLoot Classic (Loot Browser)", deps = { "AtlasLootClassic" } },
-    { id = "BigWigs",            label = "BigWigs (Boss Mods)",      deps = { "BigWigs" } },
-    { id = "Gargul",             label = "Gargul (Loot Distribution)", deps = { "Gargul" } },
-    { id = "SexyMap",            label = "SexyMap (Minimap)",         deps = { "SexyMap" } },
-    { id = "MoveAny",            label = "MoveAny (UI Mover)",       deps = { "MoveAny" } },
-    { id = "Attune",             label = "Attune (Attunement Tracker)", deps = { "Attune" } },
-    { id = "NovaWorldBuffs",     label = "NovaWorldBuffs (World Buff Timers)", deps = { "NovaWorldBuffs" } },
-    { id = "LeatrixMaps",      label = "Leatrix Maps",              deps = { "Leatrix_Maps" } },
-    { id = "LeatrixPlus",      label = "Leatrix Plus (QOL)",        deps = { "Leatrix_Plus" } },
-    { id = "NameplateSCT",     label = "NameplateSCT (Combat Text)", deps = { "NameplateSCT" } },
-    { id = "QuestXP",          label = "QuestXP (Quest XP Display)", deps = { "QuestXP" } },
-    { id = "RatingBuster",     label = "RatingBuster (Stat Comparison)", deps = { "RatingBuster" } },
-    { id = "ClassTrainerPlus", label = "ClassTrainerPlus (Trainer Enhancement)", deps = { "ClassTrainerPlus" } },
+    { id = "Details",           label = "Details (Damage Meter)",    deps = { "Details" },             status = "verified" },
+    { id = "Plater",            label = "Plater (Nameplates)",       deps = { "Plater" },              status = "verified" },
+    { id = "Pawn",              label = "Pawn (Item Comparison)",    deps = { "Pawn" },                status = "verified" },
+    { id = "TipTac",            label = "TipTac (Tooltips)",         deps = { "TipTac" },              status = "verified" },
+    { id = "Questie",           label = "Questie (Quest Helper)",    deps = { "Questie" },             status = "verified" },
+    { id = "LFGBulletinBoard",  label = "LFG Bulletin Board",       deps = { "LFGBulletinBoard" },    status = "verified" },
+    { id = "Bartender4",        label = "Bartender4 (Action Bars)",  deps = { "Bartender4" },          status = "verified" },
+    { id = "TitanPanel",        label = "Titan Panel",               deps = { "Titan" },               status = "verified" },
+    { id = "OmniCC",            label = "OmniCC (Cooldown Text)",    deps = { "OmniCC" },              status = "verified" },
+    { id = "Prat",              label = "Prat-3.0 (Chat)",           deps = { "Prat-3.0" },            status = "verified" },
+    { id = "GatherMate2",       label = "GatherMate2 (Gathering)",   deps = { "GatherMate2" },         status = "verified" },
+    { id = "Quartz",            label = "Quartz (Cast Bars)",        deps = { "Quartz" },              status = "verified" },
+    { id = "Auctionator",       label = "Auctionator (Auction House)", deps = { "Auctionator" },       status = "verified" },
+    { id = "VuhDo",             label = "VuhDo (Raid Frames)",       deps = { "VuhDo" },               status = "verified" },
+    { id = "Cell",              label = "Cell (Raid Frames)",        deps = { "Cell" },                status = "verified" },
+    { id = "BigDebuffs",        label = "BigDebuffs (Debuff Display)", deps = { "BigDebuffs" },        status = "verified" },
+    { id = "EasyFrames",       label = "EasyFrames (Unit Frames)",    deps = { "EasyFrames" },         status = "verified" },
+    { id = "BugSack",          label = "BugSack (Error Display)",    deps = { "BugSack" },             status = "verified" },
+    { id = "LoonBestInSlot",   label = "LoonBestInSlot (Gear Guide)", deps = { "LoonBestInSlot" },    status = "shim-fixed" },
+    { id = "NovaInstanceTracker", label = "Nova Instance Tracker",  deps = { "NovaInstanceTracker" },  status = "verified" },
+    { id = "AutoLayer",          label = "AutoLayer (Layer Hopping)", deps = { "AutoLayer_Vanilla" },  status = "verified" },
+    { id = "AtlasLootClassic",   label = "AtlasLoot Classic (Loot Browser)", deps = { "AtlasLootClassic" }, status = "verified" },
+    { id = "BigWigs",            label = "BigWigs (Boss Mods)",      deps = { "BigWigs" },              status = "verified" },
+    { id = "Gargul",             label = "Gargul (Loot Distribution)", deps = { "Gargul" },            status = "verified" },
+    { id = "SexyMap",            label = "SexyMap (Minimap)",         deps = { "SexyMap" },             status = "shim-fixed" },
+    { id = "MoveAny",            label = "MoveAny (UI Mover)",       deps = { "MoveAny" },             status = "verified" },
+    { id = "Attune",             label = "Attune (Attunement Tracker)", deps = { "Attune" },           status = "verified" },
+    { id = "NovaWorldBuffs",     label = "NovaWorldBuffs (World Buff Timers)", deps = { "NovaWorldBuffs" }, status = "shim-fixed" },
+    { id = "LeatrixMaps",      label = "Leatrix Maps",              deps = { "Leatrix_Maps" },        status = "verified" },
+    { id = "LeatrixPlus",      label = "Leatrix Plus (QOL)",        deps = { "Leatrix_Plus" },        status = "verified" },
+    { id = "NameplateSCT",     label = "NameplateSCT (Combat Text)", deps = { "NameplateSCT" },       status = "verified" },
+    { id = "QuestXP",          label = "QuestXP (Quest XP Display)", deps = { "QuestXP" },            status = "verified" },
+    { id = "RatingBuster",     label = "RatingBuster (Stat Comparison)", deps = { "RatingBuster" },   status = "verified" },
+    { id = "ClassTrainerPlus", label = "ClassTrainerPlus (Trainer Enhancement)", deps = { "ClassTrainerPlus" }, status = "verified" },
 }
+
+-- Reverse lookup: lowercase group id -> canonical group id
+ns.addonGroupsByIdLower = {}
+for _, g in ipairs(ns.addonGroups) do
+    ns.addonGroupsByIdLower[g.id:lower()] = g.id
+end
 
 function ns:GetDB()
     return PatchWerkDB
@@ -254,6 +263,11 @@ loader:SetScript("OnEvent", function(self, event, addon)
         end
     end
 
+    -- Per-addon outdated dismissal storage
+    if not PatchWerkDB.dismissedOutdated then
+        PatchWerkDB.dismissedOutdated = {}
+    end
+
     -- Wizard: new installs see the wizard, existing users skip it
     if isNewInstall then
         PatchWerkDB.wizardCompleted = false
@@ -270,12 +284,18 @@ patcher:SetScript("OnEvent", function(self)
 
     local count = 0
     local skipped = 0
+    local patchedGroups = {}
     for name, patchFn in pairs(ns.patches) do
         if ns:GetOption(name) then
             local ok, err = pcall(patchFn)
             if ok then
                 ns.applied[name] = true
                 count = count + 1
+                -- Track which addon group this patch belongs to
+                local group = name:match("^(.-)_")
+                if group and not patchedGroups[group] then
+                    patchedGroups[group] = true
+                end
             else
                 ns:Print("Patch '" .. name .. "' failed: " .. tostring(err))
             end
@@ -285,6 +305,62 @@ patcher:SetScript("OnEvent", function(self)
     end
 
     if count > 0 then
-        ns:Print(count .. " patches applied" .. (skipped > 0 and (" (" .. skipped .. " disabled)") or "") .. ".")
+        -- Build addon name list: show up to 3, then "+N more"
+        local names = {}
+        for _, g in ipairs(ns.addonGroups) do
+            if patchedGroups[g.id] then
+                -- Use short name (strip parenthetical)
+                local short = g.label:match("^(.-)%s*%(") or g.label
+                names[#names + 1] = short
+            end
+        end
+        local display
+        if #names <= 3 then
+            display = table.concat(names, ", ")
+        else
+            display = names[1] .. ", " .. names[2] .. ", " .. names[3] .. ", +" .. (#names - 3) .. " more"
+        end
+        ns:Print("Patched " .. display .. ".")
+    end
+
+    -- Suppress known !PatchWerk taint errors from BugGrabber/BugSack.
+    -- The SetColorTexture metatable shim in !PatchWerk/Shims.lua taints the
+    -- shared Texture __index, which causes harmless ADDON_ACTION_BLOCKED.
+    -- These fire DURING addon loading (before PLAYER_LOGIN) and badAddons
+    -- dedup means they only fire ONCE — so callbacks can't catch them.
+    -- Scrub the error DB directly instead.
+    if BugGrabberDB and BugGrabberDB.errors then
+        local errs = BugGrabberDB.errors
+        for i = #errs, 1, -1 do
+            local msg = errs[i] and errs[i].message
+            if msg and (msg:find("!PatchWerk", 1, true) or msg:find("PatchWerk", 1, true)) then
+                table.remove(errs, i)
+            end
+        end
+    end
+
+    -- Also register a callback for defense-in-depth (handles edge cases
+    -- where future taint errors bypass the badAddons one-shot gate).
+    if BugGrabber then
+        if BugGrabber.setupCallbacks then
+            pcall(BugGrabber.setupCallbacks, BugGrabber)
+        end
+        if BugGrabber.RegisterCallback then
+            local filter = {}
+            BugGrabber.RegisterCallback(filter, "BugGrabber_BugGrabbed", function(_, err)
+                if not err or not err.message then return end
+                if not err.message:find("!PatchWerk", 1, true)
+                    and not err.message:find("PatchWerk", 1, true) then return end
+                local errs2 = BugGrabberDB and BugGrabberDB.errors
+                if errs2 then
+                    for i = #errs2, 1, -1 do
+                        if errs2[i] == err then
+                            table.remove(errs2, i)
+                            break
+                        end
+                    end
+                end
+            end)
+        end
     end
 end)
