@@ -31,19 +31,22 @@ local LEVEL_COLORS = {
 
 -- Patch category system
 local CATEGORY_COLORS = {
-    Fixes       = "|cffff6666",   -- soft red
-    Performance = "|cff66b3ff",   -- blue
-    Tweaks      = "|cffe6b3ff",   -- lavender
+    Fixes         = "|cffff6666",   -- soft red
+    Performance   = "|cff66b3ff",   -- blue
+    Tweaks        = "|cffe6b3ff",   -- lavender
+    Compatibility = "|cff66ff66",   -- green
 }
 local CATEGORY_LABELS = {
-    Fixes       = "Fixes",
-    Performance = "Performance",
-    Tweaks      = "Tweaks",
+    Fixes         = "Fixes",
+    Performance   = "Performance",
+    Tweaks        = "Tweaks",
+    Compatibility = "Compatibility",
 }
 local CATEGORY_DESC = {
-    Fixes       = "Prevents crashes or errors on TBC Classic Anniversary",
-    Performance = "Improves FPS, memory usage, or network performance",
-    Tweaks      = "Improves addon behavior or fixes confusing display issues",
+    Fixes         = "Prevents crashes or errors on TBC Classic Anniversary",
+    Performance   = "Improves FPS, memory usage, or network performance",
+    Tweaks        = "Improves addon behavior or fixes confusing display issues",
+    Compatibility = "Adds missing API support for TBC Classic Anniversary",
 }
 
 -- Patch metadata is registered by individual patch files via ns.patchInfo.
@@ -104,7 +107,7 @@ end
 -- Format a category badge string with color code
 local function FormatCategoryBadge(category)
     if not category then return "" end
-    local color = CATEGORY_COLORS[category] or CATEGORY_COLORS.Perf
+    local color = CATEGORY_COLORS[category] or CATEGORY_COLORS.Performance
     local label = CATEGORY_LABELS[category] or category
     return color .. "[" .. label .. "]|r"
 end
