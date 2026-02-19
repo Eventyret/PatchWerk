@@ -63,6 +63,10 @@ ns.patchInfo[#ns.patchInfo + 1] = {
 ns.patches["RatingBuster_debugstackOptimize"] = function()
     if not ns:IsAddonLoaded("RatingBuster") then return end
 
+    -- Requires debug.getupvalue/setupvalue for upvalue manipulation.
+    -- TBC Classic Anniversary strips the debug library (debug is a boolean).
+    if type(debug) ~= "table" or not debug.getupvalue or not debug.setupvalue then return end
+
     -- The list of tooltip names that TipHooker hooks (must match TipHooker.lua)
     local tooltipNames = {
         "GameTooltip",
