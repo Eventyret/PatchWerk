@@ -1,0 +1,26 @@
+# Claude Code
+.claude/
+
+# BigWigsMods packager output
+.release/
+
+# Embedded libraries (if any in future)
+Libs/
+
+# Editor and OS files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Dev tooling output
+tools/versions.json
+
+# Backups
+*.bak
