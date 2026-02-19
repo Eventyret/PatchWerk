@@ -9,34 +9,41 @@ body:
       label: Addon Name
       description: Which addon updated?
       options:
-        - Details
-        - Plater
-        - Pawn
-        - TipTac
-        - Questie
-        - LFG Bulletin Board
-        - Bartender4
-        - Titan Panel
-        - OmniCC
-        - Prat-3.0
-        - GatherMate2
-        - Quartz
-        - Auctionator
-        - VuhDo
-        - Cell
-        - BigDebuffs
-        - EasyFrames
-        - BugSack
-        - LoonBestInSlot
-        - Nova Instance Tracker
-        - AutoLayer
         - AtlasLoot Classic
-        - BigWigs
-        - Gargul
-        - SexyMap
-        - MoveAny
         - Attune
+        - Auctionator
+        - AutoLayer
+        - Baganator
+        - Bartender4
+        - BigDebuffs
+        - BigWigs
+        - BugSack
+        - Cell
+        - ClassTrainerPlus
+        - Details
+        - EasyFrames
+        - Gargul
+        - GatherMate2
+        - Leatrix Maps
+        - Leatrix Plus
+        - LFG Bulletin Board
+        - LoonBestInSlot
+        - MoveAny
+        - NameplateSCT
+        - Nova Instance Tracker
         - NovaWorldBuffs
+        - OmniCC
+        - Pawn
+        - Plater
+        - Prat-3.0
+        - Quartz
+        - Questie
+        - QuestXP
+        - RatingBuster
+        - SexyMap
+        - TipTac
+        - Titan Panel
+        - VuhDo
     validations:
       required: true
 
