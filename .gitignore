@@ -23,6 +23,9 @@ Desktop.ini
 # Dev tooling output
 tools/
 
+# Local dev tracking (not shipped)
+TRACKING.md
+
 # CurseForge upload assets
 Patchwerk_400x400.png
 
