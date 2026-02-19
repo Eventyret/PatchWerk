@@ -231,8 +231,8 @@ ns.patches["Details_formatCache"] = function()
     local cache = {}
     local cacheCount = 0
 
-    Details.ToK2 = function(number)
-        if not number then return origToK2(number) end
+    Details.ToK2 = function(self, number)
+        if not number then return origToK2(self, number) end
 
         local cached = cache[number]
         if cached then return cached end
@@ -242,7 +242,7 @@ ns.patches["Details_formatCache"] = function()
             cacheCount = 0
         end
 
-        local result = origToK2(number)
+        local result = origToK2(self, number)
         cache[number] = result
         cacheCount = cacheCount + 1
 
