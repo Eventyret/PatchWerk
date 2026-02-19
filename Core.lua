@@ -9,7 +9,8 @@ local tostring = tostring
 local CreateFrame = CreateFrame
 local DEFAULT_CHAT_FRAME = DEFAULT_CHAT_FRAME
 
-ns.VERSION = "1.0.0"
+local rawVersion = GetAddOnMetadata("PatchWerk", "Version") or "dev"
+ns.VERSION = rawVersion:find("@") and "dev" or rawVersion
 
 -- Default settings: all patches enabled by default
 -- Keys follow the pattern: "TargetAddon_patchName"

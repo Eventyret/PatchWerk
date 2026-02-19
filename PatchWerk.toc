@@ -2,9 +2,12 @@
 ## Title: PatchWerk
 ## Notes: Performance, compatibility, and QOL patches for popular addons
 ## Author: Eventyret
-## Version: 1.0.0
+## Version: @project-version@
 ## OptionalDeps: Details, Plater, Pawn, TipTac, TipTacTalents, Questie, LFGBulletinBoard, Bartender4, Titan, TitanBag, TitanPerformance, TitanReputations, OmniCC, OmniCC_Config, Prat-3.0, GatherMate2, Quartz, Auctionator, VuhDo, VuhDoOptions, Cell, BigDebuffs, EasyFrames, BugSack, !BugGrabber, LoonBestInSlot, NovaInstanceTracker, AutoLayer_Vanilla, AtlasLootClassic, BigWigs, Gargul, SexyMap, MoveAny, Attune, NovaWorldBuffs
 ## SavedVariables: PatchWerkDB
+## X-Curse-Project-ID: XXXXXX
+## X-Wago-ID: XXXXXXXXX
+## X-Github: https://github.com/Eventyret/PatchWerk
 
 Core.lua
 Patches\Details.lua
