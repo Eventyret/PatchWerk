@@ -11,11 +11,7 @@ local wipe = wipe
 local CreateFrame = CreateFrame
 local UIParent = UIParent
 
-local WHITE8x8 = "Interface\\Buttons\\WHITE8x8"
-local function SetSolidColor(tex, r, g, b, a)
-    tex:SetTexture(WHITE8x8)
-    tex:SetVertexColor(r, g, b, a or 1)
-end
+local SetSolidColor = ns.SetSolidColor
 
 local WIZARD_WIDTH = 520
 local WIZARD_HEIGHT = 420
@@ -78,7 +74,7 @@ local function BuildWelcomePage(container)
     local sf = CreateFrame("ScrollFrame", "PatchWerk_WizScroll1", page, "UIPanelScrollFrameTemplate")
     sf:SetPoint("TOPLEFT", 30, -190)
     sf:SetPoint("BOTTOMRIGHT", -44, 12)
-    local content = CreateFrame("Frame")
+    local content = CreateFrame("Frame", nil, sf)
     content:SetSize(420, 800)
     sf:SetScrollChild(content)
     sf:SetScript("OnSizeChanged", function(s, w) if w and w > 0 then content:SetWidth(w) end end)
@@ -86,15 +82,26 @@ local function BuildWelcomePage(container)
     local built = false
     page.Refresh = function()
         DetectAddons()
+
+        -- Count installed addons (always update, even on re-show)
+        local installed = 0
+        for _, groupInfo in ipairs(ns.addonGroups) do
+            if detectedAddons[groupInfo.id] then
+                installed = installed + 1
+            end
+        end
+        if installed == 0 then
+            summaryFs:SetText("No supported addons detected yet.")
+        else
+            summaryFs:SetText("Found patches for |cff33e633" .. installed .. "|r of your addons:")
+        end
+
         if built then return end
         built = true
 
         local y = 0
-        local installed, total = 0, #ns.addonGroups
         for _, groupInfo in ipairs(ns.addonGroups) do
             if detectedAddons[groupInfo.id] then
-                installed = installed + 1
-
                 local row = CreateFrame("Frame", nil, content)
                 row:SetPoint("TOPLEFT", 0, y)
                 row:SetPoint("RIGHT", 0, 0)
@@ -124,11 +131,6 @@ local function BuildWelcomePage(container)
             end
         end
         content:SetHeight(math.max(-y + 8, 100))
-        if installed == 0 then
-            summaryFs:SetText("No supported addons detected yet.")
-        else
-            summaryFs:SetText("Found patches for |cff33e633" .. installed .. "|r of your addons:")
-        end
     end
 
     return page
@@ -227,6 +229,7 @@ local function CreateWizardFrame()
     local f = CreateFrame("Frame", "PatchWerk_Wizard", overlay)
     f:SetSize(WIZARD_WIDTH, WIZARD_HEIGHT)
     f:SetPoint("CENTER")
+    f:SetClampedToScreen(true)
     f:SetFrameStrata("DIALOG")
     f:SetFrameLevel(overlay:GetFrameLevel() + 10)
 

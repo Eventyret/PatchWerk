@@ -8,19 +8,14 @@ local _, ns = ...
 local wipe = wipe
 local ipairs = ipairs
 
-local WHITE8x8 = "Interface\\Buttons\\WHITE8x8"
--- TBC Classic Anniversary lacks SetColorTexture / numeric SetTexture.
--- Use a white pixel + vertex color instead.
-local function SetSolidColor(tex, r, g, b, a)
-    tex:SetTexture(WHITE8x8)
-    tex:SetVertexColor(r, g, b, a or 1)
-end
+local SetSolidColor = ns.SetSolidColor
 
 -- Impact badge colors
 local BADGE_COLORS = {
     FPS     = { r = 0.2, g = 0.9, b = 0.2 },   -- green
     Memory  = { r = 0.2, g = 0.8, b = 0.9 },   -- cyan
-    Network = { r = 1.0, g = 0.6, b = 0.2 },   -- orange
+    Network       = { r = 1.0, g = 0.6, b = 0.2 },   -- orange
+    Compatibility = { r = 0.6, g = 0.6, b = 1.0 },   -- purple
 }
 
 local LEVEL_COLORS = {
@@ -36,12 +31,6 @@ local CATEGORY_COLORS = {
     Tweaks        = "|cffe6b3ff",   -- lavender
     Compatibility = "|cff66ff66",   -- green
 }
-local CATEGORY_LABELS = {
-    Fixes         = "Fixes",
-    Performance   = "Performance",
-    Tweaks        = "Tweaks",
-    Compatibility = "Compatibility",
-}
 local CATEGORY_DESC = {
     Fixes         = "Prevents crashes or errors on TBC Classic Anniversary",
     Performance   = "Improves FPS, memory usage, or network performance",
@@ -54,9 +43,12 @@ local CATEGORY_DESC = {
 local PATCH_INFO = ns.patchInfo
 
 -- Estimated performance improvement per patch (stored as .estimate field in patchInfo)
-local PATCH_ESTIMATES = setmetatable({}, { __index = function(_, key)
+local PATCH_ESTIMATES = setmetatable({}, { __index = function(self, key)
     for _, p in ipairs(ns.patchInfo) do
-        if p.key == key then return p.estimate end
+        if p.key == key then
+            rawset(self, key, p.estimate)
+            return p.estimate
+        end
     end
 end })
 
@@ -108,7 +100,7 @@ end
 local function FormatCategoryBadge(category)
     if not category then return "" end
     local color = CATEGORY_COLORS[category] or CATEGORY_COLORS.Performance
-    local label = CATEGORY_LABELS[category] or category
+    local label = category
     return color .. "[" .. label .. "]|r"
 end
 
@@ -151,11 +143,11 @@ local function RefreshGroupCounts()
         local label = groupCountLabels[gcKey]
         if label then
             if active == total then
-                label:SetText("|cff33e633" .. active .. "/" .. total .. " active|r")
+                label:SetText(string.format("|cff33e633%d/%d active|r", active, total))
             elseif active > 0 then
-                label:SetText("|cffffff00" .. active .. "/" .. total .. " active|r")
+                label:SetText(string.format("|cffffff00%d/%d active|r", active, total))
             else
-                label:SetText("|cff808080" .. active .. "/" .. total .. " active|r")
+                label:SetText(string.format("|cff808080%d/%d active|r", active, total))
             end
         end
     end
@@ -173,8 +165,8 @@ local function RefreshSummary()
             end
         end
     end
+    totalPatches = #PATCH_INFO
     for _, p in ipairs(PATCH_INFO) do
-        totalPatches = totalPatches + 1
         if ns:GetOption(p.key) then totalActive = totalActive + 1 end
     end
     if totalActive == totalPatches then
@@ -198,7 +190,6 @@ end
 -- BuildAddonGroup — build all patches for one addon group (no category filter)
 ---------------------------------------------------------------------------
 local function BuildAddonGroup(content, groupInfo, installed)
-    RebuildLookups()
     local groupId = groupInfo.id
     local patches = PATCHES_BY_GROUP[groupId] or {}
     if #patches == 0 then return nil end
@@ -483,7 +474,7 @@ local function CreateOptionsPanel()
         local sf = CreateFrame("ScrollFrame", "PatchWerk_Scroll_Main", self, "UIPanelScrollFrameTemplate")
         sf:SetPoint("TOPLEFT", 0, -10)
         sf:SetPoint("BOTTOMRIGHT", -26, 10)
-        local content = CreateFrame("Frame")
+        local content = CreateFrame("Frame", nil, sf)
         content:SetSize(580, 2000)
         sf:SetScrollChild(content)
         sf:SetScript("OnSizeChanged", function(s, w) if w and w > 0 then content:SetWidth(w) end end)
@@ -677,19 +668,14 @@ local function CreateOptionsPanel()
         relayoutFunc = Relayout
 
         -- Wire collapse toggles
-        for _, dd in ipairs(installedData) do
-            dd.hf:SetScript("OnMouseDown", function()
-                collapsed[dd.ck] = not collapsed[dd.ck]
-                dd.toggle:SetText(collapsed[dd.ck] and "|cffcccccc[+]|r" or "|cffcccccc[-]|r")
-                Relayout()
-            end)
-        end
-        for _, dd in ipairs(uninstalledData) do
-            dd.hf:SetScript("OnMouseDown", function()
-                collapsed[dd.ck] = not collapsed[dd.ck]
-                dd.toggle:SetText(collapsed[dd.ck] and "|cffcccccc[+]|r" or "|cffcccccc[-]|r")
-                Relayout()
-            end)
+        for _, list in ipairs({ installedData, uninstalledData }) do
+            for _, dd in ipairs(list) do
+                dd.hf:SetScript("OnMouseDown", function()
+                    collapsed[dd.ck] = not collapsed[dd.ck]
+                    dd.toggle:SetText(collapsed[dd.ck] and "|cffcccccc[+]|r" or "|cffcccccc[-]|r")
+                    Relayout()
+                end)
+            end
         end
 
         -- Initialize
