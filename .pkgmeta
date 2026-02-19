@@ -1,0 +1,9 @@
+package-as: PatchWerk
+
+ignore:
+  - tools
+  - README.md
+  - LICENSE
+  - CHANGELOG.md
+  - .github
+  - .luacheckrc
