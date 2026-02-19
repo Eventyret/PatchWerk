@@ -1,0 +1,78 @@
+name: Bug Report
+description: Report a bug or issue with PatchWerk
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: PatchWerk Version
+      description: "Type `/pw version` in-game to find this."
+      placeholder: "e.g. 1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: addon
+    attributes:
+      label: Affected Addon
+      description: Which addon's patch is causing the issue?
+      options:
+        - Details
+        - Plater
+        - Pawn
+        - TipTac
+        - Questie
+        - LFG Bulletin Board
+        - Bartender4
+        - Titan Panel
+        - OmniCC
+        - Prat-3.0
+        - GatherMate2
+        - Quartz
+        - Auctionator
+        - VuhDo
+        - Cell
+        - BigDebuffs
+        - EasyFrames
+        - BugSack
+        - LoonBestInSlot
+        - Nova Instance Tracker
+        - AutoLayer
+        - AtlasLoot Classic
+        - BigWigs
+        - Gargul
+        - SexyMap
+        - MoveAny
+        - Attune
+        - NovaWorldBuffs
+        - Other / General
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug clearly. What did you expect to happen vs what actually happened?
+      placeholder: "When I open the damage meter during combat, the game freezes..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Enable the Details_refreshCap patch
+        2. Open Details damage meter
+        3. Enter combat
+        4. ...
+
+  - type: textarea
+    id: errors
+    attributes:
+      label: Lua Errors
+      description: "Paste any Lua errors here. Use BugSack or `/console scriptErrors 1` to see them."
+      render: text

@@ -1,0 +1,69 @@
+name: Outdated Patch Report
+description: Report that a target addon has updated and patches may need review
+title: "[Outdated]: "
+labels: ["outdated-patch"]
+body:
+  - type: dropdown
+    id: addon
+    attributes:
+      label: Addon Name
+      description: Which addon updated?
+      options:
+        - Details
+        - Plater
+        - Pawn
+        - TipTac
+        - Questie
+        - LFG Bulletin Board
+        - Bartender4
+        - Titan Panel
+        - OmniCC
+        - Prat-3.0
+        - GatherMate2
+        - Quartz
+        - Auctionator
+        - VuhDo
+        - Cell
+        - BigDebuffs
+        - EasyFrames
+        - BugSack
+        - LoonBestInSlot
+        - Nova Instance Tracker
+        - AutoLayer
+        - AtlasLoot Classic
+        - BigWigs
+        - Gargul
+        - SexyMap
+        - MoveAny
+        - Attune
+        - NovaWorldBuffs
+    validations:
+      required: true
+
+  - type: input
+    id: previous-version
+    attributes:
+      label: Previous Version
+      description: "The version PatchWerk expected (shown in the outdated warning)."
+      placeholder: "e.g. 1.47.9-classic"
+
+  - type: input
+    id: new-version
+    attributes:
+      label: New Version
+      description: "The version now installed."
+      placeholder: "e.g. 1.48.0-classic"
+
+  - type: textarea
+    id: issues
+    attributes:
+      label: Any issues since the update?
+      description: Have you noticed any problems, errors, or changes in behavior since the addon updated?
+      placeholder: "Everything still seems to work fine / I'm getting Lua errors when..."
+
+  - type: textarea
+    id: pw-outdated
+    attributes:
+      label: "/pw outdated output"
+      description: "Paste the output of `/pw outdated` from in-game chat."
+      render: text
