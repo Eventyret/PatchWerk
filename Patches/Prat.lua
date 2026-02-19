@@ -206,7 +206,7 @@ ns.patches["Prat_bubblesGuard"] = function()
 
     local origFormat = bubblesModule.FormatBubbles
     bubblesModule.FormatBubbles = function(self)
-        local all = C_ChatBubbles.GetAllChatBubbles(false)
+        local all = C_ChatBubbles.GetAllChatBubbles()
         if not all then return end
         local hasAny = false
         for _ in pairs(all) do hasAny = true; break end

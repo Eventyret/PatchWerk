@@ -7,10 +7,10 @@
 -- 1M-9.9M range incorrectly use "T" instead of "M", and the
 -- string-truncation approach (%.Ns) produces inaccurate results.
 --
--- Fix: Replace UpdateHealthValues on the Utils table AND patch each
--- module's UpdateHealthBarTextString to call the corrected version.
--- The modules cache the original as a local upvalue at load time,
--- so replacing the table entry alone is not enough.
+-- Fix: Hook each health bar's UpdateTextString so we run AFTER
+-- EasyFrames sets the buggy text, then re-set it with correct
+-- K/M/B suffixes.  This bypasses the local-upvalue caching issue
+-- entirely — we don't need to replace any EasyFrames functions.
 ------------------------------------------------------------------------
 
 local _, ns = ...
@@ -28,8 +28,6 @@ ns:RegisterPatch("EasyFrames", {
 
 ns.patches["EasyFrames_healthTextFix"] = function()
     if not EasyFrames then return end
-    if not EasyFrames.Utils then return end
-    if not EasyFrames.Utils.UpdateHealthValues then return end
 
     local UnitHealth = UnitHealth
     local UnitHealthMax = UnitHealthMax
@@ -50,71 +48,63 @@ ns.patches["EasyFrames_healthTextFix"] = function()
         end
     end
 
-    -- Corrected UpdateHealthValues that uses proper K/M/B suffixes
-    local origUpdate = EasyFrames.Utils.UpdateHealthValues
-    local function CorrectedUpdateHealthValues(frame, healthFormat, customHealthFormat, customHealthFormatFormulas, useHealthFormatFullValues, useChineseNumeralsHealthFormat)
-        -- Only intercept the formats that use ReadableNumber (2, 3, 4)
-        -- Custom and percent-only formats are unaffected
-        if healthFormat ~= "2" and healthFormat ~= "3" and healthFormat ~= "4" then
-            return origUpdate(frame, healthFormat, customHealthFormat, customHealthFormatFormulas, useHealthFormatFullValues, useChineseNumeralsHealthFormat)
-        end
+    -- Re-set health text with corrected suffixes.
+    -- Called as a post-hook on each health bar's UpdateTextString,
+    -- so it runs AFTER EasyFrames has set its buggy "T" text.
+    local function FixHealthText(bar, dbKey)
+        local profile = EasyFrames.db and EasyFrames.db.profile
+        if not profile or not profile[dbKey] then return end
 
-        local unit = frame.unit
-        local healthbar = frame:GetParent().healthbar
+        local hf = profile[dbKey].healthFormat
+        -- Only fix the formats that use ReadableNumber (2, 3, 4)
+        if hf ~= "2" and hf ~= "3" and hf ~= "4" then return end
 
-        if UnitHealth(unit) <= 0 then return end
+        local unit = bar.unit
+        if not unit then return end
 
-        local Health = UnitHealth(unit)
-        local HealthMax = UnitHealthMax(unit)
+        local health = UnitHealth(unit)
+        if not health or health <= 0 then return end
+        local healthMax = UnitHealthMax(unit)
+        if not healthMax or healthMax <= 0 then return end
 
-        if healthFormat == "2" then
-            healthbar.TextString:SetText(ReadableNumber(Health) .. " / " .. ReadableNumber(HealthMax))
-        elseif healthFormat == "3" then
-            local HealthPercent = (Health / HealthMax) * 100
-            healthbar.TextString:SetText(ReadableNumber(Health) .. " / " .. ReadableNumber(HealthMax) .. " (" .. format("%.0f", HealthPercent) .. "%)")
-        elseif healthFormat == "4" then
-            local HealthPercent = (Health / HealthMax) * 100
-            healthbar.TextString:SetText(ReadableNumber(Health) .. " (" .. format("%.0f", HealthPercent) .. "%)")
+        local textString = bar.TextString
+        if not textString then return end
+
+        if hf == "2" then
+            textString:SetText(ReadableNumber(health) .. " / " .. ReadableNumber(healthMax))
+        elseif hf == "3" then
+            local pct = (health / healthMax) * 100
+            textString:SetText(ReadableNumber(health) .. " / " .. ReadableNumber(healthMax) .. " (" .. format("%.0f", pct) .. "%)")
+        elseif hf == "4" then
+            local pct = (health / healthMax) * 100
+            textString:SetText(ReadableNumber(health) .. " (" .. format("%.0f", pct) .. "%)")
         end
     end
 
-    -- Replace on the Utils table (covers any direct callers)
-    EasyFrames.Utils.UpdateHealthValues = CorrectedUpdateHealthValues
-
-    -- Each module caches UpdateHealthValues as a local upvalue at load
-    -- time, so the table replacement above doesn't reach them.  Their
-    -- UpdateHealthBarTextString methods are on the module table though,
-    -- so replacing those DOES work — callers use self:Method() which
-    -- resolves through the table at call time.
-    local moduleFixups = {
-        { name = "Player", unit = "player", bar = "PlayerFrameHealthBar", dbKey = "player" },
-        { name = "Target", unit = "target", bar = "TargetFrameHealthBar", dbKey = "target" },
-        { name = "Focus",  unit = "focus",  bar = "FocusFrameHealthBar",  dbKey = "focus" },
-        { name = "Pet",    unit = "pet",    bar = "PetFrameHealthBar",    dbKey = "pet" },
+    -- Hook each health bar's UpdateTextString directly.
+    -- Our hook fires AFTER both the default handler and EasyFrames' hook,
+    -- so we simply overwrite the buggy text with the corrected version.
+    local bars = {
+        { global = "TargetFrameHealthBar", dbKey = "target" },
+        { global = "FocusFrameHealthBar",  dbKey = "focus" },
+        { global = "PetFrameHealthBar",    dbKey = "pet" },
     }
 
-    for _, fix in ipairs(moduleFixups) do
-        local ok, mod = pcall(EasyFrames.GetModule, EasyFrames, fix.name)
-        if ok and mod then
-            local barGlobal = _G[fix.bar]
-            local dbKey = fix.dbKey
-            if barGlobal and mod.UpdateHealthBarTextString then
-                mod.UpdateHealthBarTextString = function(self, frame)
-                    if frame.unit == fix.unit then
-                        local profile = EasyFrames.db and EasyFrames.db.profile
-                        if profile and profile[dbKey] then
-                            CorrectedUpdateHealthValues(
-                                barGlobal,
-                                profile[dbKey].healthFormat,
-                                profile[dbKey].customHealthFormat,
-                                profile[dbKey].customHealthFormatFormulas,
-                                profile[dbKey].useHealthFormatFullValues,
-                                profile[dbKey].useChineseNumeralsHealthFormat
-                            )
-                        end
-                    end
-                end
-            end
+    for _, info in ipairs(bars) do
+        local bar = _G[info.global]
+        if bar then
+            hooksecurefunc(bar, "UpdateTextString", function(self)
+                FixHealthText(self, info.dbKey)
+            end)
         end
+    end
+
+    -- Player health bar uses a getter function in some versions
+    local playerBar = PlayerFrameHealthBar
+        or (PlayerFrame_GetHealthBar and PlayerFrame_GetHealthBar())
+    if playerBar then
+        hooksecurefunc(playerBar, "UpdateTextString", function(self)
+            FixHealthText(self, "player")
+        end)
     end
 end

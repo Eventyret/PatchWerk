@@ -208,8 +208,9 @@ ns.patches["Pawn_upgradeCache"] = function()
     -- Invalidate cache when equipped items change
     local invalidator = CreateFrame("Frame")
     invalidator:RegisterEvent("UNIT_INVENTORY_CHANGED")
+    invalidator:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
     invalidator:SetScript("OnEvent", function(_, event, arg1)
-        if arg1 == "player" then
+        if event == "PLAYER_EQUIPMENT_CHANGED" or arg1 == "player" then
             wipe(upgradeCache)
         end
     end)

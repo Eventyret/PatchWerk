@@ -156,7 +156,6 @@ local hopState = {
 local POLL_IDLE = 1.0
 local POLL_ACTIVE = 0.1
 local CONFIRM_DURATION = 3.0
-local HOP_TIMEOUT = 30.0
 local WAITING_TIMEOUT = 20.0
 local NO_RESPONSE_DURATION = 5.0
 

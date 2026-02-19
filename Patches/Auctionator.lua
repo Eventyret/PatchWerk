@@ -115,7 +115,7 @@ ns.patches["Auctionator_throttleBroadcast"] = function()
     AuctionatorAHThrottlingFrameMixin.OnUpdate = function(self, elapsed)
         -- Timeout accumulation (cheap, every frame)
         if self.AnyWaiting and self:AnyWaiting() then
-            self.timeout = self.timeout - elapsed
+            self.timeout = (self.timeout or TIMEOUT) - elapsed
             if self.timeout <= 0 then
                 if self.ResetWaiting then self:ResetWaiting() end
                 if self.ResetTimeout then self:ResetTimeout() end

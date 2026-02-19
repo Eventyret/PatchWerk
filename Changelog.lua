@@ -80,9 +80,7 @@ local function BuildChangelogContent(parent, entry)
             bullet:SetJustifyH("LEFT")
             bullet:SetWordWrap(true)
             bullet:SetText("|cffdddddd\194\183|r  " .. text)
-            -- Calculate height for wrapped text
-            local lineHeight = bullet:GetStringHeight() or 14
-            y = y - lineHeight - 4
+            y = y - 18
         end
 
         -- Spacing between sections
