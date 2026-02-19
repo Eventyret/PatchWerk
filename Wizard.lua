@@ -63,8 +63,9 @@ local function BuildWelcomePage(container)
     body:SetText(
         "PatchWerk patches your addons at load time: throttling " ..
         "excessive updates, caching repeated work, and fixing " ..
-        "compatibility bugs. All patches are enabled by default.\n" ..
-        "Type |cffffd100/pw|r anytime to adjust."
+        "compatibility bugs. All patches are enabled by default.\n\n" ..
+        "Type |cffffd100/pw|r anytime to adjust. If an addon ever " ..
+        "acts weird, open |cffffd100/pw|r and turn its patches off."
     )
 
     local summaryFs = page:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
@@ -247,13 +248,13 @@ local function CreateWizardFrame()
 
     -- Skip link
     local skipBtn = CreateFrame("Button", nil, f)
-    skipBtn:SetSize(40, 18)
+    skipBtn:SetSize(64, 18)
     skipBtn:SetPoint("TOPRIGHT", -8, -6)
     local skipTxt = skipBtn:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
     skipTxt:SetAllPoints()
-    skipTxt:SetText("|cff666666Skip|r")
-    skipBtn:SetScript("OnEnter", function() skipTxt:SetText("|cffaaaaaaSkip|r") end)
-    skipBtn:SetScript("OnLeave", function() skipTxt:SetText("|cff666666Skip|r") end)
+    skipTxt:SetText("|cff999999Skip setup|r")
+    skipBtn:SetScript("OnEnter", function() skipTxt:SetText("|cffccccccSkip setup|r") end)
+    skipBtn:SetScript("OnLeave", function() skipTxt:SetText("|cff999999Skip setup|r") end)
     skipBtn:SetScript("OnClick", function() ns:CompleteWizard() end)
 
     -- Page container

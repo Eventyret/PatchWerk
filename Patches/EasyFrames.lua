@@ -7,10 +7,10 @@
 -- 1M-9.9M range incorrectly use "T" instead of "M", and the
 -- string-truncation approach (%.Ns) produces inaccurate results.
 --
--- Fix: Hook each health bar's UpdateTextString so we run AFTER
--- EasyFrames sets the buggy text, then re-set it with correct
--- K/M/B suffixes.  This bypasses the local-upvalue caching issue
--- entirely — we don't need to replace any EasyFrames functions.
+-- Fix: Hook each health bar TextString's SetText to intercept the
+-- buggy "T" suffix and rewrite it to K/M.  This fires on every
+-- SetText call regardless of who triggers it, bypassing all
+-- upvalue caching and hook ordering issues.
 ------------------------------------------------------------------------
 
 local _, ns = ...
@@ -29,82 +29,48 @@ ns:RegisterPatch("EasyFrames", {
 ns.patches["EasyFrames_healthTextFix"] = function()
     if not EasyFrames then return end
 
-    local UnitHealth = UnitHealth
-    local UnitHealthMax = UnitHealthMax
     local format = string.format
+    local tonumber = tonumber
 
-    -- Corrected number abbreviation: K, M, B
-    local function ReadableNumber(num)
-        if not num then
-            return 0
-        elseif num >= 1000000000 then
-            return format("%.1fB", num / 1000000000)
-        elseif num >= 1000000 then
-            return format("%.1fM", num / 1000000)
-        elseif num >= 1000 then
-            return format("%.0fK", num / 1000)
-        else
-            return num
-        end
-    end
-
-    -- Re-set health text with corrected suffixes.
-    -- Called as a post-hook on each health bar's UpdateTextString,
-    -- so it runs AFTER EasyFrames has set its buggy "T" text.
-    local function FixHealthText(bar, dbKey)
-        local profile = EasyFrames.db and EasyFrames.db.profile
-        if not profile or not profile[dbKey] then return end
-
-        local hf = profile[dbKey].healthFormat
-        -- Only fix the formats that use ReadableNumber (2, 3, 4)
-        if hf ~= "2" and hf ~= "3" and hf ~= "4" then return end
-
-        local unit = bar.unit
-        if not unit then return end
-
-        local health = UnitHealth(unit)
-        if not health or health <= 0 then return end
-        local healthMax = UnitHealthMax(unit)
-        if not healthMax or healthMax <= 0 then return end
-
-        local textString = bar.TextString
-        if not textString then return end
-
-        if hf == "2" then
-            textString:SetText(ReadableNumber(health) .. " / " .. ReadableNumber(healthMax))
-        elseif hf == "3" then
-            local pct = (health / healthMax) * 100
-            textString:SetText(ReadableNumber(health) .. " / " .. ReadableNumber(healthMax) .. " (" .. format("%.0f", pct) .. "%)")
-        elseif hf == "4" then
-            local pct = (health / healthMax) * 100
-            textString:SetText(ReadableNumber(health) .. " (" .. format("%.0f", pct) .. "%)")
-        end
-    end
-
-    -- Hook each health bar's UpdateTextString directly.
-    -- Our hook fires AFTER both the default handler and EasyFrames' hook,
-    -- so we simply overwrite the buggy text with the corrected version.
-    local bars = {
-        { global = "TargetFrameHealthBar", dbKey = "target" },
-        { global = "FocusFrameHealthBar",  dbKey = "focus" },
-        { global = "PetFrameHealthBar",    dbKey = "pet" },
-    }
-
-    for _, info in ipairs(bars) do
-        local bar = _G[info.global]
-        if bar then
-            hooksecurefunc(bar, "UpdateTextString", function(self)
-                FixHealthText(self, info.dbKey)
-            end)
-        end
-    end
-
-    -- Player health bar uses a getter function in some versions
-    local playerBar = PlayerFrameHealthBar
-        or (PlayerFrame_GetHealthBar and PlayerFrame_GetHealthBar())
-    if playerBar then
-        hooksecurefunc(playerBar, "UpdateTextString", function(self)
-            FixHealthText(self, "player")
+    -- Fix EasyFrames' buggy "T" suffix in health text.
+    -- EasyFrames' ReadableNumber produces:
+    --   10K-99K   → "30T"   (should be "30K")
+    --   100K-999K → "500T"  (should be "500K")
+    --   1M-9.9M   → "1500T" (should be "1.5M")
+    -- Pattern: 4-digit + T = millions, 1-3 digit + T = thousands.
+    local function FixHealthFormat(text)
+        -- 4-digit + T → millions (e.g. "1500T" → "1.5M")
+        text = text:gsub("(%d%d%d%d)T", function(digits)
+            return format("%.1fM", tonumber(digits) / 1000)
         end)
+        -- 1-3 digit + T → thousands (e.g. "30T" → "30K")
+        text = text:gsub("(%d+)T", function(digits)
+            return digits .. "K"
+        end)
+        return text
     end
+
+    -- Hook the TextString's SetText on each health bar.
+    -- This intercepts text at the display layer — no matter who calls
+    -- SetText (Blizzard, EasyFrames, any other addon), the "T" suffix
+    -- gets fixed before it reaches the screen.
+    local function HookTextString(bar)
+        if not bar then return end
+        local ts = bar.TextString
+        if not ts then return end
+
+        local origSetText = ts.SetText
+        ts.SetText = function(self, text, ...)
+            if type(text) == "string" and text:find("%dT") then
+                text = FixHealthFormat(text)
+            end
+            return origSetText(self, text, ...)
+        end
+    end
+
+    HookTextString(TargetFrameHealthBar)
+    HookTextString(FocusFrameHealthBar)
+    HookTextString(PetFrameHealthBar)
+    HookTextString(PlayerFrameHealthBar
+        or (PlayerFrame_GetHealthBar and PlayerFrame_GetHealthBar()))
 end

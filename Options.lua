@@ -100,6 +100,7 @@ local collapsed = {}
 local reloadBanner = nil
 local relayoutFunc = nil
 local summaryLabel = nil
+local allBtnRefreshers = {}
 
 local function RefreshStatusLabels()
     for _, info in ipairs(statusLabels) do
@@ -182,7 +183,7 @@ local function BuildAddonGroup(content, groupInfo, installed)
     if #patches == 0 then return nil end
 
     local ck = groupId
-    if collapsed[ck] == nil then collapsed[ck] = true end
+    if collapsed[ck] == nil then collapsed[ck] = not installed end
 
     local gf = CreateFrame("Frame", nil, content)
     local hf = CreateFrame("Frame", nil, gf)
@@ -199,7 +200,7 @@ local function BuildAddonGroup(content, groupInfo, installed)
 
     local toggle = hf:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     toggle:SetPoint("TOPLEFT", 8, -12)
-    toggle:SetText("|cffcccccc[+]|r")
+    toggle:SetText(collapsed[ck] and "|cffcccccc[+]|r" or "|cffcccccc[-]|r")
 
     local hlabel = hf:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     hlabel:SetPoint("LEFT", toggle, "RIGHT", 4, 0)
@@ -246,7 +247,7 @@ local function BuildAddonGroup(content, groupInfo, installed)
 
     local allBtn = CreateFrame("Button", nil, hf, "UIPanelButtonTemplate")
     allBtn:SetPoint("TOPRIGHT", hf, "TOPRIGHT", -12, -8)
-    allBtn:SetSize(40, 18)
+    allBtn:SetSize(50, 18)
     allBtn:SetText("All")
     allBtn:GetFontString():SetFont(allBtn:GetFontString():GetFont(), 10)
 
@@ -260,6 +261,8 @@ local function BuildAddonGroup(content, groupInfo, installed)
     bf:SetPoint("TOPLEFT", hf, "BOTTOMLEFT", 0, 0)
     bf:SetPoint("TOPRIGHT", hf, "BOTTOMRIGHT", 0, 0)
     if not groupCheckboxes[ck] then groupCheckboxes[ck] = {} end
+
+    local RefreshAllBtnLabel  -- forward-declared, assigned after grpCbs is populated
 
     local by = 0
     for _, pi in ipairs(patches) do
@@ -334,6 +337,7 @@ local function BuildAddonGroup(content, groupInfo, installed)
         cb:SetScript("OnLeave", function() GameTooltip:Hide() end)
         cb:SetScript("OnClick", function(self)
             ns:SetOption(self.optionKey, self:GetChecked() and true or false)
+            RefreshAllBtnLabel()
             RefreshStatusLabels()
             RefreshGroupCounts()
             RefreshSummary()
@@ -408,8 +412,14 @@ local function BuildAddonGroup(content, groupInfo, installed)
     bf:SetHeight(bh)
 
     local grpCbs = groupCheckboxes[ck]
+    RefreshAllBtnLabel = function()
+        local anyOn = false
+        for _, cb in ipairs(grpCbs) do
+            if ns:GetOption(cb.optionKey) then anyOn = true; break end
+        end
+        allBtn:SetText(anyOn and "All Off" or "All On")
+    end
     allBtn:SetScript("OnClick", function()
-        -- Toggle: if any are on, turn all off; otherwise turn all on
         local anyOn = false
         for _, cb in ipairs(grpCbs) do
             if ns:GetOption(cb.optionKey) then anyOn = true; break end
@@ -419,6 +429,7 @@ local function BuildAddonGroup(content, groupInfo, installed)
             ns:SetOption(cb.optionKey, newVal)
             cb:SetChecked(newVal)
         end
+        RefreshAllBtnLabel()
         RefreshStatusLabels(); RefreshGroupCounts(); RefreshSummary()
         ShowReloadBanner()
     end)
@@ -426,10 +437,12 @@ local function BuildAddonGroup(content, groupInfo, installed)
         allBtn:Disable()
         allBtn:SetAlpha(0.4)
     end
+    RefreshAllBtnLabel()
 
     return {
         ck = ck, gf = gf, hf = hf, bf = bf, toggle = toggle,
         hh = 38, bh = bh, installed = installed,
+        refreshAllBtn = RefreshAllBtnLabel,
     }
 end
 
@@ -445,6 +458,7 @@ local function CreateOptionsPanel()
     panel:SetScript("OnShow", function(self)
         if built then
             for _, cb in ipairs(allCheckboxes) do cb:SetChecked(ns:GetOption(cb.optionKey)) end
+            for _, fn in ipairs(allBtnRefreshers) do fn() end
             RefreshStatusLabels(); RefreshGroupCounts(); RefreshSummary()
             if reloadBanner then
                 if pendingReload then reloadBanner:Show() else reloadBanner:Hide() end
@@ -549,6 +563,9 @@ local function CreateOptionsPanel()
             local data = BuildAddonGroup(content, groupInfo, installed)
             if data then
                 table.insert(installed and installedData or uninstalledData, data)
+                if data.refreshAllBtn then
+                    table.insert(allBtnRefreshers, data.refreshAllBtn)
+                end
             end
         end
 
@@ -584,7 +601,7 @@ local function CreateOptionsPanel()
 
         local cmdHint = footer:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
         cmdHint:SetPoint("TOPLEFT", authorText, "BOTTOMLEFT", 0, -4)
-        cmdHint:SetText("|cff555555Type /pw help for commands|r")
+        cmdHint:SetText("|cff555555Type /pw help for commands  |  /pw changelog for what's new|r")
 
         -- Reset Defaults button
         local resetBtn = CreateFrame("Button", nil, footer, "UIPanelButtonTemplate")

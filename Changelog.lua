@@ -2,7 +2,7 @@
 --
 -- Shows a "What's New" popup once per version on login.
 -- Auto-shows after the wizard is completed, not during first-run.
--- ESC hides without marking as seen; "Got it" / "X" marks as seen.
+-- Any dismiss (ESC, X, Got it) marks the version as seen.
 
 local _, ns = ...
 
@@ -20,7 +20,7 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
-        version = "1.3.0",
+        version = "1.2.0",
         title = "Quality & Polish",
         subtitle = "The One Where Everything Got a Little Shinier",
         flavor = "Think of this as a world buff for your addon folder.",
@@ -28,20 +28,22 @@ ns.changelog = {
             {
                 header = "Squashed like Razorgore's eggs:",
                 entries = {
-                    "Misleading 'Reload' label no longer haunts patches for addons you don't have installed",
-                    "BigWigs proximity text throttle now tracks SetText and SetFormattedText independently",
-                    "BugSack search debounce switched from OnUpdate frame to C_Timer — less work per frame",
-                    "Details refresh cap no longer silently overrides your faster_updates setting",
-                    "AutoLayer status frame won't teleport to 0,0 if your saved position gets corrupted",
+                    "Ghost 'Reload' labels no longer haunt patches for addons you haven't even installed",
+                    "BigWigs proximity display got a smoother glow-up mid-encounter",
+                    "BugSack search no longer eats frames while you type — it learned patience",
+                    "Details meter respects your speed setting now instead of going full Leeroy on refresh rates",
+                    "AutoLayer status frame can't teleport to 0,0 anymore — that trick only works for mages",
+                    "EasyFrames health text finally says 'K' and 'M' instead of 'T' — your target does NOT have 30 trillion HP",
                 },
             },
             {
                 header = "Behind the curtain:",
                 entries = {
-                    "Removed dead PATCH_ESTIMATES metatable — tooltips are snappier now",
-                    "/pw toggle without arguments now shows usage instead of pretending it doesn't exist",
-                    "Version update notification now includes a download link",
-                    "Saved-variable cleanup uses a proper lookup table instead of a hand-edited chain",
+                    "Tooltips got a haste buff across the board",
+                    "/pw toggle now actually tells you how to use it instead of staring blankly",
+                    "Update notifications come with a summon portal (download link) now",
+                    "Settings panel footer points you to /pw changelog because you deserve nice things",
+                    "Installed addon groups open by default — no more clicking to see your own stuff",
                 },
             },
         },
@@ -55,7 +57,6 @@ local CHANGELOG_WIDTH = 520
 local CHANGELOG_HEIGHT = 440
 
 local changelogFrame = nil
-local closingChangelog = false
 
 ---------------------------------------------------------------------------
 -- Build the scrollable content for a changelog entry
@@ -204,15 +205,12 @@ local function CreateChangelogFrame()
     gotItBtn:SetText("Got it")
     gotItBtn:SetScript("OnClick", function() ns:CloseChangelog() end)
 
-    -- ESC to close (hides without marking as seen)
+    -- ESC / X / Got it all dismiss and mark as seen
     tinsert(UISpecialFrames, "PatchWerk_Changelog")
     f:SetScript("OnHide", function()
         overlay:Hide()
-        if closingChangelog then
-            closingChangelog = false
-            local db = ns:GetDB()
-            if db then db.lastSeenChangelogVersion = ns.VERSION end
-        end
+        local db = ns:GetDB()
+        if db then db.lastSeenChangelogVersion = ns.VERSION end
     end)
 
     f.overlay = overlay
@@ -232,7 +230,6 @@ function ns:ShowChangelog()
 end
 
 function ns:CloseChangelog()
-    closingChangelog = true
     if changelogFrame then
         changelogFrame:Hide()
     end
