@@ -28,7 +28,7 @@ local function ParseSemVer(str)
     if not str then return nil end
     local major, minor, patch = str:match("^(%d+)%.(%d+)%.(%d+)$")
     if not major then return nil end
-    return tonumber(major) * 10000 + tonumber(minor) * 100 + tonumber(patch)
+    return tonumber(major) * 1000000 + tonumber(minor) * 1000 + tonumber(patch)
 end
 
 ---------------------------------------------------------------------------
@@ -56,6 +56,21 @@ function ns:ScanOutdatedPatches()
         end
     end
 
+    -- Validate override keys match known addon groups
+    if self.versionOverrides then
+        for key in pairs(self.versionOverrides) do
+            if not groupAddon[key] then
+                local found = false
+                for _, g in ipairs(self.addonGroups) do
+                    if g.id == key then found = true; break end
+                end
+                if not found then
+                    self:Print("|cffffff00Warning: versionOverrides key '" .. key .. "' has no matching addon group|r")
+                end
+            end
+        end
+    end
+
     -- Check each patch with a targetVersion
     for _, pi in ipairs(self.patchInfo) do
         if pi.targetVersion then
@@ -68,7 +83,7 @@ function ns:ScanOutdatedPatches()
                     if not self.versionResults[pi.group] then
                         self.versionResults[pi.group] = {
                             addonName = dep,
-                            expected = pi.targetVersion,
+                            expected = expectedVersion,
                             installed = installed,
                             patches = {},
                         }
@@ -153,7 +168,7 @@ local function OnAddonMessage(prefix, message, channel, sender)
     if prefix ~= ADDON_MSG_PREFIX then return end
 
     local myName = UnitName("player")
-    if sender == myName or sender:match("^" .. myName .. "%-") then return end
+    if sender == myName or (sender:find(myName, 1, true) == 1 and sender:sub(#myName + 1, #myName + 1) == "-") then return end
 
     local remoteVersion = message:match("^V:(.+)$")
     if not remoteVersion then return end

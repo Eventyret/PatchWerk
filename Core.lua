@@ -10,6 +10,7 @@ local CreateFrame = CreateFrame
 local DEFAULT_CHAT_FRAME = DEFAULT_CHAT_FRAME
 
 local GetMeta = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
+local IsAddonLoadedFn = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
 local rawVersion = GetMeta("PatchWerk", "Version") or "dev"
 ns.VERSION = rawVersion:find("@") and "dev" or rawVersion
 
@@ -149,6 +150,15 @@ local defaults = {
     RatingBuster_debugstackOptimize = true,
     -- ClassTrainerPlus
     ClassTrainerPlus_shiftKeyThrottle = true,
+    -- Baganator
+    Baganator_itemLockFix = true,
+    Baganator_sortThrottle = true,
+    Baganator_sortThrottleRate = 0.2,
+    Baganator_buttonVisThrottle = true,
+    Baganator_buttonVisRate = 0.1,
+    Baganator_tooltipCache = true,
+    Baganator_updateDebounce = true,
+    Baganator_updateDebounceRate = 0.05,
     -- Version checking
     showOutdatedWarnings = true,
     showUpdateNotification = true,
@@ -203,6 +213,7 @@ ns.addonGroups = {
     { id = "QuestXP",          label = "QuestXP (Quest XP Display)", deps = { "QuestXP" },            status = "verified" },
     { id = "RatingBuster",     label = "RatingBuster (Stat Comparison)", deps = { "RatingBuster" },   status = "verified" },
     { id = "ClassTrainerPlus", label = "ClassTrainerPlus (Trainer Enhancement)", deps = { "ClassTrainerPlus" }, status = "verified" },
+    { id = "Baganator",        label = "Baganator (Bags)",          deps = { "Baganator" },           status = "verified" },
 }
 
 -- Reverse lookup: lowercase group id -> canonical group id
@@ -232,14 +243,19 @@ end
 
 -- Check if a target addon is loaded
 function ns:IsAddonLoaded(addonName)
-    local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
-    return loaded and loaded(addonName)
+    return IsAddonLoadedFn and IsAddonLoadedFn(addonName)
 end
 
 -- Print a message to chat
 local CHAT_PREFIX = "|cff33ccff[PatchWerk]|r "
 function ns:Print(msg)
     DEFAULT_CHAT_FRAME:AddMessage(CHAT_PREFIX .. msg)
+end
+
+local WHITE8x8 = "Interface\\Buttons\\WHITE8x8"
+function ns.SetSolidColor(tex, r, g, b, a)
+    tex:SetTexture(WHITE8x8)
+    tex:SetVertexColor(r, g, b, a or 1)
 end
 
 -- Phase 1: Initialize saved variables on our own ADDON_LOADED
@@ -253,13 +269,21 @@ loader:SetScript("OnEvent", function(self, event, addon)
     local isNewInstall = not PatchWerkDB and not AddonTweaksDB
     if not PatchWerkDB then
         PatchWerkDB = AddonTweaksDB or {}
-        AddonTweaksDB = nil
     end
+    AddonTweaksDB = nil
 
     -- Copy missing defaults
     for key, value in pairs(defaults) do
         if PatchWerkDB[key] == nil then
             PatchWerkDB[key] = value
+        end
+    end
+
+    -- Prune stale keys from old patch versions
+    for key in pairs(PatchWerkDB) do
+        if defaults[key] == nil and key ~= "dismissedOutdated" and key ~= "wizardCompleted"
+            and key ~= "lastSeenPatchWerkVersion" and key ~= "updateNotificationShown" then
+            PatchWerkDB[key] = nil
         end
     end
 
@@ -283,24 +307,24 @@ patcher:SetScript("OnEvent", function(self)
     self:UnregisterEvent("PLAYER_LOGIN")
 
     local count = 0
-    local skipped = 0
     local patchedGroups = {}
-    for name, patchFn in pairs(ns.patches) do
-        if ns:GetOption(name) then
+    for _, pi in ipairs(ns.patchInfo) do
+        local name = pi.key
+        local patchFn = ns.patches[name]
+        if not patchFn then -- skip metadata-only entries
+        elseif ns:GetOption(name) then
             local ok, err = pcall(patchFn)
             if ok then
                 ns.applied[name] = true
                 count = count + 1
                 -- Track which addon group this patch belongs to
-                local group = name:match("^(.-)_")
+                local group = pi.group
                 if group and not patchedGroups[group] then
                     patchedGroups[group] = true
                 end
             else
                 ns:Print("Patch '" .. name .. "' failed: " .. tostring(err))
             end
-        else
-            skipped = skipped + 1
         end
     end
 

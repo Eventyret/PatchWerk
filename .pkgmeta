@@ -1,7 +1,8 @@
 package-as: PatchWerk
 
-manual-changelog: CHANGELOG.md
-markup-type: markdown
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
 
 move-folders:
   PatchWerk/!PatchWerk: !PatchWerk
