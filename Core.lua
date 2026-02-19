@@ -9,7 +9,8 @@ local tostring = tostring
 local CreateFrame = CreateFrame
 local DEFAULT_CHAT_FRAME = DEFAULT_CHAT_FRAME
 
-local rawVersion = GetAddOnMetadata("PatchWerk", "Version") or "dev"
+local GetMeta = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
+local rawVersion = GetMeta("PatchWerk", "Version") or "dev"
 ns.VERSION = rawVersion:find("@") and "dev" or rawVersion
 
 -- Default settings: all patches enabled by default
