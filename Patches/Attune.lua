@@ -20,6 +20,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Attune's spairs() function calls Attune_count() on every iteration to get the table length. Attune_count() itself iterates the entire table each call, making key collection O(n²). This replaces it with the O(1) # length operator.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Significant improvement when viewing attunement UI with many entries",
+    targetVersion = "266",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Attune_bagUpdateDebounce", group = "Attune",
@@ -28,6 +29,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Attune's BAG_UPDATE handler iterates all attunement steps and calls GetItemCount for every item-type step on every single bag slot change. During looting, vendoring, or crafting, this fires dozens of times per second. This debounces the scan to run at most once per 0.5 seconds.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Reduces lag spikes when looting or interacting with bags",
+    targetVersion = "266",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
     key = "Attune_cleuEarlyExit", group = "Attune",
@@ -36,6 +38,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     detail = "Attune only processes PARTY_KILL and UNIT_DIED combat log events but extracts all 16 parameters from every single event before checking. This adds an early check on the subevent type and skips the full handler for irrelevant events like SPELL_DAMAGE, SWING_DAMAGE, etc.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "Small improvement during combat with many enemies",
+    targetVersion = "266",
 }
 
 local GetTime = GetTime

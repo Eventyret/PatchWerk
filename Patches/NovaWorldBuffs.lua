@@ -129,14 +129,17 @@ ns.patches["NovaWorldBuffs_markerThrottle"] = function()
         local results = {}
 
         NWB.updateWorldbuffMarkers = function(self, markerType, layer, ...)
-            local key = tostring(markerType) .. ":" .. tostring(layer)
+            if not times[markerType] then times[markerType] = {} end
+            local lastTime = times[markerType][layer] or 0
             local now = GetTime()
-            if times[key] and now - times[key] < 1 then
-                return results[key]
+            if now - lastTime < 1 then
+                if not results[markerType] then results[markerType] = {} end
+                return results[markerType][layer]
             end
-            times[key] = now
+            times[markerType][layer] = now
             local result = orig(self, markerType, layer, ...)
-            results[key] = result
+            if not results[markerType] then results[markerType] = {} end
+            results[markerType][layer] = result
             return result
         end
     end

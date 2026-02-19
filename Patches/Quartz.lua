@@ -11,6 +11,9 @@
 
 local _, ns = ...
 
+local GetTime = GetTime
+local pcall = pcall
+
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
 ------------------------------------------------------------------------

@@ -20,6 +20,23 @@
 
 local _, ns = ...
 
+local GetTime = GetTime
+local CreateFrame = CreateFrame
+local C_Timer = C_Timer
+local pairs = pairs
+local tostring = tostring
+local tonumber = tonumber
+local pcall = pcall
+local math_sin = math.sin
+local math_abs = math.abs
+local UnitName = UnitName
+local GetNumGroupMembers = GetNumGroupMembers
+local IsInGroup = IsInGroup
+local IsInRaid = IsInRaid
+local IsInInstance = IsInInstance
+local LeaveParty = LeaveParty
+local hooksecurefunc = hooksecurefunc
+
 local WHITE8x8 = "Interface\\Buttons\\WHITE8x8"
 
 ------------------------------------------------------------------------
@@ -497,7 +514,7 @@ local function CreateStatusFrame()
     f:SetScript("OnUpdate", function(self, elapsed)
         if hopState.state == "IN_GROUP" then
             pulseTime = pulseTime + elapsed
-            local alpha = 0.6 + 0.4 * math.sin(pulseTime * 3)
+            local alpha = 0.6 + 0.4 * math_sin(pulseTime * 3)
             self.infoText:SetAlpha(alpha)
         else
             pulseTime = 0
