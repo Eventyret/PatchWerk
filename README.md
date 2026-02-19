@@ -1,5 +1,9 @@
 # PatchWerk
 
+<p align="center">
+  <img src="Patchwerk.png" alt="PatchWerk" width="200">
+</p>
+
 Runtime performance, compatibility, and QOL patches for popular addons on WoW TBC Classic Anniversary.
 
 PatchWerk hooks into other addons at load time and applies targeted fixes — no addon files are modified. Patches are individually toggleable, wrapped in `pcall` for safety, and automatically disabled if the target addon isn't installed.
