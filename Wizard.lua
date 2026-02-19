@@ -22,6 +22,7 @@ local currentPage = 1
 local pages = {}
 local pageDots = {}
 local detectedAddons = {}
+local completingWizard = false
 
 ---------------------------------------------------------------------------
 -- Detect which supported addons are installed
@@ -308,12 +309,15 @@ local function CreateWizardFrame()
     end)
     f.nextBtn = nextBtn
 
-    -- ESC to close
+    -- ESC to close (only marks complete if Finish/Skip was clicked)
     tinsert(UISpecialFrames, "PatchWerk_Wizard")
     f:SetScript("OnHide", function()
         overlay:Hide()
-        local db = ns:GetDB()
-        if db then db.wizardCompleted = true end
+        if completingWizard then
+            completingWizard = false
+            local db = ns:GetDB()
+            if db then db.wizardCompleted = true end
+        end
     end)
 
     f.overlay = overlay
@@ -333,8 +337,7 @@ function ns:ShowWizard()
 end
 
 function ns:CompleteWizard()
-    local db = self:GetDB()
-    if db then db.wizardCompleted = true end
+    completingWizard = true
     if wizardFrame then
         wizardFrame:Hide()
     end

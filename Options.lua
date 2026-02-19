@@ -31,13 +31,6 @@ local CATEGORY_COLORS = {
     Tweaks        = "|cffe6b3ff",   -- lavender
     Compatibility = "|cff66ff66",   -- green
 }
-local CATEGORY_DESC = {
-    Fixes         = "Prevents crashes or errors on TBC Classic Anniversary",
-    Performance   = "Improves FPS, memory usage, or network performance",
-    Tweaks        = "Improves addon behavior or fixes confusing display issues",
-    Compatibility = "Adds missing API support for TBC Classic Anniversary",
-}
-
 -- Patch metadata is registered by individual patch files via ns.patchInfo.
 -- The PATCH_INFO local alias and derived lookups are built lazily on first use.
 local PATCH_INFO = ns.patchInfo
@@ -156,7 +149,7 @@ end
 local function RefreshSummary()
     if not summaryLabel then return end
     RebuildLookups()
-    local installedCount, totalActive, totalPatches = 0, 0, 0
+    local installedCount, totalActive = 0, 0
     for _, g in ipairs(ns.addonGroups) do
         for _, dep in ipairs(g.deps) do
             if ns:IsAddonLoaded(dep) then
@@ -165,7 +158,7 @@ local function RefreshSummary()
             end
         end
     end
-    totalPatches = #PATCH_INFO
+    local totalPatches = #PATCH_INFO
     for _, p in ipairs(PATCH_INFO) do
         if ns:GetOption(p.key) then totalActive = totalActive + 1 end
     end
