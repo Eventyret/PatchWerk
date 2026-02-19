@@ -12,7 +12,7 @@ Ever loaded into Shattrath and watched your FPS drop faster than a tank without 
 
 PatchWerk makes them behave. Same addons, same features, no more lag. It stops the stuff you never see: addons refreshing every single frame, recalculating things that havent changed, and eating memory they never give back. Nothing on disk is changed, and every patch is safe to toggle on or off.
 
-> **93 patches** across **28 addons** for WoW TBC Classic Anniversary. Install it, log in, and get back to parsing.
+> **97 patches** across **34 addons** for WoW TBC Classic Anniversary. Install it, log in, and get back to parsing.
 
 ---
 
@@ -29,6 +29,7 @@ PatchWerk makes them behave. Same addons, same features, no more lag. It stops t
 | [LoonBestInSlot](https://www.curseforge.com/wow/addons/loon-best-in-slot) | Actually loads without crashing |
 | [Nova Instance Tracker](https://www.curseforge.com/wow/addons/nova-instance-tracker) | No more login crash |
 | [AutoLayer](https://www.curseforge.com/wow/addons/autolayer) | Stops duplicate invites |
+| [RatingBuster](https://www.curseforge.com/wow/addons/rating-buster) | Fixes debug library crash on TBC Classic |
 
 ### Performance
 
@@ -60,6 +61,12 @@ PatchWerk makes them behave. Same addons, same features, no more lag. It stops t
 | [Attune](https://www.curseforge.com/wow/addons/attune) | Faster sorting and filtering |
 | [NovaWorldBuffs](https://www.curseforge.com/wow/addons/nova-world-buffs) | Map markers update less often |
 | [AutoLayer](https://www.curseforge.com/wow/addons/autolayer) | Faster message processing |
+| [Leatrix Maps](https://www.curseforge.com/wow/addons/leatrix-maps) | Smoother zone transitions |
+| [Leatrix Plus](https://www.curseforge.com/wow/addons/leatrix-plus) | Combat polling dialed back |
+| [NameplateSCT](https://www.curseforge.com/wow/addons/nameplate-scrolling-combat-text) | Animation frame rate capped |
+| [QuestXP](https://www.curseforge.com/wow/addons/questxp) | Quest log updates debounced |
+| [RatingBuster](https://www.curseforge.com/wow/addons/rating-buster) | Stat comparisons run leaner |
+| [ClassTrainerPlus](https://www.curseforge.com/wow/addons/classtrainerplus) | Shift key polling throttled |
 
 ### Compatibility
 
@@ -77,17 +84,17 @@ PatchWerk makes them behave. Same addons, same features, no more lag. It stops t
 | Addon | |
 |---|---|
 | [EasyFrames](https://www.curseforge.com/wow/addons/easy-frames) | 36T health text fixed to K/M/B |
-| [AutoLayer](https://www.curseforge.com/wow/addons/autolayer) | Movable status frame with current layer, on/off state, and session stats. Gold toast notification on layer changes. Full hop lifecycle tracking with auto group-leave on confirmation. Enhanced minimap tooltip with layer count and hop progress |
+| [AutoLayer](https://www.curseforge.com/wow/addons/autolayer) | Movable status frame with layer, status, and session stats. Layer change toast notifications. Full hop lifecycle tracking with auto group-leave and thank-you whisper. Enhanced minimap tooltip |
 
 ---
 
 ## Getting Started
 
 1. Install from [CurseForge](https://www.curseforge.com/wow/addons/patchwerk) or drop the folder into `Interface/AddOns/`
-2. Log in. A welcome wizard walks you through which addons were detected and lets you toggle patches
-3. Type `/pw` if you want to change anything later
+2. Log in. A quick welcome screen shows which of your addons were detected
+3. Type `/pw` to open settings if you want to toggle individual patches
 
-PatchWerk only patches addons you actually have installed. Everything is enabled by default, but the wizard and settings panel let you turn individual patches on or off. If Patchwerk himself had this kind of efficiency, he wouldnt need a hateful strike.
+PatchWerk only patches addons you actually have installed. Everything is enabled by default. If Patchwerk himself had this kind of efficiency, he wouldnt need a hateful strike.
 
 ---
 
@@ -101,16 +108,12 @@ Type `/pw` to open the settings panel. Type `/pw status` to see which patches ar
 | Command | Description |
 |---|---|
 | `/pw` | Open settings panel |
-| `/pw fixes` | Jump to Fixes page |
-| `/pw performance` | Jump to Performance page |
-| `/pw tweaks` | Jump to Tweaks page |
-| `/pw about` | Jump to About page |
-| `/pw status` | Print all patch statuses to chat |
-| `/pw toggle <name>` | Toggle a specific patch on/off |
+| `/pw status` | Show patched addons summary |
+| `/pw status verbose` | Show detailed per-patch status |
+| `/pw toggle <name>` | Toggle all patches for an addon (e.g., `details`, `details off`) |
 | `/pw reset` | Reset all settings to defaults |
-| `/pw outdated` | Check for outdated patches |
-| `/pw version` | Show version info |
-| `/pw wizard` | Show the welcome wizard |
+| `/pw outdated` | Check for addon version changes |
+| `/pw wizard` | Re-run the setup wizard |
 | `/pw help` | Show command help in chat |
 
 </details>
@@ -137,13 +140,13 @@ Found a bug? Want PatchWerk to support another addon? Open an issue:
 
 TBC Classic Anniversary is a weird place for addons. Some were written for retail and expect functions that simply arent here. Others were built for Classic Era and never got optimized for TBC. A lot of them run background work every single frame because nobody told them to stop.
 
-PatchWerk was born out of staring at profiler output and wondering why Details is rebuilding colors 60 times a second, or why Plater creates a new timer every frame. These arent bad addons. Theyre great addons that just need a nudge. Rather than waiting for 28 different authors to each ship a fix, PatchWerk patches them all in one place, at load time, without touching a single file on disk.
+PatchWerk was born out of staring at profiler output and wondering why Details is rebuilding colors 60 times a second, or why Plater creates a new timer every frame. These arent bad addons. Theyre great addons that just need a nudge. Rather than waiting for 34 different authors to each ship a fix, PatchWerk patches them all in one place, at load time, without touching a single file on disk.
 
 If you have ever `/reload`d to fix lag and it actually worked, theres a good chance PatchWerk would have fixed it for you permanently.
 
 ## Thank You
 
-PatchWerk only exists because 28 addon authors put in the work first. Every addon on the list above is built and maintained by people who do this in their free time so the rest of us can have a better game. PatchWerk doesnt replace what they do. It just helps their stuff run a little smoother on a version of WoW that most of them never specifically built for.
+PatchWerk only exists because 34 addon authors put in the work first. Every addon on the list above is built and maintained by people who do this in their free time so the rest of us can have a better game. PatchWerk doesnt replace what they do. It just helps their stuff run a little smoother on a version of WoW that most of them never specifically built for.
 
 If you use any of these addons, go leave them a thumbs up on CurseForge or star them on GitHub. They earned it.
 

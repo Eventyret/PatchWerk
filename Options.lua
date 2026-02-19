@@ -499,8 +499,17 @@ local function CreateOptionsPanel()
         ver:SetPoint("LEFT", title, "RIGHT", 6, 0)
         ver:SetText("v" .. ns.VERSION)
 
+        -- Flavor intro
+        local introText = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+        introText:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+        introText:SetPoint("RIGHT", content, "RIGHT", -16, 0)
+        introText:SetJustifyH("LEFT")
+        introText:SetWordWrap(true)
+        introText:SetText("|cff888888No enrage timer. No tank swap. Just pure, uninterrupted performance."
+            .. " Same addons, same features, no more lag.|r")
+
         summaryLabel = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-        summaryLabel:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+        summaryLabel:SetPoint("TOPLEFT", introText, "BOTTOMLEFT", 0, -6)
         summaryLabel:SetJustifyH("LEFT")
 
         -- Enable All / Disable All buttons
@@ -549,7 +558,7 @@ local function CreateOptionsPanel()
         bannerBtn:SetScript("OnClick", ReloadUI)
         reloadBanner = banner
 
-        local headerBot = -78
+        local headerBot = -100
 
         -- Build addon groups
         RebuildLookups()
@@ -580,38 +589,24 @@ local function CreateOptionsPanel()
 
         -- Footer / About section
         local footer = CreateFrame("Frame", nil, content)
-        footer:SetHeight(120)
+        footer:SetHeight(60)
         local footerSep = footer:CreateTexture(nil, "BACKGROUND")
         footerSep:SetHeight(1)
         footerSep:SetPoint("TOPLEFT", 12, -2)
         footerSep:SetPoint("TOPRIGHT", -12, -2)
         SetSolidColor(footerSep, 0.5, 0.5, 0.5, 0.3)
 
-        -- About blurb
-        local aboutTitle = footer:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-        aboutTitle:SetPoint("TOPLEFT", 16, -12)
-        aboutTitle:SetText("|cff33ccffPatchWerk|r  |cff808080v" .. ns.VERSION .. "|r")
+        -- Author line with class colors
+        local authorText = footer:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+        authorText:SetPoint("TOPLEFT", 16, -12)
+        -- Warlock: #9482C9, Mage: #69CCF0, Yellow: #FFD100
+        authorText:SetText("|cffccccccEventyret|r  |cff555555(|r"
+            .. "|cff9482C9HexusPlexus|r |cff555555/|r |cff69CCF0HokusFokus|r"
+            .. " |cff555555-|r |cffFFD100Thunderstrike EU|r|cff555555)|r")
 
-        local aboutText = footer:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-        aboutText:SetPoint("TOPLEFT", aboutTitle, "BOTTOMLEFT", 0, -4)
-        aboutText:SetPoint("RIGHT", footer, "RIGHT", -16, 0)
-        aboutText:SetJustifyH("LEFT")
-        aboutText:SetWordWrap(true)
-        aboutText:SetText("Runtime patches for popular addons on TBC Classic Anniversary. "
-            .. "Same addons, same features, no more lag. Nothing on disk is ever changed.")
-
-        -- Author + links
-        local linksText = footer:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-        linksText:SetPoint("TOPLEFT", aboutText, "BOTTOMLEFT", 0, -8)
-        linksText:SetText("|cffccccccEventyret|r  |cff555555(HexusPlexus/HokusFokus - Thunderstrike EU)|r")
-
-        local linksText2 = footer:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-        linksText2:SetPoint("TOPLEFT", linksText, "BOTTOMLEFT", 0, -2)
-        linksText2:SetText("|cff888888github.com/Eventyret/PatchWerk  |cff555555·|r  curseforge.com/wow/addons/patchwerk|r")
-
-        local linksText3 = footer:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-        linksText3:SetPoint("TOPLEFT", linksText2, "BOTTOMLEFT", 0, -2)
-        linksText3:SetText("|cff555555Type /pw help for commands|r")
+        local cmdHint = footer:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+        cmdHint:SetPoint("TOPLEFT", authorText, "BOTTOMLEFT", 0, -4)
+        cmdHint:SetText("|cff555555Type /pw help for commands|r")
 
         -- Reset Defaults button
         local resetBtn = CreateFrame("Button", nil, footer, "UIPanelButtonTemplate")
@@ -676,7 +671,7 @@ local function CreateOptionsPanel()
             footer:ClearAllPoints()
             footer:SetPoint("TOPLEFT", content, "TOPLEFT", 0, y - 8)
             footer:SetPoint("RIGHT", content, "RIGHT", 0, 0)
-            y = y - 8 - 120
+            y = y - 8 - 60
             content:SetHeight(-y + 20)
         end
         relayoutFunc = Relayout
