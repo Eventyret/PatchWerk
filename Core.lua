@@ -174,11 +174,24 @@ patcher:SetScript("OnEvent", function(self)
     -- These fire DURING addon loading (before PLAYER_LOGIN) and badAddons
     -- dedup means they only fire ONCE — so callbacks can't catch them.
     -- Scrub the error DB directly instead.
+    --
+    -- Only suppresses taint/blocked-action errors that reference PatchWerk,
+    -- NOT general Lua errors.  This prevents hiding real bugs while still
+    -- cleaning up the cosmetic taint noise from the SetColorTexture shim.
+    local function IsPatchWerkTaintError(msg)
+        if not msg:find("PatchWerk", 1, true) then return false end
+        -- Only suppress taint-related errors, not general Lua errors
+        return msg:find("ADDON_ACTION_BLOCKED", 1, true)
+            or msg:find("action was blocked", 1, true)
+            or msg:find("AddOn.*taint", 1, false)
+            or msg:find("Shims%.lua", 1, false)
+    end
+
     if BugGrabberDB and BugGrabberDB.errors then
         local errs = BugGrabberDB.errors
         for i = #errs, 1, -1 do
             local msg = errs[i] and errs[i].message
-            if type(msg) == "string" and (msg:find("!PatchWerk", 1, true) or msg:find("PatchWerk", 1, true)) then
+            if type(msg) == "string" and IsPatchWerkTaintError(msg) then
                 table.remove(errs, i)
             end
         end
@@ -194,8 +207,7 @@ patcher:SetScript("OnEvent", function(self)
             local filter = {}
             BugGrabber.RegisterCallback(filter, "BugGrabber_BugGrabbed", function(_, err)
                 if not err or type(err.message) ~= "string" then return end
-                if not err.message:find("!PatchWerk", 1, true)
-                    and not err.message:find("PatchWerk", 1, true) then return end
+                if not IsPatchWerkTaintError(err.message) then return end
                 local errs2 = BugGrabberDB and BugGrabberDB.errors
                 if errs2 then
                     for i = #errs2, 1, -1 do

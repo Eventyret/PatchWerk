@@ -82,6 +82,11 @@ ns.patches["Baganator_itemLockFix"] = function()
     if not ns:IsAddonLoaded("Baganator") then return end
     if not BaganatorLiveCategoryLayoutMixin then return end
 
+    -- Structural assertion: if Baganator has already added a buttonsByBag
+    -- index to the category mixin, the linear scan is gone and our
+    -- replacement would be wrong.  Bail out and let the original run.
+    if BaganatorLiveCategoryLayoutMixin.buttonsByBag ~= nil then return end
+
     local original = BaganatorLiveCategoryLayoutMixin.UpdateLockForItem
 
     BaganatorLiveCategoryLayoutMixin.UpdateLockForItem = function(self, bagID, slotID)
@@ -122,14 +127,17 @@ ns.patches["Baganator_itemLockFix"] = function()
         SetItemButtonDesaturated(itemButton, locked or grey)
     end
 
-    -- Invalidate the lookup when buttons get rebuilt (ShowGroup resets self.buttons)
+    -- Invalidate the lookup when buttons get rebuilt.
+    -- ShowGroup resets self.buttons, so the lock index must be cleared.
+    -- Uses hooksecurefunc (post-hook) — the original ShowGroup runs
+    -- fully, then we clear the stale index.  Safe because ITEM_LOCK_CHANGED
+    -- can't fire during ShowGroup, so the index is always rebuilt fresh
+    -- on the next lock event.
     if BaganatorLiveCategoryLayoutMixin.ShowGroup then
-        local origShowGroup = BaganatorLiveCategoryLayoutMixin.ShowGroup
-        BaganatorLiveCategoryLayoutMixin.ShowGroup = function(self, ...)
+        hooksecurefunc(BaganatorLiveCategoryLayoutMixin, "ShowGroup", function(self)
             self._lockIndex = nil
             self._lockIndexCount = nil
-            return origShowGroup(self, ...)
-        end
+        end)
     end
 end
 

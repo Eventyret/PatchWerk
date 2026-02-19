@@ -7,13 +7,19 @@
 -- 1M-9.9M range incorrectly use "T" instead of "M", and the
 -- string-truncation approach (%.Ns) produces inaccurate results.
 --
--- Fix: Hook each health bar TextString's SetText to intercept the
--- buggy "T" suffix and rewrite it to K/M.  This fires on every
--- SetText call regardless of who triggers it, bypassing all
--- upvalue caching and hook ordering issues.
+-- Fix: Post-hook each EasyFrames Ace3 module's UpdateHealthBarTextString
+-- method via hooksecurefunc.  After EasyFrames writes the buggy "T"
+-- text, our hook reads it back, fixes the suffixes, and rewrites it.
+-- This avoids replacing any functions or relying on widget method
+-- table tricks that may not work on userdata FontStrings.
 ------------------------------------------------------------------------
 
 local _, ns = ...
+
+local format = string.format
+local tonumber = tonumber
+local pcall = pcall
+local hooksecurefunc = hooksecurefunc
 
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
@@ -28,9 +34,6 @@ ns:RegisterPatch("EasyFrames", {
 
 ns.patches["EasyFrames_healthTextFix"] = function()
     if not EasyFrames then return end
-
-    local format = string.format
-    local tonumber = tonumber
 
     -- Fix EasyFrames' buggy "T" suffix in health text.
     -- EasyFrames' ReadableNumber produces:
@@ -50,27 +53,56 @@ ns.patches["EasyFrames_healthTextFix"] = function()
         return text
     end
 
-    -- Hook the TextString's SetText on each health bar.
-    -- This intercepts text at the display layer — no matter who calls
-    -- SetText (Blizzard, EasyFrames, any other addon), the "T" suffix
-    -- gets fixed before it reaches the screen.
-    local function HookTextString(bar)
+    -- Read the current health bar text, fix "T" suffixes, and rewrite.
+    -- Called as a post-hook after EasyFrames has already set the buggy text.
+    local function FixBarText(unitFrame)
+        if not unitFrame then return end
+        local bar = unitFrame.healthbar
         if not bar then return end
         local ts = bar.TextString
         if not ts then return end
-
-        local origSetText = ts.SetText
-        ts.SetText = function(self, text, ...)
-            if type(text) == "string" and text:find("%dT") then
-                text = FixHealthFormat(text)
-            end
-            return origSetText(self, text, ...)
+        local text = ts:GetText()
+        if text and text:find("%dT") then
+            ts:SetText(FixHealthFormat(text))
         end
     end
 
-    HookTextString(TargetFrameHealthBar)
-    HookTextString(FocusFrameHealthBar)
-    HookTextString(PetFrameHealthBar)
-    HookTextString(PlayerFrameHealthBar
-        or (PlayerFrame_GetHealthBar and PlayerFrame_GetHealthBar()))
+    -- Hook each EasyFrames module's UpdateHealthBarTextString method.
+    -- EasyFrames hooks Blizzard's HealthBar:UpdateTextString() via
+    -- hooksecurefunc in each module's OnEnable().  Those hooks call
+    -- module:UpdateHealthBarTextString(unitFrame), which calls
+    -- UpdateHealthValues → ReadableNumber → TextString:SetText("30T").
+    --
+    -- Our hooksecurefunc on UpdateHealthBarTextString fires AFTER the
+    -- module method finishes, so the "T" text is already on screen.
+    -- We simply read it back, fix it, and rewrite.
+    local moduleNames = { "Target", "Focus", "Player", "Pet" }
+    for _, modName in ipairs(moduleNames) do
+        local ok, mod = pcall(EasyFrames.GetModule, EasyFrames, modName)
+        if ok and mod and mod.UpdateHealthBarTextString then
+            hooksecurefunc(mod, "UpdateHealthBarTextString", function(_, unitFrame)
+                FixBarText(unitFrame)
+            end)
+        end
+    end
+
+    -- Also hook UpdateTextString on each health bar directly as a
+    -- safety net.  This catches cases where the bar updates without
+    -- going through the module method (e.g., initial frame show).
+    local bars = {
+        { bar = TargetFrameHealthBar, frame = TargetFrame },
+        { bar = FocusFrameHealthBar,  frame = FocusFrame },
+        { bar = PetFrameHealthBar,    frame = PetFrame },
+        { bar = PlayerFrameHealthBar
+            or (PlayerFrame_GetHealthBar and PlayerFrame_GetHealthBar()),
+          frame = PlayerFrame },
+    }
+
+    for _, info in ipairs(bars) do
+        if info.bar and info.frame then
+            hooksecurefunc(info.bar, "UpdateTextString", function()
+                FixBarText(info.frame)
+            end)
+        end
+    end
 end
