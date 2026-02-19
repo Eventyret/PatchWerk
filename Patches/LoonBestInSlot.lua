@@ -50,11 +50,11 @@ ns.patchInfo[#ns.patchInfo+1] = {
     targetVersion = "6.0.0",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
-    key = "LoonBestInSlot_phaseUpdate", group = "LoonBestInSlot", label = "Show All Phases",
-    help = "Unlocks all Phase 1 through 5 gear in the item browser and tooltips.",
-    detail = "LoonBestInSlot defaults to showing only Phase 1 items, which hides the majority of TBC gear from tooltips and the gear browser. Since TBC Classic Anniversary has all content through Phase 5 available, this fix unlocks all phases so you can see every relevant item.",
+    key = "LoonBestInSlot_phaseUpdate", group = "LoonBestInSlot", label = "Set Current Phase",
+    help = "Sets the gear browser phase to match TBC Classic Anniversary content.",
+    detail = "LoonBestInSlot defaults CurrentPhase to 1 which is correct for the current TBC Classic Anniversary release. This patch ensures the phase stays in sync as new content unlocks. Update PatchWerk when new phases release.",
     impact = "FPS", impactLevel = "Low", category = "Tweaks",
-    estimate = "All Phase 1-5 gear visible in the browser and tooltips",
+    estimate = "Gear browser matches available content",
     targetVersion = "6.0.0",
 }
 ns.patchInfo[#ns.patchInfo+1] = {
@@ -343,15 +343,20 @@ end
 ------------------------------------------------------------------------
 -- 4. LoonBestInSlot_phaseUpdate  (QOL fix)
 --
--- LoonBestInSlot defaults CurrentPhase to 1, which hides all Phase 2-5
--- items from the browser and tooltips.  TBC Classic Anniversary has all
--- content through Phase 5 available.  Set CurrentPhase = 5 so all items
--- are visible.
+-- LoonBestInSlot defaults CurrentPhase to 1.  This patch sets the phase
+-- to match TBC Classic Anniversary's current content release.
+-- Update this value as new phases unlock.
+--
+-- Phase 1: Karazhan, Gruul's Lair, Magtheridon's Lair
+-- Phase 2: Serpentshrine Cavern, Tempest Keep
+-- Phase 3: Hyjal Summit, Black Temple
+-- Phase 4: Zul'Aman
+-- Phase 5: Sunwell Plateau
 ------------------------------------------------------------------------
 ns.patches["LoonBestInSlot_phaseUpdate"] = function()
     if not LBIS then return end
 
-    LBIS.CurrentPhase = 5
+    LBIS.CurrentPhase = 1
 end
 
 ------------------------------------------------------------------------
