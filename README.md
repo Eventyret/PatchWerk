@@ -4,75 +4,107 @@
   <img src="Patchwerk.png" alt="PatchWerk" width="200">
 </p>
 
-Runtime performance, compatibility, and QOL patches for popular addons on WoW TBC Classic Anniversary.
+<p align="center">
+  <b>No enrage timer. No tank swap. Just pure, uninterrupted performance.</b>
+</p>
 
-PatchWerk hooks into other addons at load time and applies targeted fixes — no addon files are modified. Patches are individually toggleable, wrapped in `pcall` for safety, and automatically disabled if the target addon isn't installed.
+Ever loaded into Shattrath and watched your FPS drop faster than a tank without a healer? Half the time its not the server. Its your addons doing 60 times more work than they actually need to.
+
+PatchWerk makes them behave. Same addons, same features, no more lag. It stops the stuff you never see: addons refreshing every single frame, recalculating things that havent changed, and eating memory they never give back. Nothing on disk is changed, and every patch is safe to toggle on or off.
+
+> **93 patches** across **28 addons** for WoW TBC Classic Anniversary. Install it, log in, and get back to parsing.
+
+---
 
 ## Supported Addons
 
-| Addon | Patches | Category |
-|---|---|---|
-| Details (Damage Meter) | 5 | Performance |
-| Plater (Nameplates) | 3 | Performance |
-| Pawn (Item Comparison) | 3 | Performance |
-| TipTac (Tooltips) | 2 | Performance |
-| Questie (Quest Helper) | 3 | Performance |
-| LFG Bulletin Board | 2 | Performance |
-| Bartender4 (Action Bars) | 3 | Performance, Fixes |
-| Titan Panel | 3 | Performance |
-| OmniCC (Cooldown Text) | 3 | Performance |
-| Prat-3.0 (Chat) | 5 | Performance |
-| GatherMate2 (Gathering) | 3 | Performance |
-| Quartz (Cast Bars) | 4 | Performance |
-| Auctionator (Auction House) | 4 | Performance |
-| VuhDo (Raid Frames) | 3 | Performance |
-| Cell (Raid Frames) | 4 | Performance |
-| BigDebuffs (Debuff Display) | 2 | Performance |
-| EasyFrames (Unit Frames) | 1 | Tweaks |
-| BugSack (Error Display) | 3 | Fixes, Performance |
-| LoonBestInSlot (Gear Guide) | 5 | Fixes, Tweaks |
-| Nova Instance Tracker | 2 | Fixes |
-| AutoLayer (Layer Hopping) | 9 | Performance, Fixes, Tweaks |
-| AtlasLoot Classic (Loot Browser) | 3 | Performance |
-| BigWigs (Boss Mods) | 1 | Performance |
-| Gargul (Loot Distribution) | 4 | Performance |
-| SexyMap (Minimap) | 1 | Compatibility |
-| MoveAny (UI Mover) | 2 | Performance |
-| Attune (Attunement Tracker) | 3 | Performance |
-| NovaWorldBuffs (World Buff Timers) | 5 | Compatibility, Performance |
+### Fixes
 
-**90 patches** across **28 addon groups**.
+*These addons showed up to TBC Anniversary and forgot half their kit.*
 
-## How It Works
+| Addon | |
+|---|---|
+| [Bartender4](https://www.curseforge.com/wow/addons/bartender4) | Stops combat error spam |
+| [BugSack](https://www.curseforge.com/wow/addons/bugsack) | Settings menu actually opens now |
+| [LoonBestInSlot](https://www.curseforge.com/wow/addons/loon-best-in-slot) | Actually loads without crashing |
+| [Nova Instance Tracker](https://www.curseforge.com/wow/addons/nova-instance-tracker) | No more login crash |
+| [AutoLayer](https://www.curseforge.com/wow/addons/autolayer) | Stops duplicate invites |
 
-1. PatchWerk loads via `ADDON_LOADED` after its target addons
-2. For each enabled patch, it hooks or replaces specific functions in the target addon
-3. Every patch is wrapped in `pcall` — if a patch fails, it logs the error and the rest continue
-4. No addon files on disk are ever modified; everything is runtime-only
+### Performance
 
-**Categories:**
-- **Performance** — Reduces FPS drops, memory usage, or network traffic
-- **Fixes** — Prevents crashes or errors specific to TBC Classic Anniversary
-- **Tweaks** — Improves addon behavior or fixes confusing display issues
-- **Compatibility** — Shims missing API functions for TBC Classic Anniversary
+*Your addons were doing the same work 60 times a second. Somebody had to tell them to chill.*
 
-## Installation
+| Addon | |
+|---|---|
+| [Details](https://www.curseforge.com/wow/addons/details) | Runs leaner and meaner |
+| [Plater](https://www.curseforge.com/wow/addons/plater-nameplates) | Kills a 60/sec timer leak |
+| [Pawn](https://www.curseforge.com/wow/addons/pawn) | Faster tooltip comparisons |
+| [TipTac](https://www.curseforge.com/wow/addons/tiptac) | Less work per tooltip hover |
+| [Questie](https://www.curseforge.com/wow/addons/questie) | Smoother map drawing |
+| [LFG Bulletin Board](https://www.curseforge.com/wow/addons/lfg-group-finder-bulletin-board) | Stops needless list rebuilds |
+| [Bartender4](https://www.curseforge.com/wow/addons/bartender4) | Fewer button refreshes per tick |
+| [Titan Panel](https://www.curseforge.com/wow/addons/titan-panel-classic) | Calms down widget updates |
+| [OmniCC](https://www.curseforge.com/wow/addons/omni-cc) | Stops recalculating every frame |
+| [Prat-3.0](https://www.curseforge.com/wow/addons/prat-3-0) | Chat runs at 20fps, not 60 |
+| [GatherMate2](https://www.curseforge.com/wow/addons/gathermate2) | Minimap pins chill out |
+| [Quartz](https://www.curseforge.com/wow/addons/quartz) | Cast bars capped at 30fps |
+| [Auctionator](https://www.curseforge.com/wow/addons/auctionator) | Fewer server queries |
+| [VuhDo](https://www.curseforge.com/wow/addons/vuhdo) | Calmer during AoE |
+| [Cell](https://www.curseforge.com/wow/addons/cell) | Remembers more, recalculates less |
+| [BigDebuffs](https://www.curseforge.com/wow/addons/bigdebuffs) | Faster debuff tracking |
+| [BugSack](https://www.curseforge.com/wow/addons/bugsack) | Smarter search filtering |
+| [AtlasLoot Classic](https://www.curseforge.com/wow/addons/atlaslootclassic) | Smarter search, less chatter |
+| [BigWigs](https://www.curseforge.com/wow/addons/big-wigs) | Proximity text updates less often |
+| [Gargul](https://www.curseforge.com/wow/addons/gargul) | Lighter during GDKP auctions |
+| [MoveAny](https://www.curseforge.com/wow/addons/moveany) | Stops looking for features TBC doesnt have |
+| [Attune](https://www.curseforge.com/wow/addons/attune) | Faster sorting and filtering |
+| [NovaWorldBuffs](https://www.curseforge.com/wow/addons/nova-world-buffs) | Map markers update less often |
+| [AutoLayer](https://www.curseforge.com/wow/addons/autolayer) | Faster message processing |
 
-**CurseForge / WowUp:** Search for "PatchWerk" and install.
+### Compatibility
 
-**Manual:** Download the latest release from [GitHub Releases](https://github.com/Eventyret/PatchWerk/releases), extract into your `Interface/AddOns/` folder, and restart the game.
+*Retail features these addons expected? Not here. PatchWerk covers for them.*
 
-## Usage
+| Addon | |
+|---|---|
+| [SexyMap](https://www.curseforge.com/wow/addons/sexymap) | Slash command works on TBC now |
+| [NovaWorldBuffs](https://www.curseforge.com/wow/addons/nova-world-buffs) | Missing functions filled in |
 
-### Slash Commands
+### Tweaks
+
+*Not broken, just... could be better.*
+
+| Addon | |
+|---|---|
+| [EasyFrames](https://www.curseforge.com/wow/addons/easy-frames) | 36T health text fixed to K/M/B |
+| [AutoLayer](https://www.curseforge.com/wow/addons/autolayer) | Movable status frame with current layer, on/off state, and session stats. Gold toast notification on layer changes. Full hop lifecycle tracking with auto group-leave on confirmation. Enhanced minimap tooltip with layer count and hop progress |
+
+---
+
+## Getting Started
+
+1. Install from [CurseForge](https://www.curseforge.com/wow/addons/patchwerk) or drop the folder into `Interface/AddOns/`
+2. Log in. PatchWerk patches your addons automatically
+3. Type `/pw` if you want to see what's running
+
+All patches are enabled by default. Most players can just leave everything on and enjoy the extra frames. If Patchwerk himself had this kind of efficiency, he wouldnt need a hateful strike.
+
+---
+
+## Commands
+
+Type `/pw` to open the settings panel. Type `/pw status` to see which patches are active.
+
+<details>
+<summary>Full command list</summary>
 
 | Command | Description |
 |---|---|
-| `/pw` or `/patchwerk` | Open the settings panel |
-| `/pw fixes` | Open the Fixes category page |
-| `/pw performance` | Open the Performance category page |
-| `/pw tweaks` | Open the Tweaks category page |
-| `/pw about` | Open the About page |
+| `/pw` | Open settings panel |
+| `/pw fixes` | Jump to Fixes page |
+| `/pw performance` | Jump to Performance page |
+| `/pw tweaks` | Jump to Tweaks page |
+| `/pw about` | Jump to About page |
 | `/pw status` | Print all patch statuses to chat |
 | `/pw toggle <name>` | Toggle a specific patch on/off |
 | `/pw reset` | Reset all settings to defaults |
@@ -81,25 +113,39 @@ PatchWerk hooks into other addons at load time and applies targeted fixes — no
 | `/pw wizard` | Show the welcome wizard |
 | `/pw help` | Show command help in chat |
 
-### Settings Panel
+</details>
 
-Open the Blizzard Interface Options or type `/pw` to access the GUI. Patches are grouped by target addon with impact badges (FPS, Memory, Network) and severity levels (High, Medium, Low). Each patch can be toggled individually.
+---
 
-## Version Checking
+## How It Works
 
-PatchWerk tracks the version of each target addon it was tested against. When a target addon updates:
+- **Hooks in at startup.** PatchWerk loads alongside your other addons and applies targeted fixes before you ever see a loading screen.
+- **Each patch is independent.** If one fails, the rest still apply normally. No wipe recovery needed.
+- **Your addon files are never touched.** Everything runs in memory. Disable PatchWerk and your addons go back to exactly how they were.
 
-- **At login:** PatchWerk compares installed addon versions against its `targetVersion` fields and warns you in chat if any have changed
-- **`/pw outdated`** shows which patches may need verification after an addon update
-- Outdated patches still work — the warning is informational so you can report any issues
+---
 
-PatchWerk also broadcasts its own version to guild, party, and raid members via invisible addon messages (the same mechanism used by DBM and BigWigs). If a guildmate has a newer version, you'll see a one-time notification.
+## Feedback & Requests
 
-## Reporting Issues
+Found a bug? Want PatchWerk to support another addon? Open an issue:
 
-- [Bug Report](https://github.com/Eventyret/PatchWerk/issues/new?template=bug_report.yml) — Something broke or isn't working right
-- [Addon Patch Request](https://github.com/Eventyret/PatchWerk/issues/new?template=addon_request.yml) — Suggest an addon for PatchWerk to patch
-- [Outdated Patch Report](https://github.com/Eventyret/PatchWerk/issues/new?template=outdated_patch.yml) — A target addon updated and a patch may need changes
+- [Bug Report](https://github.com/Eventyret/PatchWerk/issues/new?template=bug_report.yml) - Something broke or isnt working right
+- [Addon Patch Request](https://github.com/Eventyret/PatchWerk/issues/new?template=addon_request.yml) - Suggest an addon for PatchWerk to patch
+- [Outdated Patch Report](https://github.com/Eventyret/PatchWerk/issues/new?template=outdated_patch.yml) - An addon updated and a patch may need changes
+
+## Why Does This Exist?
+
+TBC Classic Anniversary is a weird place for addons. Some were written for retail and expect functions that simply arent here. Others were built for Classic Era and never got optimized for TBC. A lot of them run background work every single frame because nobody told them to stop.
+
+PatchWerk was born out of staring at profiler output and wondering why Details is rebuilding colors 60 times a second, or why Plater creates a new timer every frame. These arent bad addons. Theyre great addons that just need a nudge. Rather than waiting for 28 different authors to each ship a fix, PatchWerk patches them all in one place, at load time, without touching a single file on disk.
+
+If you have ever `/reload`d to fix lag and it actually worked, theres a good chance PatchWerk would have fixed it for you permanently.
+
+## Thank You
+
+PatchWerk only exists because 28 addon authors put in the work first. Every addon on the list above is built and maintained by people who do this in their free time so the rest of us can have a better game. PatchWerk doesnt replace what they do. It just helps their stuff run a little smoother on a version of WoW that most of them never specifically built for.
+
+If you use any of these addons, go leave them a thumbs up on CurseForge. They earned it.
 
 ## License
 
