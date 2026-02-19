@@ -84,10 +84,10 @@ PatchWerk makes them behave. Same addons, same features, no more lag. It stops t
 ## Getting Started
 
 1. Install from [CurseForge](https://www.curseforge.com/wow/addons/patchwerk) or drop the folder into `Interface/AddOns/`
-2. Log in. PatchWerk patches your addons automatically
-3. Type `/pw` if you want to see what's running
+2. Log in. A welcome wizard walks you through which addons were detected and lets you toggle patches
+3. Type `/pw` if you want to change anything later
 
-All patches are enabled by default. Most players can just leave everything on and enjoy the extra frames. If Patchwerk himself had this kind of efficiency, he wouldnt need a hateful strike.
+PatchWerk only patches addons you actually have installed. Everything is enabled by default, but the wizard and settings panel let you turn individual patches on or off. If Patchwerk himself had this kind of efficiency, he wouldnt need a hateful strike.
 
 ---
 
@@ -145,7 +145,7 @@ If you have ever `/reload`d to fix lag and it actually worked, theres a good cha
 
 PatchWerk only exists because 28 addon authors put in the work first. Every addon on the list above is built and maintained by people who do this in their free time so the rest of us can have a better game. PatchWerk doesnt replace what they do. It just helps their stuff run a little smoother on a version of WoW that most of them never specifically built for.
 
-If you use any of these addons, go leave them a thumbs up on CurseForge. They earned it.
+If you use any of these addons, go leave them a thumbs up on CurseForge or star them on GitHub. They earned it.
 
 ## License
 

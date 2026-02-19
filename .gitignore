@@ -1,5 +1,6 @@
 # Claude Code
 .claude/
+CLAUDE.md
 
 # BigWigsMods packager output
 .release/
@@ -21,6 +22,9 @@ Desktop.ini
 
 # Dev tooling output
 tools/versions.json
+
+# CurseForge upload assets
+Patchwerk_400x400.png
 
 # Backups
 *.bak
