@@ -134,7 +134,9 @@ local pollerStarted = false
 
 local hopState = {
     state = "IDLE",         -- IDLE, WAITING_INVITE, IN_GROUP, CONFIRMED, NO_RESPONSE
+    source = nil,           -- "OUTBOUND" (from SendLayerRequest) or "INBOUND" (from PARTY_INVITE_REQUEST)
     fromLayer = nil,
+    phaseChanged = false,   -- true once UNIT_PHASE fires (hint that layer is changing)
     timestamp = 0,
     lastKnownLayer = nil,
 }
@@ -143,8 +145,51 @@ local POLL_IDLE = 1.0
 local POLL_ACTIVE = 0.1
 local CONFIRM_DURATION = 3.0
 local HOP_TIMEOUT = 30.0
-local WAITING_TIMEOUT = 10.0
+local WAITING_TIMEOUT = 20.0
 local NO_RESPONSE_DURATION = 5.0
+
+------------------------------------------------------------------------
+-- Helper: Get the other party member's name (for whisper on leave)
+------------------------------------------------------------------------
+local function GetPartyMemberName()
+    local myName = UnitName("player")
+    for i = 1, GetNumGroupMembers() do
+        local name = GetRaidRosterInfo(i)
+        if name and name ~= myName then
+            return name
+        end
+    end
+    return nil
+end
+
+------------------------------------------------------------------------
+-- Helper: Leave hop group with optional thank-you whisper
+------------------------------------------------------------------------
+local function LeaveHopGroup(reason, layerStr)
+    if not IsInGroup() or IsInRaid() or IsInInstance() then return end
+
+    -- Capture name before leaving (can't query after LeaveParty)
+    local memberName = GetPartyMemberName()
+
+    LeaveParty()
+
+    -- Status message
+    local msg = "PatchWerk: Left group"
+    if reason == "confirmed" and layerStr then
+        msg = msg .. " \226\128\148 layer " .. layerStr .. " confirmed"
+    elseif reason == "phase_changed" then
+        msg = msg .. " \226\128\148 layer changed"
+    elseif reason == "timeout" then
+        msg = msg .. " \226\128\148 hop timed out"
+    end
+    UIErrorsFrame:AddMessage(msg, 0.2, 0.8, 1.0)
+
+    -- Thank-you whisper to the group host (if enabled)
+    if memberName and ns:GetOption("AutoLayer_hopWhisperEnabled") then
+        local whisper = ns:GetOption("AutoLayer_hopWhisperMessage") or "[PatchWerk] Thanks for the hop!"
+        pcall(SendChatMessage, whisper, "WHISPER", nil, memberName)
+    end
+end
 
 ------------------------------------------------------------------------
 -- Helper: Get NWB addon reference
@@ -200,7 +245,11 @@ local function UpdateStatusFrame()
         if hopState.state == "WAITING_INVITE" then
             hint = "|cff888888Waiting for an invite...|r"
         elseif hopState.state == "IN_GROUP" then
-            hint = "|cff888888Target any NPC or mob to confirm|r"
+            if hopState.phaseChanged then
+                hint = "|cff888888Phase changed — confirming layer...|r"
+            else
+                hint = "|cff888888Waiting for layer change...|r"
+            end
         elseif hopState.state == "NO_RESPONSE" then
             hint = "|cff888888Right-click to try again|r"
         end
@@ -226,7 +275,7 @@ local function PollLayer()
     local currentNum = currentLayer and tonumber(currentLayer)
     local lastNum = hopState.lastKnownLayer
 
-    -- Detect layer change
+    -- Detect layer change (NWB confirmed a new layer number)
     if currentNum and currentNum > 0 and lastNum and lastNum > 0 and currentNum ~= lastNum then
         -- Layer changed! Fire toast (patch 7)
         if ns.applied["AutoLayer_layerChangeToast"] then
@@ -235,22 +284,29 @@ local function PollLayer()
             PlaySound(SOUNDKIT and SOUNDKIT.MAP_PING or 3175)
         end
 
-        -- Transition tracker: mark confirmed (patch 8)
-        if ns.applied["AutoLayer_hopTransitionTracker"] and hopState.state ~= "IDLE" then
+        -- Transition tracker: NWB confirmed the new layer — leave group (patch 8)
+        if ns.applied["AutoLayer_hopTransitionTracker"] and hopState.state == "IN_GROUP" then
             hopState.state = "CONFIRMED"
             hopState.timestamp = GetTime()
-            -- Auto-leave the hop group after confirmed layer change
-            if IsInGroup() then
-                C_Timer.After(0.5, function()
-                    if IsInGroup() then
-                        LeaveParty()
-                        local layerStr = (currentNum and currentNum > 0) and tostring(currentNum) or "new"
-                        UIErrorsFrame:AddMessage(
-                            "PatchWerk: Left group — layer " .. layerStr .. " confirmed",
-                            0.2, 0.8, 1.0)
-                    end
-                end)
-            end
+            local layerStr = tostring(currentNum)
+            C_Timer.After(0.5, function()
+                LeaveHopGroup("confirmed", layerStr)
+            end)
+        end
+    end
+
+    -- Phase changed + NWB reset to 0: layer is changing but not yet confirmed.
+    -- If we're IN_GROUP and UNIT_PHASE fired, give NWB 5s to confirm the new
+    -- layer number. If it doesn't (no NPC targeted), leave anyway — the hop worked.
+    if hopState.state == "IN_GROUP" and hopState.phaseChanged then
+        local elapsed = GetTime() - hopState.timestamp
+        -- NWB goes to 0 after UNIT_PHASE. If 5s pass without a new number, leave.
+        if elapsed > 5.0 then
+            hopState.state = "CONFIRMED"
+            hopState.timestamp = GetTime()
+            C_Timer.After(0.5, function()
+                LeaveHopGroup("phase_changed")
+            end)
         end
     end
 
@@ -263,22 +319,25 @@ local function PollLayer()
     local now = GetTime()
     if hopState.state == "CONFIRMED" and (now - hopState.timestamp) > CONFIRM_DURATION then
         hopState.state = "IDLE"
+        hopState.source = nil
         hopState.fromLayer = nil
+        hopState.phaseChanged = false
     end
-    if hopState.state == "IN_GROUP" and (now - hopState.timestamp) > HOP_TIMEOUT then
-        UIErrorsFrame:AddMessage("No layer change detected", 1.0, 0.3, 0.3)
-        hopState.state = "NO_RESPONSE"
-        hopState.timestamp = now
-        hopState.fromLayer = nil
-    end
+    -- No timeout for IN_GROUP — the layer change WILL happen, it just
+    -- might take time (Blizzard's escalating cooldown). We keep waiting
+    -- until UNIT_PHASE fires or NWB confirms a new layer number.
+    -- If the other player leaves first, GROUP_ROSTER_UPDATE handles cleanup.
     if hopState.state == "WAITING_INVITE" and (now - hopState.timestamp) > WAITING_TIMEOUT then
         UIErrorsFrame:AddMessage("No invite received", 1.0, 0.3, 0.3)
         hopState.state = "NO_RESPONSE"
+        hopState.source = nil
         hopState.timestamp = now
     end
     if hopState.state == "NO_RESPONSE" and (now - hopState.timestamp) > NO_RESPONSE_DURATION then
         hopState.state = "IDLE"
+        hopState.source = nil
         hopState.fromLayer = nil
+        hopState.phaseChanged = false
     end
 
     -- Update status frame
@@ -416,7 +475,7 @@ local function CreateStatusFrame()
         GameTooltip:SetText("|cff33ccffAutoLayer|r |cff808080(PatchWerk)|r")
 
         -- Show session stats in tooltip
-        if AutoLayer and AutoLayer.db then
+        if AutoLayer and AutoLayer.db and AutoLayer.db.profile.enabled then
             local layered = AutoLayer.db.profile.layered or 0
             if layered > 0 then
                 GameTooltip:AddLine(" ")
@@ -707,35 +766,89 @@ end
 -- 8. AutoLayer_hopTransitionTracker
 --
 -- Tracks the full hop lifecycle:
---   IDLE -> WAITING_INVITE (after SendLayerRequest)
+--   IDLE -> WAITING_INVITE (after SendLayerRequest or PARTY_INVITE_REQUEST)
 --   WAITING_INVITE -> IN_GROUP (after GROUP_ROSTER_UPDATE + IsInGroup)
---   IN_GROUP -> CONFIRMED (when NWB_CurrentLayer changes)
+--   IN_GROUP -> CONFIRMED (when UNIT_PHASE fires or NWB_CurrentLayer changes)
 --   CONFIRMED -> IDLE (after 3 seconds)
 --
--- During IN_GROUP state, poll rate increases to 0.1s for faster
--- layer detection. Timeout after 30s reverts to IDLE.
+-- Detection (no timeout — hop will happen, just might take time):
+--   1. NWB confirms new layer number (PollLayer sees number change) → leave
+--   2. UNIT_PHASE fired + 5s grace for NWB to confirm → leave anyway
+--   3. Other player leaves → GROUP_ROSTER_UPDATE resets state
+-- Sends a thank-you whisper to the hop host on leave.
 ------------------------------------------------------------------------
 ns.patches["AutoLayer_hopTransitionTracker"] = function()
     if not ns:IsAddonLoaded("AutoLayer_Vanilla") then return end
     if not AutoLayer then return end
 
-    -- Hook SendLayerRequest to capture hop initiation
+    -- Hook SendLayerRequest to capture hop initiation (outbound path)
     hooksecurefunc(AutoLayer, "SendLayerRequest", function()
+        if hopState.state ~= "IDLE" then return end  -- don't overwrite active hop
         local currentLayer = NWB_CurrentLayer
         hopState.state = "WAITING_INVITE"
+        hopState.source = "OUTBOUND"
         hopState.fromLayer = currentLayer and tonumber(currentLayer) or nil
         hopState.timestamp = GetTime()
         UpdateStatusFrame()
     end)
 
-    -- Detect when we join a group during a hop via GROUP_ROSTER_UPDATE
+    -- Detect incoming invites, group joins, and phase changes during a hop
     local hopEventFrame = CreateFrame("Frame")
     hopEventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
-    hopEventFrame:SetScript("OnEvent", function()
-        if hopState.state == "WAITING_INVITE" and IsInGroup() then
-            hopState.state = "IN_GROUP"
-            hopState.timestamp = GetTime()
+    hopEventFrame:RegisterEvent("PARTY_INVITE_REQUEST")
+    hopEventFrame:RegisterEvent("UNIT_PHASE")
+    hopEventFrame:SetScript("OnEvent", function(_, event, ...)
+        if event == "PARTY_INVITE_REQUEST" then
+            -- Guard: only track if AutoLayer is enabled
+            if not AutoLayer.db or not AutoLayer.db.profile.enabled then return end
+            -- Guard: can't accept an invite while already in a group
+            if IsInGroup() then return end
+
+            if hopState.state == "IDLE" then
+                -- External invite while idle — track so auto-leave works
+                local currentLayer = NWB_CurrentLayer
+                hopState.state = "WAITING_INVITE"
+                hopState.source = "INBOUND"
+                hopState.fromLayer = currentLayer and tonumber(currentLayer) or nil
+                hopState.timestamp = GetTime()
+                UpdateStatusFrame()
+            end
+            -- If WAITING_INVITE (OUTBOUND), the invite arrived as expected — no change
+
+        elseif event == "UNIT_PHASE" then
+            -- UNIT_PHASE fires when the player's phase changes. During a
+            -- hop this is a strong hint the layer is changing, but NOT proof —
+            -- NWB still needs to confirm the new layer number via NPC GUID.
+            -- We use this to mark the phase as changed so PollLayer knows
+            -- to auto-leave once NWB confirms (or on a shorter timeout).
+            local unit = ...
+            if unit ~= "player" then return end
+            if hopState.state ~= "IN_GROUP" then return end
+            if IsInInstance() then return end
+
+            hopState.phaseChanged = true
             UpdateStatusFrame()
+
+        elseif event == "GROUP_ROSTER_UPDATE" then
+            if hopState.state == "WAITING_INVITE" and IsInGroup() then
+                -- Accepted the invite, now in the hop group
+                hopState.state = "IN_GROUP"
+                hopState.timestamp = GetTime()
+                -- Snapshot layer if not captured yet
+                local currentLayer = NWB_CurrentLayer
+                local currentNum = currentLayer and tonumber(currentLayer)
+                if currentNum and currentNum > 0 and not hopState.fromLayer then
+                    hopState.fromLayer = currentNum
+                end
+                UpdateStatusFrame()
+            elseif hopState.state == "IN_GROUP" and not IsInGroup() then
+                -- Left or kicked before layer change confirmed — reset cleanly
+                hopState.state = "IDLE"
+                hopState.source = nil
+                hopState.fromLayer = nil
+                hopState.phaseChanged = false
+                UpdateStatusFrame()
+            end
         end
     end)
 
