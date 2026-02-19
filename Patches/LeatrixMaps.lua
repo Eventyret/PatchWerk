@@ -14,18 +14,16 @@ local _, ns = ...
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
 ------------------------------------------------------------------------
-ns.patchInfo[#ns.patchInfo + 1] = {
+ns:RegisterPatch("LeatrixMaps", {
     key = "LeatrixMaps_areaLabelThrottle",
-    group = "LeatrixMaps",
     label = "Area Label Throttle",
     help = "Throttles the area label update from every frame to 4 times per second.",
     detail = "Leatrix Maps replaces the default area label handler with its own AreaLabelOnUpdate function that runs every single frame while the World Map is open. Each call invokes C_Map.GetMapInfoAtPosition, table lookups, colour calculations, and string concatenation. At 60 fps that is 60 calls per second for text that only changes when you move the cursor to a new zone. This patch wraps the handler with a 0.25-second throttle so it fires at most 4 times per second, which is still instant to the eye but eliminates ~93% of the overhead.",
     impact = "FPS",
     impactLevel = "Medium",
     category = "Performance",
-    targetVersion = "2.5.07",
     estimate = "~5-10% FPS improvement when viewing the world map",
-}
+})
 
 ------------------------------------------------------------------------
 -- 1. LeatrixMaps_areaLabelThrottle

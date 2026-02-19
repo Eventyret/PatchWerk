@@ -14,9 +14,8 @@ local _, ns = ...
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
 ------------------------------------------------------------------------
-ns.patchInfo[#ns.patchInfo+1] = {
+ns:RegisterPatch("NameplateSCT", {
     key = "NameplateSCT_animationThrottle",
-    group = "NameplateSCT",
     label = "Animation Throttle",
     help = "Caps the animation update loop to 30fps instead of running every frame.",
     detail = "NameplateSCT runs an OnUpdate handler every single frame to animate floating combat text. With 10-20 active text animations during AoE combat, this means dozens of DB table lookups, easing calculations, and SetPoint calls happening 60+ times per second. Capping the animation loop to 30fps halves this work while keeping text movement visually smooth.",
@@ -24,8 +23,7 @@ ns.patchInfo[#ns.patchInfo+1] = {
     impactLevel = "Medium",
     category = "Performance",
     estimate = "~1-3 FPS during heavy AoE combat",
-    targetVersion = "1.52",
-}
+})
 
 ------------------------------------------------------------------------
 -- 1. NameplateSCT_animationThrottle

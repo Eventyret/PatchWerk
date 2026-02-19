@@ -17,18 +17,16 @@ local _, ns = ...
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
 ------------------------------------------------------------------------
-ns.patchInfo[#ns.patchInfo + 1] = {
+ns:RegisterPatch("ClassTrainerPlus", {
     key = "ClassTrainerPlus_shiftKeyThrottle",
-    group = "ClassTrainerPlus",
     label = "Shift Key Throttle",
     help = "Throttles the shift-key polling from every frame to 8 times per second.",
     detail = "ClassTrainerPlus installs an OnUpdate script on ClassTrainerPlusFrame that calls IsShiftKeyDown() every single frame to detect when the player holds shift (toggling the Train button between 'Train' and 'Train All' and showing a cost tooltip). At 60+ fps this means 60+ redundant calls per second for a key state that changes at most a few times per minute. This patch wraps the OnUpdate handler with a 0.125-second elapsed-time accumulator, reducing polling to 8 times per second. This is still imperceptibly fast for the user but eliminates ~87% of the overhead.",
     impact = "FPS",
     impactLevel = "Low",
     category = "Performance",
-    targetVersion = "1.4.1",
     estimate = "~1-2% FPS improvement while trainer window is open",
-}
+})
 
 ------------------------------------------------------------------------
 -- 1. ClassTrainerPlus_shiftKeyThrottle

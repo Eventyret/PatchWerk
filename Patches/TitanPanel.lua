@@ -17,30 +17,27 @@ local _, ns = ...
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
 ------------------------------------------------------------------------
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "TitanPanel_reputationsOnUpdate", group = "TitanPanel", label = "Reputation Timer Fix",
+ns:RegisterPatch("TitanPanel", {
+    key = "TitanPanel_reputationsOnUpdate", label = "Reputation Timer Fix",
     help = "Checks your reputation every 5 seconds instead of constantly.",
     detail = "The reputation plugin checks for updates every single frame even though it only needs to update every few seconds. This wastes 300+ checks per second just to see if it's time to refresh yet.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "~0.5-1 FPS from eliminating 300+ idle checks/sec",
-    targetVersion = "9.1.1",
-}
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "TitanPanel_bagDebounce", group = "TitanPanel", label = "Bag Update Batch",
+})
+ns:RegisterPatch("TitanPanel", {
+    key = "TitanPanel_bagDebounce", label = "Bag Update Batch",
     help = "Counts bag contents once after looting instead of on every individual slot change.",
     detail = "Titan Panel scans all your bags on every individual bag change. When you loot multiple items quickly, this triggers 4-10 full bag scans in under a second, causing brief stutters. The fix waits for looting to finish before scanning once.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "Eliminates brief stutter when looting multiple items",
-    targetVersion = "9.1.1",
-}
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "TitanPanel_performanceThrottle", group = "TitanPanel", label = "Performance Display Throttle",
+})
+ns:RegisterPatch("TitanPanel", {
+    key = "TitanPanel_performanceThrottle", label = "Performance Display Throttle",
     help = "Updates the FPS/memory display every 3s instead of every 1.5s.",
     detail = "The FPS and memory display updates every 1.5 seconds, checking memory usage across all loaded addons. Ironically, these frequent checks themselves contribute to the performance overhead being displayed.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "~0.5-1 FPS, less ironic performance overhead",
-    targetVersion = "9.1.1",
-}
+})
 
 local GetTime          = GetTime
 local C_Timer          = C_Timer

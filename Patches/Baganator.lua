@@ -27,46 +27,45 @@ local SetItemButtonDesaturated = SetItemButtonDesaturated
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
 ------------------------------------------------------------------------
-ns.patchInfo[#ns.patchInfo + 1] = {
-    key = "Baganator_itemLockFix", group = "Baganator", label = "Item Lock Speedup",
+ns:RegisterPatch("Baganator", {
+    key = "Baganator_itemLockFix", label = "Item Lock Speedup",
     help = "Speeds up the item lock check when moving items between bag slots.",
     detail = "When you move an item, Baganator searches through every single button to find the matching bag slot -- twice per move. With 100+ items this adds up fast. The fix builds a quick lookup table so it finds the right button instantly instead of scanning the whole list.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
-    targetVersion = "787",
     estimate = "~20-40% faster item moves",
-}
-ns.patchInfo[#ns.patchInfo + 1] = {
-    key = "Baganator_sortThrottle", group = "Baganator", label = "Sort Retry Throttle",
+})
+ns:RegisterPatch("Baganator", {
+    key = "Baganator_sortThrottle", label = "Sort Retry Throttle",
     help = "Reduces lag during bag sorting by spacing out retry attempts.",
     detail = "When sorting or transferring items, Baganator retries the operation on every single frame tick while waiting for items to unlock. Each retry copies all your bag data and re-sorts it. The fix spaces retries to a configurable interval (default 0.2 seconds) so the heavy work only runs 5 times per second instead of 60+.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
-    targetVersion = "787",
     estimate = "~30-50% less lag during bag sorting",
-}
-ns.patchInfo[#ns.patchInfo + 1] = {
-    key = "Baganator_buttonVisThrottle", group = "Baganator", label = "Modifier Key Throttle",
+})
+ns:RegisterPatch("Baganator", {
+    key = "Baganator_buttonVisThrottle", label = "Modifier Key Throttle",
     help = "Reduces lag from holding modifier keys with bags open.",
     detail = "Every time you press or release any modifier key (Shift, Ctrl, Alt), Baganator reparents all bag buttons to update their visibility. This fires on every keystroke, not just when bags are open. The fix limits these updates to a configurable interval (default 0.1 seconds) and ensures the final state is always applied.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
-    targetVersion = "787",
     estimate = "~10-30% less lag when holding modifier keys",
-}
-ns.patchInfo[#ns.patchInfo + 1] = {
-    key = "Baganator_tooltipCache", group = "Baganator", label = "Tooltip Scan Cache",
+})
+ns:RegisterPatch("Baganator", {
+    key = "Baganator_tooltipCache", label = "Tooltip Scan Cache",
     help = "Remembers tooltip scan results so items don't need to be re-scanned on every bag update.",
     detail = "On Classic/TBC, tooltip scanning is the most expensive per-item operation. Baganator caches the result on each button, but throws it away on every bag update -- even if the item hasn't changed. The fix keeps a shared cache of tooltip results keyed by item link, so the same item is only scanned once.",
     impact = "Memory", impactLevel = "Medium", category = "Performance",
-    targetVersion = "787",
     estimate = "~20-40% faster bag updates",
-}
-ns.patchInfo[#ns.patchInfo + 1] = {
-    key = "Baganator_updateDebounce", group = "Baganator", label = "Bag Update Combiner",
+})
+ns:RegisterPatch("Baganator", {
+    key = "Baganator_updateDebounce", label = "Bag Update Combiner",
     help = "Combines rapid bag updates into a single refresh instead of processing each one separately.",
     detail = "When you loot multiple items, buy from a vendor, or complete a quest, each bag slot fires its own update event. Baganator processes each one individually, running the full category pipeline every time. The fix waits a short configurable delay (default 0.05 seconds) and combines the burst into a single update.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
-    targetVersion = "787",
     estimate = "~30-60% less lag during multi-item looting",
-}
+})
+
+ns:RegisterDefault("Baganator_sortThrottleRate", 0.2)
+ns:RegisterDefault("Baganator_buttonVisRate", 0.1)
+ns:RegisterDefault("Baganator_updateDebounceRate", 0.05)
 
 ------------------------------------------------------------------------
 -- 1. Baganator_itemLockFix

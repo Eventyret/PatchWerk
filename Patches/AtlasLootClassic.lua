@@ -14,33 +14,30 @@ local _, ns = ...
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
 ------------------------------------------------------------------------
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "AtlasLootClassic_searchDebounce", group = "AtlasLootClassic",
+ns:RegisterPatch("AtlasLootClassic", {
+    key = "AtlasLootClassic_searchDebounce",
     label = "Search Box Debounce",
     help = "Adds a short delay before filtering items while you type in the search box.",
     detail = "Every single keypress triggers a full 30-button filter pass with string matching. Typing quickly causes dozens of unnecessary filter cycles. This adds a 150ms debounce so the filter only runs once you pause typing.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Eliminates lag spikes when typing in the search box",
-    targetVersion = "BCC 2.5.4",
-}
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "AtlasLootClassic_rosterDebounce", group = "AtlasLootClassic",
+})
+ns:RegisterPatch("AtlasLootClassic", {
+    key = "AtlasLootClassic_rosterDebounce",
     label = "Version Message Throttle",
     help = "Prevents repeated version check messages when your raid roster changes quickly.",
     detail = "AtlasLootClassic sends an addon version message to the raid on every single RAID_ROSTER_UPDATE event. During raid formation or when multiple people join or leave, this can fire dozens of times in seconds. This adds a 5-second cooldown per channel.",
     impact = "Network", impactLevel = "Medium", category = "Performance",
     estimate = "Reduces message spam during raid formation",
-    targetVersion = "BCC 2.5.4",
-}
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "AtlasLootClassic_searchLowerCache", group = "AtlasLootClassic",
+})
+ns:RegisterPatch("AtlasLootClassic", {
+    key = "AtlasLootClassic_searchLowerCache",
     label = "Search Name Cache",
     help = "Caches lowercased item names so the search filter doesn't recalculate them every keypress.",
     detail = "The search filter calls string.lower on every visible button name each time you type a character. With 30 buttons, that is 30 string allocations per keypress. This caches the lowered names during page refresh so the filter reuses them.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "Reduces garbage collection pressure during search",
-    targetVersion = "BCC 2.5.4",
-}
+})
 
 local GetTime = GetTime
 

@@ -27,51 +27,46 @@ end
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
 ------------------------------------------------------------------------
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "NovaWorldBuffs_openConfigFix", group = "NovaWorldBuffs",
+ns:RegisterPatch("NovaWorldBuffs", {
+    key = "NovaWorldBuffs_openConfigFix",
     label = "Config Panel Fix",
     help = "Fixes the /nwb config command so it opens the settings panel on TBC.",
     detail = "NovaWorldBuffs uses Settings.OpenToCategory to open its config panel, but this API does not exist on TBC Classic Anniversary. This wraps the openConfig function with a fallback to InterfaceOptionsFrame_OpenToCategory.",
     impact = "Compatibility", impactLevel = "High", category = "Compatibility",
     estimate = "Makes /nwb config work reliably on TBC Classic Anniversary",
-    targetVersion = "3.30",
-}
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "NovaWorldBuffs_markerThrottle", group = "NovaWorldBuffs",
+})
+ns:RegisterPatch("NovaWorldBuffs", {
+    key = "NovaWorldBuffs_markerThrottle",
     label = "Map Marker Throttle",
     help = "Throttles unthrottled world map marker updates from every frame to once per second.",
     detail = "World buff markers, DMF markers, and Felwood markers all update their timer text on every rendered frame (60+ fps) with no throttle. Songflower markers are already properly throttled to once per second. This applies the same 1-second throttle to the unthrottled markers, covering worldmap, minimap, and DMF displays.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "FPS improvement when viewing the world map or Felwood minimap",
-    targetVersion = "3.30",
-}
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "NovaWorldBuffs_cAddOnsShim", group = "NovaWorldBuffs",
+})
+ns:RegisterPatch("NovaWorldBuffs", {
+    key = "NovaWorldBuffs_cAddOnsShim",
     label = "C_AddOns Polyfill",
     help = "Provides the C_AddOns namespace for TBC Classic where it does not exist.",
     detail = "NovaWorldBuffs calls C_AddOns.IsAddOnLoaded directly at two runtime locations (CHAT_MSG_SYSTEM handler and world map marker scaling) without the nil guard used elsewhere. On TBC Classic Anniversary, C_AddOns is nil, causing Lua errors on every system message and world map open. This creates a polyfill mapping to the classic global APIs.",
     impact = "Compatibility", impactLevel = "High", category = "Compatibility",
     estimate = "Eliminates Lua errors on system messages and world map opens",
-    targetVersion = "3.30",
-}
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "NovaWorldBuffs_cSummonInfoShim", group = "NovaWorldBuffs",
+})
+ns:RegisterPatch("NovaWorldBuffs", {
+    key = "NovaWorldBuffs_cSummonInfoShim",
     label = "C_SummonInfo Polyfill",
     help = "Provides the C_SummonInfo namespace for TBC Classic where it does not exist.",
     detail = "NovaWorldBuffs uses C_SummonInfo.ConfirmSummon and C_SummonInfo.GetSummonConfirmTimeLeft for auto-accepting summons after Darkmoon Faire buffs. These APIs do not exist in TBC Classic Anniversary. This polyfill maps ConfirmSummon to the classic global and provides a visibility-based fallback for GetSummonConfirmTimeLeft.",
     impact = "Compatibility", impactLevel = "Medium", category = "Compatibility",
     estimate = "Restores auto-summon feature for Vanish/Feign Death users at DMF",
-    targetVersion = "3.30",
-}
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "NovaWorldBuffs_pairsByKeysOptimize", group = "NovaWorldBuffs",
+})
+ns:RegisterPatch("NovaWorldBuffs", {
+    key = "NovaWorldBuffs_pairsByKeysOptimize",
     label = "Sorted Pairs Optimize",
     help = "Reduces table allocations in the sorted pairs iterator used throughout NWB.",
     detail = "NWB:pairsByKeys allocates a new table and closure on every call. It is called from the 1-second ticker, layer frame recalculation, Felwood marker updates, and guild data status checks. This replaces it with a version that reuses a single sort buffer, eliminating repeated allocations.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "Reduces GC pressure from 3-6 table allocations per second on layered servers",
-    targetVersion = "3.30",
-}
+})
 
 local GetTime = GetTime
 local tostring = tostring

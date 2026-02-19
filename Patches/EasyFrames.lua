@@ -17,13 +17,13 @@ local _, ns = ...
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
 ------------------------------------------------------------------------
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "EasyFrames_healthTextFix", group = "EasyFrames", label = "Health Text Fix",
+ns:RegisterPatch("EasyFrames", {
+    key = "EasyFrames_healthTextFix", label = "Health Text Fix",
     help = "Fixes confusing 'T' suffix on health numbers -- changes to standard K/M/B abbreviations.",
     detail = "EasyFrames uses 'T' for thousands (e.g. '36T' for 36,000 HP) which looks like trillions. It also mislabels values in the 1-9.9 million range as 'T'. The fix replaces the number formatting with standard K (thousands), M (millions), B (billions).",
     impact = "FPS", impactLevel = "Low", category = "Tweaks",
     estimate = "Correct K/M/B abbreviations on health text",
-}
+})
 
 ns.patches["EasyFrames_healthTextFix"] = function()
     if not EasyFrames then return end

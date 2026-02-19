@@ -44,103 +44,97 @@ local WHITE8x8 = "Interface\\Buttons\\WHITE8x8"
 ------------------------------------------------------------------------
 
 -- 1. Keystroke Throttle
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "AutoLayer_keyDownThrottle", group = "AutoLayer",
+ns:RegisterPatch("AutoLayer", {
+    key = "AutoLayer_keyDownThrottle",
     label = "Keystroke Throttle",
     help = "Stops AutoLayer from processing its queue on every single keystroke (WASD, abilities, camera turns).",
     detail = "AutoLayer creates a hidden frame named 'Test' that fires its queue processor on every KEY_DOWN event. During normal gameplay this means dozens of unnecessary function calls per second from movement, abilities, and camera controls. This patch throttles it to at most once per 0.2 seconds and removes the generic global frame name.",
     impact = "FPS", impactLevel = "High", category = "Performance",
     estimate = "~2-5 FPS during active gameplay",
-    targetVersion = "1.7.6",
-}
+})
 
 -- 2. Parse Cache
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "AutoLayer_parseCache", group = "AutoLayer",
+ns:RegisterPatch("AutoLayer", {
+    key = "AutoLayer_parseCache",
     label = "Parse Cache",
     help = "Caches parsed trigger, blacklist, and invert-keyword tables instead of rebuilding them on every chat message.",
     detail = "AutoLayer rebuilds its trigger, blacklist (17 default entries), and invert-keyword tables via string.gmatch on every incoming chat message. This creates significant garbage collection pressure in busy channels. This patch caches the parsed tables and only rebuilds when settings actually change.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "~1-2 FPS in busy chat environments",
-    targetVersion = "1.7.6",
-}
+})
 
 -- 3. System Filter Cache
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "AutoLayer_systemFilterCache", group = "AutoLayer",
+ns:RegisterPatch("AutoLayer", {
+    key = "AutoLayer_systemFilterCache",
     label = "System Filter Cache",
     help = "Pre-computes system message patterns instead of rebuilding 15 regex patterns on every system event.",
     detail = "AutoLayer's chat filter escapes and builds 15 Lua patterns from system message constants on every CHAT_MSG_SYSTEM event (combat log, loot, achievements, etc.). This patch pre-computes all patterns once at load time into a cached table.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "~1 FPS during heavy system message activity",
-    targetVersion = "1.7.6",
-}
+})
 
 -- 4. Cache Prune Fix
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "AutoLayer_pruneCacheFix", group = "AutoLayer",
+ns:RegisterPatch("AutoLayer", {
+    key = "AutoLayer_pruneCacheFix",
     label = "Cache Prune Fix",
     help = "Fixes a bug where stale cache entries could be skipped during cleanup, potentially causing duplicate invites.",
     detail = "AutoLayer's pruneCache() uses table.remove() inside a forward ipairs() loop. When an entry is removed at position i, the next entry shifts down to position i and gets skipped by the loop advancing to i+1. This can leave stale cooldown entries, causing duplicate invites or missed cleanup. The fix ensures all stale entries are properly removed.",
     category = "Fixes",
     estimate = "Prevents duplicate invites from stale cache entries",
-    targetVersion = "1.7.6",
-}
+})
 
 -- 5. Unused Library Cleanup
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "AutoLayer_libSerializeCleanup", group = "AutoLayer",
+ns:RegisterPatch("AutoLayer", {
+    key = "AutoLayer_libSerializeCleanup",
     label = "Unused Library Cleanup",
     help = "Marks LibSerialize as unused -- it is loaded by AutoLayer but never called anywhere.",
     detail = "AutoLayer's hopping.lua loads LibSerialize via LibStub at startup (line 3) but no code in any AutoLayer file ever references it. The library reference is stored in AutoLayer's private addon table which is inaccessible from external addons. This patch serves as a documentation marker for the addon author.",
     impact = "Memory", impactLevel = "Low", category = "Tweaks",
     estimate = "Minimal (documentation marker)",
-    targetVersion = "1.7.6",
-}
+})
 
 -- 6. Layer Status Frame
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "AutoLayer_layerStatusFrame", group = "AutoLayer",
+ns:RegisterPatch("AutoLayer", {
+    key = "AutoLayer_layerStatusFrame",
     label = "Layer Status Frame",
     help = "Adds a small, movable on-screen frame showing your current layer, AutoLayer status, and session invite count.",
     detail = "Displays a compact, draggable frame with your current layer number (green when known, red when unknown), whether AutoLayer is enabled or disabled, and how many players you've layered this session. Position is saved between sessions. Integrates with the Hop Transition Tracker for live hop state display.",
     category = "Tweaks",
     estimate = "Visual enhancement with minimal overhead",
-    targetVersion = "1.7.6",
-}
+})
 
 -- 7. Layer Change Toast
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "AutoLayer_layerChangeToast", group = "AutoLayer",
+ns:RegisterPatch("AutoLayer", {
+    key = "AutoLayer_layerChangeToast",
     label = "Layer Change Toast",
     help = "Shows a brief gold notification when your layer changes, e.g. 'Layer 2 -> 3'.",
     detail = "Monitors the NWB_CurrentLayer global for changes and displays a gold-colored message via UIErrorsFrame when a layer transition is detected. Also plays a subtle ping sound. The message auto-dismisses after a few seconds, matching the style of standard WoW system messages.",
     category = "Tweaks",
     estimate = "Visual enhancement, event-driven only",
-    targetVersion = "1.7.6",
-}
+})
 
 -- 8. Hop Transition Tracker
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "AutoLayer_hopTransitionTracker", group = "AutoLayer",
+ns:RegisterPatch("AutoLayer", {
+    key = "AutoLayer_hopTransitionTracker",
     label = "Hop Transition Tracker",
     help = "Tracks the full hop lifecycle with visual feedback: idle, waiting, in group, and confirmed states.",
     detail = "Hooks AutoLayer's SendLayerRequest to track hop state transitions. During an active hop, the layer poll rate increases to 0.1s (10x faster than idle) for faster detection. States are displayed in the Layer Status Frame with color-coded text: yellow for waiting, orange with pulsing for in group, green flash for confirmed.",
     category = "Tweaks",
     estimate = "Visual enhancement, integrates with Layer Status Frame",
-    targetVersion = "1.7.6",
-}
+})
 
 -- 9. Enhanced Tooltip
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "AutoLayer_enhancedTooltip", group = "AutoLayer",
+ns:RegisterPatch("AutoLayer", {
+    key = "AutoLayer_enhancedTooltip",
     label = "Enhanced Tooltip",
     help = "Adds extra information to the AutoLayer minimap icon tooltip.",
     detail = "Hooks OnTooltipShow on AutoLayer's LibDataBroker object to display richer information including current layer with color coding, total available layers from NovaWorldBuffs, session invite count with color, AutoLayer enabled/disabled status, and active hop transition state if mid-hop.",
     category = "Tweaks",
     estimate = "Visual enhancement, tooltip only",
-    targetVersion = "1.7.6",
-}
+})
+
+ns:RegisterDefault("AutoLayer_hopWhisperEnabled", true)
+ns:RegisterDefault("AutoLayer_hopWhisperMessage", "[PatchWerk] Thanks for the hop!")
 
 ------------------------------------------------------------------------
 -- Shared state for visual patches (6, 7, 8)

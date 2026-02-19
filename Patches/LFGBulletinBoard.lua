@@ -17,22 +17,20 @@ local _, ns = ...
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
 ------------------------------------------------------------------------
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "LFGBulletinBoard_updateListDirty", group = "LFGBulletinBoard", label = "Smart List Refresh",
+ns:RegisterPatch("LFGBulletinBoard", {
+    key = "LFGBulletinBoard_updateListDirty", label = "Smart List Refresh",
     help = "Skips the full group list rebuild when nothing actually changed.",
     detail = "The LFG panel rebuilds the entire group list every second while open, even when no new messages have arrived. This causes constant stuttering when browsing for groups, especially when you have 50+ listings visible.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "~1-3 FPS while browsing the LFG panel",
-    targetVersion = "3.50",
-}
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "LFGBulletinBoard_sortSkip", group = "LFGBulletinBoard", label = "Sort Interval Throttle",
+})
+ns:RegisterPatch("LFGBulletinBoard", {
+    key = "LFGBulletinBoard_sortSkip", label = "Sort Interval Throttle",
     help = "Limits group list sorting to once every 2 seconds.",
     detail = "The group list re-sorts every second regardless of changes. When you have a large list of group postings, this continuous sorting causes visible UI stuttering and makes it harder to click on entries.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "~0.5-1 FPS, more stable clickable list entries",
-    targetVersion = "3.50",
-}
+})
 
 local pairs   = pairs
 local GetTime = GetTime

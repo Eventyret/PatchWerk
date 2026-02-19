@@ -11,6 +11,7 @@
 ## X-Github: https://github.com/Eventyret/PatchWerk
 
 Core.lua
+Registry.lua
 Patches\Details.lua
 Patches\Plater.lua
 Patches\Pawn.lua

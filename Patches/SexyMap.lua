@@ -11,14 +11,13 @@ local _, ns = ...
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
 ------------------------------------------------------------------------
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "SexyMap_slashCmdFix", group = "SexyMap", label = "Slash Command Fix",
+ns:RegisterPatch("SexyMap", {
+    key = "SexyMap_slashCmdFix", label = "Slash Command Fix",
     help = "Fixes the /sexymap and /minimap commands so they open the settings panel.",
     detail = "SexyMap uses Settings.OpenToCategory to open its config panel, but this API may not work correctly on TBC Classic Anniversary. This wraps the slash command with a fallback to the classic InterfaceOptionsFrame_OpenToCategory method.",
     impact = "Compatibility", impactLevel = "High", category = "Compatibility",
     estimate = "Makes /sexymap and right-click config work reliably",
-    targetVersion = "v12.0.2",
-}
+})
 
 ------------------------------------------------------------------------
 -- 1. SexyMap_slashCmdFix

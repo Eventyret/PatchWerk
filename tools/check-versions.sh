@@ -3,9 +3,12 @@
 #
 # Usage:
 #   tools/check-versions.sh              Show version comparison for all groups
-#   tools/check-versions.sh --update GroupName   Update targetVersion in patch file after verification
+#   tools/check-versions.sh --update GroupName   Update targetVersion in Registry.lua after verification
 #   tools/check-versions.sh --create-issues      Create GitHub issues for mismatches via gh CLI
 #   tools/check-versions.sh --json               Output results as JSON to tools/versions.json
+#
+# All addon metadata (group IDs, folder names, targetVersions) is parsed
+# from Registry.lua — no hardcoded mappings.
 #
 # Requires: bash, awk, sed
 # Optional: gh (GitHub CLI) for --create-issues
@@ -16,7 +19,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ADDON_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 ADDONS_ROOT="$(cd "$ADDON_DIR/.." && pwd)"
 
-PATCHES_DIR="$ADDON_DIR/Patches"
 VERSIONS_JSON="$SCRIPT_DIR/versions.json"
 
 # Colors (disabled if not a terminal)
@@ -32,73 +34,41 @@ else
     RED='' GREEN='' YELLOW='' CYAN='' DIM='' BOLD='' RESET=''
 fi
 
-# Map PatchWerk group ID -> actual addon folder name
-# Most groups match their folder name, but some differ.
-declare -A GROUP_TO_FOLDER=(
-    [AtlasLootClassic]="AtlasLootClassic"
-    [Attune]="Attune"
-    [Auctionator]="Auctionator"
-    [AutoLayer]="AutoLayer_Vanilla"
-    [Baganator]="Baganator"
-    [Bartender4]="Bartender4"
-    [BigDebuffs]="BigDebuffs"
-    [BigWigs]="BigWigs"
-    [BugSack]="BugSack"
-    [Cell]="Cell"
-    [ClassTrainerPlus]="ClassTrainerPlus"
-    [Details]="Details"
-    [EasyFrames]="EasyFrames"
-    [Gargul]="Gargul"
-    [GatherMate2]="GatherMate2"
-    [LFGBulletinBoard]="LFGBulletinBoard"
-    [LeatrixMaps]="Leatrix_Maps"
-    [LeatrixPlus]="Leatrix_Plus"
-    [LoonBestInSlot]="LoonBestInSlot"
-    [MoveAny]="MoveAny"
-    [NameplateSCT]="NameplateSCT"
-    [NovaInstanceTracker]="NovaInstanceTracker"
-    [NovaWorldBuffs]="NovaWorldBuffs"
-    [OmniCC]="OmniCC"
-    [Pawn]="Pawn"
-    [Plater]="Plater"
-    [Prat]="Prat-3.0"
-    [Quartz]="Quartz"
-    [QuestXP]="QuestXP"
-    [Questie]="Questie"
-    [RatingBuster]="RatingBuster"
-    [SexyMap]="SexyMap"
-    [TipTac]="TipTac"
-    [TitanPanel]="Titan"
-    [VuhDo]="VuhDo"
-)
+# Parse Registry.lua to extract group ID, folder (deps[1]), and targetVersion
+REGISTRY_FILE="$ADDON_DIR/Registry.lua"
 
-# Extract the first targetVersion for each group from patch files
+declare -A GROUP_TO_FOLDER
 declare -A GROUP_TARGET_VERSION
-extract_target_versions() {
-    for lua_file in "$PATCHES_DIR"/*.lua; do
-        [ -f "$lua_file" ] || continue
 
-        # Extract group and targetVersion pairs using awk
-        awk '
-            /group *= *"/ {
-                match($0, /group *= *"([^"]+)"/, g)
-                group = g[1]
+parse_registry() {
+    awk '
+        /id *= *"/ {
+            match($0, /id *= *"([^"]+)"/, m)
+            id = m[1]
+        }
+        /deps *= *\{ *"/ {
+            match($0, /deps *= *\{ *"([^"]+)"/, m)
+            folder = m[1]
+        }
+        /targetVersion *= *"/ {
+            match($0, /targetVersion *= *"([^"]+)"/, m)
+            version = m[1]
+        }
+        /},? *$/ {
+            if (id != "" && folder != "") {
+                print id "\t" folder "\t" version
+                id = ""; folder = ""; version = ""
             }
-            /targetVersion *= *"/ {
-                match($0, /targetVersion *= *"([^"]+)"/, v)
-                if (group != "" && !seen[group]) {
-                    print group "\t" v[1]
-                    seen[group] = 1
-                }
-                group = ""
-            }
-        ' "$lua_file"
-    done
+        }
+    ' "$REGISTRY_FILE"
 }
 
-while IFS=$'\t' read -r group version; do
-    GROUP_TARGET_VERSION["$group"]="$version"
-done < <(extract_target_versions)
+while IFS=$'\t' read -r group folder version; do
+    GROUP_TO_FOLDER["$group"]="$folder"
+    if [ -n "$version" ]; then
+        GROUP_TARGET_VERSION["$group"]="$version"
+    fi
+done < <(parse_registry)
 
 # Resolve TOC file for an addon folder. Tries TBC-specific suffixes first.
 resolve_toc() {
@@ -249,7 +219,7 @@ do_update() {
 
     local old_target="${GROUP_TARGET_VERSION[$group]:-}"
     if [ -z "$old_target" ]; then
-        printf "${RED}Error:${RESET} No targetVersion found in patch file for group %s\n" "$group" >&2
+        printf "${RED}Error:${RESET} No targetVersion found in Registry.lua for group %s\n" "$group" >&2
         exit 1
     fi
 
@@ -258,33 +228,26 @@ do_update() {
         exit 0
     fi
 
-    # Find the patch file for this group
-    local patch_file=""
-    for lua_file in "$PATCHES_DIR"/*.lua; do
-        if grep -q "group *= *\"$group\"" "$lua_file" 2>/dev/null; then
-            patch_file="$lua_file"
-            break
-        fi
-    done
-
-    if [ -z "$patch_file" ]; then
-        printf "${RED}Error:${RESET} No patch file found for group %s\n" "$group" >&2
-        exit 1
-    fi
-
     printf "Updating ${BOLD}%s${RESET}: %s -> %s\n" "$group" "$old_target" "$installed"
-    printf "  File: %s\n" "$(basename "$patch_file")"
+    printf "  File: Registry.lua\n"
 
     # Escape special characters for sed
-    local escaped_old escaped_new
+    local escaped_old escaped_new escaped_id
     escaped_old=$(printf '%s' "$old_target" | sed 's/[&/\]/\\&/g; s/\./\\./g')
     escaped_new=$(printf '%s' "$installed" | sed 's/[&/\]/\\&/g')
+    escaped_id=$(printf '%s' "$group" | sed 's/[&/\]/\\&/g')
 
-    sed -i "s/targetVersion *= *\"${escaped_old}\"/targetVersion = \"${escaped_new}\"/g" "$patch_file"
+    # Update the targetVersion on the line matching this group's id in Registry.lua
+    sed -i "/id *= *\"${escaped_id}\"/s/targetVersion *= *\"${escaped_old}\"/targetVersion = \"${escaped_new}\"/" "$REGISTRY_FILE"
 
     local count
-    count=$(grep -c "targetVersion = \"$installed\"" "$patch_file" || true)
-    printf "  ${GREEN}Updated %d targetVersion entries${RESET}\n" "$count"
+    count=$(grep -c "id *= *\"$group\".*targetVersion *= *\"$installed\"" "$REGISTRY_FILE" || true)
+    if [ "$count" -gt 0 ]; then
+        printf "  ${GREEN}Updated targetVersion in Registry.lua${RESET}\n"
+    else
+        printf "  ${RED}Failed to update — verify Registry.lua manually${RESET}\n" >&2
+        exit 1
+    fi
 }
 
 # ─── --create-issues ──────────────────────────────────────────────────────
@@ -378,7 +341,7 @@ while [ $# -gt 0 ]; do
             printf "Usage: %s [OPTIONS]\n\n" "$(basename "$0")"
             printf "Options:\n"
             printf "  (no args)           Show version comparison for all groups\n"
-            printf "  --update <Group>    Update targetVersion in patch file\n"
+            printf "  --update <Group>    Update targetVersion in Registry.lua\n"
             printf "  --create-issues     Create GitHub issues for mismatches\n"
             printf "  --json              Write results to tools/versions.json\n"
             printf "  --help              Show this help\n"

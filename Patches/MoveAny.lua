@@ -12,24 +12,22 @@ local _, ns = ...
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
 ------------------------------------------------------------------------
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "MoveAny_thinkHelpFrameSkip", group = "MoveAny",
+ns:RegisterPatch("MoveAny", {
+    key = "MoveAny_thinkHelpFrameSkip",
     label = "Profile Check Skip",
     help = "Stops a perpetual polling loop that checks for EditMode profiles on TBC.",
     detail = "MoveAny runs a ThinkHelpFrame function every 500ms that checks whether EditModeManagerFrame is using a preset profile. On TBC Classic Anniversary, EditModeManagerFrame does not exist, so this check always returns the same result and the loop does nothing useful. This stops the loop entirely.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Eliminates a 500ms perpetual polling loop",
-    targetVersion = "1.8.250",
-}
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "MoveAny_updateMoveFramesDebounce", group = "MoveAny",
+})
+ns:RegisterPatch("MoveAny", {
+    key = "MoveAny_updateMoveFramesDebounce",
     label = "Frame Registration Debounce",
     help = "Prevents rapid repeated frame registration scans when many frames are created at once.",
     detail = "MoveAny hooks the global CreateFrame function and triggers a full frame registration scan on every single frame creation. During loading screens and zone transitions, dozens to hundreds of frames are created per second, each triggering a redundant scan. This debounces CreateFrame-triggered scans to at most twice per second.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Reduces load screen and zone transition overhead",
-    targetVersion = "1.8.250",
-}
+})
 
 local GetTime = GetTime
 

@@ -19,18 +19,16 @@ local _, ns = ...
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
 ------------------------------------------------------------------------
-ns.patchInfo[#ns.patchInfo + 1] = {
+ns:RegisterPatch("RatingBuster", {
     key = "RatingBuster_debugstackOptimize",
-    group = "RatingBuster",
     label = "TipHooker debugstack Bypass",
     help = "Replaces expensive debugstack() calls in RatingBuster's tooltip hooker with a lightweight flag check.",
     detail = "RatingBuster's TipHooker hooks OnTooltipSetItem on every tracked tooltip (GameTooltip, ShoppingTooltip1/2, ItemRefTooltip, etc.).  Each time OnTooltipSetItem fires, the handler calls debugstack():find(\"OnUpdate\") to detect if the tooltip was set during an OnUpdate cycle.  debugstack() captures the entire Lua call stack as a formatted string, which involves walking the stack, formatting frame names, line numbers, and concatenating them.  In scenarios with frequent tooltip updates (scrolling through bag items, browsing the auction house), this runs dozens of times per second.  This patch replaces the debugstack() check with a simple boolean flag that is set to true inside OnUpdate wrappers and checked in the tooltip handler, eliminating the stack capture entirely.",
     impact = "FPS",
     impactLevel = "Medium",
     category = "Performance",
-    targetVersion = "2.1.4",
     estimate = "~5-15% tooltip processing improvement",
-}
+})
 
 ------------------------------------------------------------------------
 -- 1. RatingBuster_debugstackOptimize

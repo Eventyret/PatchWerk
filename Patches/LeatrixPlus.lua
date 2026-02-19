@@ -25,18 +25,16 @@ local _, ns = ...
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
 ------------------------------------------------------------------------
-ns.patchInfo[#ns.patchInfo + 1] = {
+ns:RegisterPatch("LeatrixPlus", {
     key = "LeatrixPlus_taxiOnUpdateThrottle",
-    group = "LeatrixPlus",
     label = "Panel Combat-Hide Throttle",
     help = "Replaces per-frame combat polling on config panels with an event-driven approach.",
     detail = "Leatrix Plus installs OnUpdate scripts on its TaxiPanel and SideMinimap configuration panels that call UnitAffectingCombat(\"player\") every single frame while the panel is open.  Their only purpose is to hide the panel when the player enters combat.  This patch removes both OnUpdate handlers and replaces them with a single PLAYER_REGEN_DISABLED event listener that hides any open Leatrix Plus config panel the instant combat begins -- zero per-frame cost and more responsive.",
     impact = "FPS",
     impactLevel = "Low",
     category = "Performance",
-    targetVersion = "2.5.06",
     estimate = "Eliminates 2 per-frame combat polls while config panels are open",
-}
+})
 
 ------------------------------------------------------------------------
 -- 1. LeatrixPlus_taxiOnUpdateThrottle

@@ -13,33 +13,30 @@ local _, ns = ...
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
 ------------------------------------------------------------------------
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "Attune_spairsOptimize", group = "Attune",
+ns:RegisterPatch("Attune", {
+    key = "Attune_spairsOptimize",
     label = "Sorted Pairs Optimize",
     help = "Fixes the O(n²) sorted pairs iterator used throughout Attune's UI.",
     detail = "Attune's spairs() function calls Attune_count() on every iteration to get the table length. Attune_count() itself iterates the entire table each call, making key collection O(n²). This replaces it with the O(1) # length operator.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Significant improvement when viewing attunement UI with many entries",
-    targetVersion = "266",
-}
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "Attune_bagUpdateDebounce", group = "Attune",
+})
+ns:RegisterPatch("Attune", {
+    key = "Attune_bagUpdateDebounce",
     label = "Bag Update Debounce",
     help = "Debounces bag update handling to avoid repeated full item scans.",
     detail = "Attune's BAG_UPDATE handler iterates all attunement steps and calls GetItemCount for every item-type step on every single bag slot change. During looting, vendoring, or crafting, this fires dozens of times per second. This debounces the scan to run at most once per 0.5 seconds.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Reduces lag spikes when looting or interacting with bags",
-    targetVersion = "266",
-}
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "Attune_cleuEarlyExit", group = "Attune",
+})
+ns:RegisterPatch("Attune", {
+    key = "Attune_cleuEarlyExit",
     label = "Combat Log Early Exit",
     help = "Skips combat log events that Attune cannot use.",
     detail = "Attune only processes PARTY_KILL and UNIT_DIED combat log events but extracts all 16 parameters from every single event before checking. This adds an early check on the subevent type and skips the full handler for irrelevant events like SPELL_DAMAGE, SWING_DAMAGE, etc.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "Small improvement during combat with many enemies",
-    targetVersion = "266",
-}
+})
 
 local GetTime = GetTime
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo

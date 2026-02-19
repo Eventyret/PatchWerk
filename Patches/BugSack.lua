@@ -21,30 +21,27 @@ local _, ns = ...
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
 ------------------------------------------------------------------------
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "BugSack_settingsCompat", group = "BugSack", label = "Fix Settings Menu",
+ns:RegisterPatch("BugSack", {
+    key = "BugSack_settingsCompat", label = "Fix Settings Menu",
     help = "Stops BugSack from throwing errors when you try to open its settings panel.",
     detail = "BugSack's latest version tries to open its settings using a method that only works on Retail WoW. On TBC Classic Anniversary, clicking the settings option from the slash command, right-clicking the sack, or right-clicking the broker icon would cause an error instead of opening settings. This fix makes all three entry points open the settings panel correctly.",
     impact = "FPS", impactLevel = "High", category = "Fixes",
     estimate = "Fixes broken settings menu that would throw errors on Classic",
-    targetVersion = "v11.2.9",
-}
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "BugSack_formatCache", group = "BugSack", label = "Faster Error Viewing",
+})
+ns:RegisterPatch("BugSack", {
+    key = "BugSack_formatCache", label = "Faster Error Viewing",
     help = "Speeds up scrolling through captured errors by remembering previously formatted text.",
     detail = "Every time you view an error in the sack, the addon re-processes and re-colors the entire error text from scratch, even if you already looked at it. When you have many errors captured, scrolling through them can feel sluggish as the addon does this heavy text processing repeatedly. This fix remembers the formatted result so each error is only processed once.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Faster scrolling through the error list when many errors are captured",
-    targetVersion = "v11.2.9",
-}
-ns.patchInfo[#ns.patchInfo+1] = {
-    key = "BugSack_searchThrottle", group = "BugSack", label = "Smoother Search Typing",
+})
+ns:RegisterPatch("BugSack", {
+    key = "BugSack_searchThrottle", label = "Smoother Search Typing",
     help = "Waits until you pause typing before searching, so the search box does not lag on every keypress.",
     detail = "The search box in BugSack tries to filter through all captured errors after every single keystroke. If you have hundreds of errors saved, this causes noticeable lag and stuttering while you type. This fix waits until you stop typing for a moment before running the search, keeping the input responsive.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "Smoother typing in the error search box without input lag",
-    targetVersion = "v11.2.9",
-}
+})
 
 ------------------------------------------------------------------------
 -- 1. BugSack_settingsCompat  (Bug fix)
