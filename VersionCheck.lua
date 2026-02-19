@@ -190,7 +190,8 @@ local function OnAddonMessage(prefix, message, channel, sender)
             db.updateNotificationShown = remoteVersion
             ns:Print("|cffffff00A newer version (|cff33e633" .. remoteVersion
                 .. "|cffffff00) is available! You have |cffff6666"
-                .. ns.VERSION .. "|cffffff00.|r")
+                .. ns.VERSION .. "|cffffff00. Get it at: |cff66bbff"
+                .. "https://github.com/Eventyret/PatchWerk/releases" .. "|r")
         end
     end
 end

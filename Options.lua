@@ -35,16 +35,6 @@ local CATEGORY_COLORS = {
 -- The PATCH_INFO local alias and derived lookups are built lazily on first use.
 local PATCH_INFO = ns.patchInfo
 
--- Estimated performance improvement per patch (stored as .estimate field in patchInfo)
-local PATCH_ESTIMATES = setmetatable({}, { __index = function(self, key)
-    for _, p in ipairs(ns.patchInfo) do
-        if p.key == key then
-            rawset(self, key, p.estimate)
-            return p.estimate
-        end
-    end
-end })
-
 -- Build lookup for patches by group (rebuilt lazily)
 local PATCHES_BY_GROUP = {}
 local PATCH_NAMES_LOWER = {}
@@ -118,7 +108,11 @@ local function RefreshStatusLabels()
         if applied then
             info.fontString:SetText("|cff33e633Active|r")
         elseif enabled and not applied then
-            info.fontString:SetText("|cffffff00Reload|r")
+            if info.installed then
+                info.fontString:SetText("|cffffff00Reload|r")
+            else
+                info.fontString:SetText("")
+            end
         elseif not enabled then
             info.fontString:SetText("|cff808080Off|r")
         else
@@ -294,7 +288,7 @@ local function BuildAddonGroup(content, groupInfo, installed)
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                 GameTooltip:SetText("What does this fix?", 0.4, 0.8, 1.0)
                 GameTooltip:AddLine(pi.detail, 1, 0.82, 0, true)
-                local est = PATCH_ESTIMATES[pi.key]
+                local est = pi.estimate
                 if est then
                     GameTooltip:AddLine(" ")
                     GameTooltip:AddLine("Estimated gain: " .. est, 0.2, 0.9, 0.2, true)
@@ -308,7 +302,7 @@ local function BuildAddonGroup(content, groupInfo, installed)
         end
         local sb = bf:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
         sb:SetPoint("TOPRIGHT", bf, "TOPRIGHT", -20, by - 5)
-        table.insert(statusLabels, { key = pi.key, fontString = sb })
+        table.insert(statusLabels, { key = pi.key, fontString = sb, installed = installed })
         local ht = bf:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
         ht:SetPoint("TOPLEFT", cb, "BOTTOMLEFT", 26, 2)
         ht:SetPoint("RIGHT", bf, "RIGHT", -70, 0)
@@ -844,11 +838,15 @@ SlashCmdList["PATCHWERK"] = function(msg)
         ShowStatus(verbose)
     elseif cmd == "toggle" and args[2] then
         HandleToggle(args)
+    elseif cmd == "toggle" then
+        ns:Print("Usage: /pw toggle <addon-or-patch> [on|off]")
     elseif cmd == "reset" then
         HandleReset()
     elseif cmd == "outdated" then
         ns:ScanOutdatedPatches()
         ns:ReportOutdatedPatches()
+    elseif cmd == "changelog" or cmd == "changes" or cmd == "whatsnew" then
+        if ns.ShowChangelog then ns:ShowChangelog() end
     elseif cmd == "wizard" or cmd == "setup" then
         if ns.ResetWizard then ns:ResetWizard() end
         if ns.ShowWizard then ns:ShowWizard() end
@@ -858,6 +856,7 @@ SlashCmdList["PATCHWERK"] = function(msg)
         ns:Print("  /pw status       Show patched addons summary")
         ns:Print("  /pw toggle X     Toggle addon or patch (e.g. details, details off)")
         ns:Print("  /pw reset        Reset all settings to defaults")
+        ns:Print("  /pw changelog    Show what's new in this version")
         ns:Print("  /pw outdated     Check for addon version changes")
         ns:Print("  /pw wizard       Re-run the setup wizard")
     else

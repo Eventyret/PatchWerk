@@ -45,8 +45,10 @@ ns.patches["BigWigs_proxTextThrottle"] = function()
         if not BigWigs then return end
         if not BigWigs.GetPlugin then return end
 
-        local proxy = BigWigs:GetPlugin("Proximity")
-        if not proxy then return end
+        -- GetPlugin throws if the plugin isn't registered yet (BigWigs_Plugins
+        -- may not have loaded). Wrap in pcall and keep listening if it fails.
+        local ok, proxy = pcall(BigWigs.GetPlugin, BigWigs, "Proximity")
+        if not ok or not proxy then return end
         if not proxy.Open then return end
 
         -- Success -- stop listening and install the hook
@@ -63,21 +65,22 @@ ns.patches["BigWigs_proxTextThrottle"] = function()
             -- Throttle the main text body (player list)
             local textObj = anchor.text
             if textObj then
-                local lastTextTime = 0
+                local lastSetTextTime = 0
                 local origSetText = textObj.SetText
                 textObj.SetText = function(self, text, ...)
                     local now = GetTime()
-                    if now - lastTextTime < 0.08 then return end
-                    lastTextTime = now
+                    if now - lastSetTextTime < 0.08 then return end
+                    lastSetTextTime = now
                     return origSetText(self, text, ...)
                 end
 
+                local lastSetFormattedTextTime = 0
                 local origSetFmtText = textObj.SetFormattedText
                 if origSetFmtText then
                     textObj.SetFormattedText = function(self, fmt, ...)
                         local now = GetTime()
-                        if now - lastTextTime < 0.08 then return end
-                        lastTextTime = now
+                        if now - lastSetFormattedTextTime < 0.08 then return end
+                        lastSetFormattedTextTime = now
                         return origSetFmtText(self, fmt, ...)
                     end
                 end

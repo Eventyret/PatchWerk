@@ -95,9 +95,15 @@ loader:SetScript("OnEvent", function(self, event, addon)
     end
 
     -- Prune stale keys from old patch versions
+    local RESERVED_DB_KEYS = {
+        dismissedOutdated = true,
+        wizardCompleted = true,
+        lastSeenPatchWerkVersion = true,
+        lastSeenChangelogVersion = true,
+        updateNotificationShown = true,
+    }
     for key in pairs(PatchWerkDB) do
-        if defaults[key] == nil and key ~= "dismissedOutdated" and key ~= "wizardCompleted"
-            and key ~= "lastSeenPatchWerkVersion" and key ~= "updateNotificationShown" then
+        if defaults[key] == nil and not RESERVED_DB_KEYS[key] then
             PatchWerkDB[key] = nil
         end
     end
@@ -172,7 +178,7 @@ patcher:SetScript("OnEvent", function(self)
         local errs = BugGrabberDB.errors
         for i = #errs, 1, -1 do
             local msg = errs[i] and errs[i].message
-            if msg and (msg:find("!PatchWerk", 1, true) or msg:find("PatchWerk", 1, true)) then
+            if type(msg) == "string" and (msg:find("!PatchWerk", 1, true) or msg:find("PatchWerk", 1, true)) then
                 table.remove(errs, i)
             end
         end
@@ -187,7 +193,7 @@ patcher:SetScript("OnEvent", function(self)
         if BugGrabber.RegisterCallback then
             local filter = {}
             BugGrabber.RegisterCallback(filter, "BugGrabber_BugGrabbed", function(_, err)
-                if not err or not err.message then return end
+                if not err or type(err.message) ~= "string" then return end
                 if not err.message:find("!PatchWerk", 1, true)
                     and not err.message:find("PatchWerk", 1, true) then return end
                 local errs2 = BugGrabberDB and BugGrabberDB.errors

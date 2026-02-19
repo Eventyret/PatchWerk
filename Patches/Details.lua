@@ -134,8 +134,9 @@ end
 -- 0.016s (60 fps), which is catastrophically expensive on Classic where
 -- the meter has far less optimised rendering code.
 --
--- Fix: Hook RefreshUpdater to force-disable faster_updates on Classic
--- and enforce a sane minimum interval of 0.1s (10 Hz).
+-- Fix: Hook RefreshUpdater to enforce a sane minimum interval of 0.1s
+-- (10 Hz).  The user's faster_updates setting is respected; the interval
+-- clamp alone prevents the 60fps refresh from tanking performance.
 ------------------------------------------------------------------------
 ns.patches["Details_refreshCap"] = function()
     if not Details then return end
@@ -144,11 +145,6 @@ ns.patches["Details_refreshCap"] = function()
     local origRefreshUpdater = Details.RefreshUpdater
 
     Details.RefreshUpdater = function(self, intervalAmount)
-        -- Force disable faster_updates on Classic - 60fps refresh is too expensive
-        if Details.streamer_config and Details.streamer_config.faster_updates then
-            Details.streamer_config.faster_updates = false
-        end
-
         -- Enforce minimum 0.1s interval
         if intervalAmount and intervalAmount < 0.1 then
             intervalAmount = 0.1

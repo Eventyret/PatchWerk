@@ -50,4 +50,5 @@ Patches\Baganator.lua
 VersionOverrides.lua
 VersionCheck.lua
 Wizard.lua
+Changelog.lua
 Options.lua

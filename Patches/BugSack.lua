@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------
 
 local _, ns = ...
+local C_Timer = C_Timer
 
 ------------------------------------------------------------------------
 -- Patch metadata (consumed by Options.lua for the settings GUI)
@@ -199,8 +200,8 @@ end
 --
 -- Fix: Replace the OnTextChanged handler on the searchBox with a
 -- debounced version that waits 0.3 seconds of idle time before
--- actually running the filter.  Uses a simple OnUpdate ticker on a
--- helper frame to avoid C_Timer.After allocations.
+-- actually running the filter.  Uses C_Timer.NewTimer to schedule
+-- the search callback after the debounce delay.
 ------------------------------------------------------------------------
 ns.patches["BugSack_searchThrottle"] = function()
     if not BugSack then return end
@@ -232,29 +233,17 @@ ns.patches["BugSack_searchThrottle"] = function()
         local origOnTextChanged = searchBox:GetScript("OnTextChanged")
         if not origOnTextChanged then return end
 
-        -- Create a tiny helper frame for the OnUpdate debounce timer.
-        local timerFrame = CreateFrame("Frame")
-        timerFrame:Hide()
-
-        local pendingEditbox = nil
-        local elapsed = 0
-
-        timerFrame:SetScript("OnUpdate", function(self, dt)
-            elapsed = elapsed + dt
-            if elapsed >= DEBOUNCE_DELAY then
-                self:Hide()
-                if pendingEditbox then
-                    origOnTextChanged(pendingEditbox)
-                    pendingEditbox = nil
-                end
-            end
-        end)
+        local searchTimer = nil
 
         -- Replace the OnTextChanged with our debounced version.
         searchBox:SetScript("OnTextChanged", function(editbox)
-            pendingEditbox = editbox
-            elapsed = 0
-            timerFrame:Show()
+            if searchTimer then
+                searchTimer:Cancel()
+            end
+            searchTimer = C_Timer.NewTimer(DEBOUNCE_DELAY, function()
+                searchTimer = nil
+                origOnTextChanged(editbox)
+            end)
         end)
 
         throttleHooked = true

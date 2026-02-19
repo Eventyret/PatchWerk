@@ -135,6 +135,7 @@ ns:RegisterPatch("AutoLayer", {
 
 ns:RegisterDefault("AutoLayer_hopWhisperEnabled", true)
 ns:RegisterDefault("AutoLayer_hopWhisperMessage", "[PatchWerk] Thanks for the hop!")
+ns:RegisterDefault("AutoLayer_statusFrame_point", nil)
 
 ------------------------------------------------------------------------
 -- Shared state for visual patches (6, 7, 8)
@@ -390,9 +391,8 @@ local function CreateStatusFrame()
     f:SetClampedToScreen(true)
 
     -- Restore saved position
-    local db = PatchWerkDB
-    if db and db.AutoLayer_statusFrame_point then
-        local p = db.AutoLayer_statusFrame_point
+    local p = ns:GetOption("AutoLayer_statusFrame_point")
+    if type(p) == "table" and #p >= 5 then
         f:ClearAllPoints()
         f:SetPoint(p[1], UIParent, p[3], p[4], p[5])
     else
@@ -438,10 +438,7 @@ local function CreateStatusFrame()
         self._lastDragTime = GetTime()
         self._dragging = false
         local point, _, relPoint, x, y = self:GetPoint()
-        local db = PatchWerkDB
-        if db then
-            db.AutoLayer_statusFrame_point = { point, "UIParent", relPoint, x, y }
-        end
+        ns:SetOption("AutoLayer_statusFrame_point", { point, "UIParent", relPoint, x, y })
     end)
 
     -- Click interactions: left = toggle, right = quick hop, shift+right = hop GUI
@@ -711,17 +708,9 @@ end
 -- This patch validates the issue and serves as a documentation marker.
 ------------------------------------------------------------------------
 ns.patches["AutoLayer_libSerializeCleanup"] = function()
-    if not ns:IsAddonLoaded("AutoLayer_Vanilla") then return end
-    -- LibSerialize is loaded in hopping.lua line 3:
-    --   addonTable.LibSerialize = LibStub("LibSerialize")
-    -- but never referenced anywhere else in AutoLayer's code.
-    --
-    -- The private addon table is inaccessible from external addons,
-    -- so we cannot nil the reference. LibStub also retains its own
-    -- reference, so GC benefit would be minimal regardless.
-    --
-    -- This patch exists as a documentation marker. The real fix is
-    -- for the AutoLayer author to remove the unused require.
+    -- No-op: the unused LibSerialize reference lives in AutoLayer's private
+    -- addon table which is inaccessible externally. Documentation marker only.
+    return
 end
 
 ------------------------------------------------------------------------
