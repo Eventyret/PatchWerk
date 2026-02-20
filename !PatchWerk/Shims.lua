@@ -635,35 +635,17 @@ if not Enum.UIMapType then
 end
 
 ------------------------------------------------------------------------
--- 14. SetColorTexture (Texture metatable patch)
--- Retail Texture objects have SetColorTexture(r,g,b,a) which creates a
--- solid-color texture. TBC Classic does NOT have this method.
--- We patch the shared Texture metatable so ALL textures gain the method.
--- Uses WHITE8x8 + SetVertexColor as the safe TBC workaround.
+-- 14. SetColorTexture — REMOVED
+-- Writing to the shared Texture metatable __index taints ALL texture
+-- method dispatch game-wide. This makes GameMenuFrame buttons tainted
+-- at creation, which blocks the protected Quit() and Logout() calls
+-- with ADDON_ACTION_FORBIDDEN every time ESC is pressed.
 --
--- KNOWN TRADE-OFF: Writing to the shared C++ Texture __index taints all
--- texture method dispatch game-wide. This can cause cosmetic
--- ADDON_ACTION_BLOCKED warnings for action bar repositioning in specific
--- edge cases (EditMode, stance bar updates). The taint does not crash
--- the game and popular addons (Bartender4, Dominos) produce similar
--- warnings. The alternative — deferring to PLAYER_LOGIN — causes 2 Lua
--- errors in Leatrix Maps every login (worse UX, makes PatchWerk look
--- broken). Once all known file-scope SetColorTexture callers are patched
--- per-addon in Patches/, this metatable shim can be removed.
+-- Addons that call texture:SetColorTexture() on TBC Classic will get
+-- "attempt to call method 'SetColorTexture' (a nil value)" errors.
+-- PatchWerk handles the most critical cases (BigWigs Flash) with
+-- per-addon recovery patches in Patches/.
 ------------------------------------------------------------------------
-
-do
-    local tmpFrame   = CreateFrame("Frame")
-    local tmpTexture = tmpFrame:CreateTexture()
-    local mt  = getmetatable(tmpTexture)
-    local idx = mt and mt.__index
-    if idx and not idx.SetColorTexture then
-        idx.SetColorTexture = function(self, r, g, b, a)
-            self:SetTexture("Interface\\Buttons\\WHITE8x8")
-            self:SetVertexColor(r, g, b, a or 1)
-        end
-    end
-end
 
 ------------------------------------------------------------------------
 -- 15. EventRegistry
