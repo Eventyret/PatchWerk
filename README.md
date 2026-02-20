@@ -12,7 +12,7 @@ Ever loaded into Shattrath and watched your FPS drop faster than a tank without 
 
 PatchWerk makes them behave. Same addons, same features, no more lag. It stops the stuff you never see: addons refreshing every single frame, recalculating things that havent changed, and eating memory they never give back. Nothing on disk is changed, and every patch is safe to toggle on or off.
 
-> **97 patches** across **34 addons** for WoW TBC Classic Anniversary. Install it, log in, and get back to parsing.
+> **102 patches** across **34 addons** for WoW TBC Classic Anniversary. Install it, log in, and get back to parsing.
 
 ---
 

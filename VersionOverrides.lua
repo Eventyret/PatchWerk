@@ -18,9 +18,6 @@
 local _, ns = ...
 
 ns.versionOverrides = {
-    ["Plater"] = "Plater-v632-TBC",   -- verified 2026-02-20
-    ["BigDebuffs"] = "v58",            -- verified 2026-02-20
-    ["BigWigs"] = "v406.5",            -- verified 2026-02-20
-    ["LeatrixMaps"] = "2.5.09",       -- verified 2026-02-20
-    ["LeatrixPlus"] = "2.5.09",       -- verified 2026-02-20
+    -- Populated by /patch-audit when addon updates are verified safe.
+    -- Synced back to Registry.lua targetVersion at release time.
 }
