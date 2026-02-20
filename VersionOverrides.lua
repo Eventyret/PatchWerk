@@ -18,5 +18,6 @@
 local _, ns = ...
 
 ns.versionOverrides = {
-    -- Example: ["TipTac"] = "26.02.18",  -- verified 2026-02-19
+    ["Plater"] = "Plater-v632-TBC",   -- verified 2026-02-20
+    ["BigDebuffs"] = "v58",            -- verified 2026-02-20
 }

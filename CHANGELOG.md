@@ -1,21 +1,5 @@
 # PatchWerk Changelog
 
-## v1.2.1 — "The Emergency Maintenance Nobody Announced"
-
-PatchWerk reporting in from the repair bot queue with another round of fixes.
-
-**Fixed before anyone filed a ticket:**
-- ESC → Exit Game no longer triggers "!PatchWerk has been blocked from an action" — turns out one line of shim code was poisoning the Quit button since day one
-- EasyFrames patch removed entirely — it was breaking the pet action bar and causing taint errors. Sometimes the best fix is /gkick
-- AutoLayer actually leaves the group after hopping now — race conditions meant it sometimes just stood there like a confused warlock pet
-- Wizard and Changelog popups no longer taint the ESC key — they learned to handle Escape on their own instead of borrowing Blizzard's homework
-
-**Newly attuned:**
-- BigWigs Flash Alert Recovery — boss screen-flash and icon-pulse alerts are restored on TBC Classic. The original code dies on load, so PatchWerk finds the broken plugin and rebuilds it from spare parts
-
----
-*102 patches. 34 addons. Zero enrage timers.*
-
 ## v1.2.0 — "The One Where Everything Got a Little Shinier"
 
 Think of this as a world buff for your addon folder.
@@ -24,15 +8,20 @@ Think of this as a world buff for your addon folder.
 - In-game changelog popup — shows you what changed after each update so you're never out of the loop
 - Baganator patches moved in-house — bag sorting and lock fixes no longer need a separate addon
 - Setup wizard got a glow-up — "Skip setup" is actually readable now, and it tells you about `/pw` if things go sideways
+- BigWigs Flash Alert Recovery — boss screen-flash and icon-pulse alerts restored on TBC Classic. The original code dies on load, so PatchWerk finds the broken plugin and rebuilds it from spare parts
+- `!PatchWerk` companion addon now groups with PatchWerk in the addon manager
 
 **Bugs that got /kicked:**
+- ESC → Exit Game no longer triggers "blocked from an action" — one line of shim code was poisoning the Quit button since day one
+- EasyFrames patch removed entirely — it was breaking the pet action bar and causing taint. Sometimes the best fix is /gkick
+- AutoLayer actually leaves the group after hopping now — race conditions meant it sometimes just stood there like a confused warlock pet
+- AutoLayer status frame can't teleport to 0,0 anymore — that trick only works for mages
 - BugGrabber was hiding ALL your errors, not just the taint ones — real bugs are back on the meter where they belong
 - NovaWorldBuffs marker throttle no longer crashes 34 times when layer is nil — that's more wipes than C'Thun prog
-- EasyFrames health text finally says "K" and "M" instead of "T" — your target does NOT have 30 trillion HP
-- AutoLayer status frame can't teleport to 0,0 anymore — that trick only works for mages
 - Details meter respects your speed setting now instead of going full Leeroy on refresh rates
 - Auctionator timeout no longer argues with itself about when to give up
 - Settings summary counts patches for addons you actually have, not your entire wishlist
+- Enable All / Disable All no longer toggles patches for addons you don't have installed
 
 **Behind the curtain:**
 - Settings panel is alphabetical now — find your addon without a Questie arrow
@@ -41,9 +30,11 @@ Think of this as a world buff for your addon folder.
 - `/pw toggle` now actually tells you how to use it instead of staring blankly
 - Update notifications come with a summon portal (download link) now
 - Tooltips got a haste buff across the board
+- Patch failure messages now tell you to type `/pw` instead of leaving you guessing
+- All patch descriptions rewritten in plain English — no more "O(n²)" or "garbage collection pressure"
 
 ---
-*97 patches. 35 addons. Zero enrage timers.*
+*102 patches. 34 addons. Zero enrage timers.*
 
 ## v1.1.0 — "The One Where PatchWerk Got a Makeover"
 

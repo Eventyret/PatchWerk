@@ -20,29 +20,6 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
-        version = "1.2.1",
-        title = "Hotfix",
-        subtitle = "The Emergency Maintenance Nobody Announced",
-        flavor = "PatchWerk reporting in from the repair bot queue with another round of fixes.",
-        sections = {
-            {
-                header = "Fixed before anyone filed a ticket:",
-                entries = {
-                    "ESC/Exit Game no longer triggers 'blocked from an action' — one line of shim code was poisoning the Quit button since day one",
-                    "EasyFrames patch removed entirely — it was breaking the pet bar and causing taint errors. Sometimes the best fix is /gkick",
-                    "AutoLayer actually leaves the group after hopping now — race conditions meant it just stood there like a confused warlock pet",
-                    "Wizard and Changelog popups no longer taint the ESC key — they handle Escape on their own now",
-                },
-            },
-            {
-                header = "Newly attuned:",
-                entries = {
-                    "BigWigs Flash Alert Recovery — boss screen-flash and icon-pulse alerts restored on TBC Classic",
-                },
-            },
-        },
-    },
-    {
         version = "1.2.0",
         title = "Quality & Polish",
         subtitle = "The One Where Everything Got a Little Shinier",
@@ -54,18 +31,23 @@ ns.changelog = {
                     "In-game changelog popup — you're reading it right now, grats",
                     "Baganator patches moved in-house — bag sorting and lock fixes no longer need a separate addon",
                     "Setup wizard got a glow-up — 'Skip setup' is actually readable now, and it tells you about /pw if things go sideways",
+                    "BigWigs Flash Alert Recovery — boss flash and pulse alerts restored on TBC Classic",
+                    "!PatchWerk companion addon now groups with PatchWerk in the addon manager",
                 },
             },
             {
                 header = "Squashed like Razorgore's eggs:",
                 entries = {
+                    "ESC/Exit Game no longer triggers 'blocked from an action' — one line of shim code was poisoning the Quit button since day one",
+                    "EasyFrames patch removed entirely — it was breaking the pet bar and causing taint. Sometimes the best fix is /gkick",
+                    "AutoLayer actually leaves the group after hopping now — race conditions meant it just stood there like a confused warlock pet",
+                    "AutoLayer status frame can't teleport to 0,0 anymore — that trick only works for mages",
                     "BugGrabber was hiding ALL your errors, not just the taint ones — real bugs are back on the meter",
                     "NovaWorldBuffs marker throttle no longer crashes 34 times when layer is nil — that's more wipes than C'Thun prog",
-                    "EasyFrames health text finally says 'K' and 'M' instead of 'T' — your target does NOT have 30 trillion HP",
-                    "AutoLayer status frame can't teleport to 0,0 anymore — that trick only works for mages",
                     "Details meter respects your speed setting now instead of going full Leeroy on refresh rates",
                     "Auctionator timeout no longer argues with itself about when to give up",
                     "Settings summary counts patches for addons you actually have, not your entire wishlist",
+                    "Enable All / Disable All no longer toggles patches for addons you don't have installed",
                 },
             },
             {
@@ -77,6 +59,8 @@ ns.changelog = {
                     "/pw toggle now actually tells you how to use it instead of staring blankly",
                     "Update notifications come with a summon portal (download link) now",
                     "Tooltips got a haste buff across the board",
+                    "Patch failure messages now tell you to type /pw instead of leaving you guessing",
+                    "All patch descriptions rewritten in plain English — no more 'O(n squared)' or 'garbage collection pressure'",
                 },
             },
         },
