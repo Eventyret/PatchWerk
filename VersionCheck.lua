@@ -99,6 +99,33 @@ function ns:ScanOutdatedPatches()
     end
 end
 
+-- Extract all numeric segments from a version string for comparison.
+-- "Plater-v632-TBC" -> {632}, "v406.5" -> {406,5}, "v57" -> {57}
+local function ExtractNumbers(str)
+    local nums = {}
+    for n in str:gmatch("(%d+)") do
+        nums[#nums + 1] = tonumber(n)
+    end
+    return nums
+end
+
+-- Compare two version strings and return a confidence hint.
+-- "bump"   = small numeric delta, likely just needs an override
+-- "review" = large delta or unparseable, should verify patches
+local function ClassifyDelta(expected, installed)
+    local eNums = ExtractNumbers(expected)
+    local iNums = ExtractNumbers(installed)
+    if #eNums == 0 or #iNums == 0 then return "review" end
+    if #eNums ~= #iNums then return "review" end
+
+    local totalDelta = 0
+    for i = 1, #eNums do
+        totalDelta = totalDelta + math.abs(iNums[i] - eNums[i])
+    end
+    -- Small total change across all segments = likely safe
+    return totalDelta <= 3 and "bump" or "review"
+end
+
 function ns:ReportOutdatedPatches()
     if #self.outdatedPatches == 0 then
         self:Print("All patches match installed addon versions.")
@@ -107,7 +134,14 @@ function ns:ReportOutdatedPatches()
 
     self:Print("|cffffff00Version mismatches:|r")
     for groupId, data in pairs(self.versionResults) do
-        self:Print("  |cffffffff" .. groupId .. "|r  |cff808080"
+        local hint = ClassifyDelta(data.expected, data.installed)
+        local tag
+        if hint == "bump" then
+            tag = "|cff33e633[bump]|r"
+        else
+            tag = "|cffff6666[review]|r"
+        end
+        self:Print("  " .. tag .. " |cffffffff" .. groupId .. "|r  |cff808080"
             .. data.expected .. "|r -> |cff33ccff" .. data.installed .. "|r"
             .. "  |cffaaaaaa(" .. #data.patches .. " patches)|r")
     end
