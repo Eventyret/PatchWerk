@@ -25,7 +25,7 @@ local _, ns = ...
 ns:RegisterPatch("QuestXP", {
     key = "QuestXP_questLogDebounce",
     label = "Quest Log Debounce",
-    help = "Debounces quest log updates so the full scan only runs once after rapid events.",
+    help = "Batches quest log updates so the full scan only runs once after rapid events.",
     detail = "QuestXP hooks every QuestLog_Update call to scan and annotate quest entries with XP values. This fires on every scroll tick, mouse hover, and quest state change — each time iterating the entire quest log and creating a new table. When you have many quests, scrolling the log causes repeated full scans that add up to noticeable stutter. This patch delays the scan by a tenth of a second so rapid-fire updates collapse into a single pass.",
     impact = "FPS",
     impactLevel = "Medium",

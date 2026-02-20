@@ -22,7 +22,7 @@ ns:RegisterPatch("Plater", {
     help = "Fixes a Plater bug that wastes memory by creating 60+ temporary timers per second.",
     detail = "Plater creates 60+ temporary objects every second just to track your FPS, which causes memory buildup over time. During heavy combat with many nameplates visible, this contributes to stuttering. The fix uses a single reusable tracker instead.",
     impact = "Memory", impactLevel = "High", category = "Performance",
-    estimate = "~2-4 FPS, fewer garbage collection stutters",
+    estimate = "~2-4 FPS, fewer memory-related stutters",
 })
 ns:RegisterPatch("Plater", {
     key = "Plater_healthText", label = "Health Text Skip",

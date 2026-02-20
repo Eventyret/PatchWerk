@@ -516,8 +516,10 @@ local function CreateOptionsPanel()
         enableAllBtn:GetFontString():SetFont(enableAllBtn:GetFontString():GetFont(), 10)
         enableAllBtn:SetScript("OnClick", function()
             for _, cb in ipairs(allCheckboxes) do
-                ns:SetOption(cb.optionKey, true)
-                cb:SetChecked(true)
+                if cb:IsEnabled() then
+                    ns:SetOption(cb.optionKey, true)
+                    cb:SetChecked(true)
+                end
             end
             RefreshStatusLabels(); RefreshGroupCounts(); RefreshSummary()
             ShowReloadBanner()
@@ -530,8 +532,10 @@ local function CreateOptionsPanel()
         disableAllBtn:GetFontString():SetFont(disableAllBtn:GetFontString():GetFont(), 10)
         disableAllBtn:SetScript("OnClick", function()
             for _, cb in ipairs(allCheckboxes) do
-                ns:SetOption(cb.optionKey, false)
-                cb:SetChecked(false)
+                if cb:IsEnabled() then
+                    ns:SetOption(cb.optionKey, false)
+                    cb:SetChecked(false)
+                end
             end
             RefreshStatusLabels(); RefreshGroupCounts(); RefreshSummary()
             ShowReloadBanner()

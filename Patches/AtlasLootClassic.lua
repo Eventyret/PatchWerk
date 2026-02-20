@@ -34,9 +34,9 @@ ns:RegisterPatch("AtlasLootClassic", {
     key = "AtlasLootClassic_searchLowerCache",
     label = "Search Name Cache",
     help = "Caches lowercased item names so the search filter doesn't recalculate them every keypress.",
-    detail = "The search filter calls string.lower on every visible button name each time you type a character. With 30 buttons, that is 30 string allocations per keypress. This caches the lowered names during page refresh so the filter reuses them.",
+    detail = "The search filter converts every button name to lowercase each time you type a character. With 30 buttons, that is 30 repeated conversions per keypress that always produce the same result. The fix remembers the converted names so they are only done once per page.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
-    estimate = "Reduces garbage collection pressure during search",
+    estimate = "Smoother search with less memory churn",
 })
 
 local GetTime = GetTime

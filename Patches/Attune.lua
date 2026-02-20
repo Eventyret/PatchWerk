@@ -16,15 +16,15 @@ local _, ns = ...
 ns:RegisterPatch("Attune", {
     key = "Attune_spairsOptimize",
     label = "Sorted Pairs Optimize",
-    help = "Fixes the O(n²) sorted pairs iterator used throughout Attune's UI.",
-    detail = "Attune's spairs() function calls Attune_count() on every iteration to get the table length. Attune_count() itself iterates the entire table each call, making key collection O(n²). This replaces it with the O(1) # length operator.",
+    help = "Fixes the extremely slow sorted list builder used throughout Attune's UI.",
+    detail = "Attune counts the size of its data tables in a very slow way -- recounting everything from scratch on every single pass. With large attunement lists, this causes the work to grow exponentially. The fix uses a much faster counting method that finishes instantly.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Significant improvement when viewing attunement UI with many entries",
 })
 ns:RegisterPatch("Attune", {
     key = "Attune_bagUpdateDebounce",
     label = "Bag Update Debounce",
-    help = "Debounces bag update handling to avoid repeated full item scans.",
+    help = "Batches bag updates so Attune only scans your items once instead of dozens of times per second.",
     detail = "Attune's BAG_UPDATE handler iterates all attunement steps and calls GetItemCount for every item-type step on every single bag slot change. During looting, vendoring, or crafting, this fires dozens of times per second. This debounces the scan to run at most once per 0.5 seconds.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Reduces lag spikes when looting or interacting with bags",

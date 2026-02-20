@@ -47,7 +47,7 @@ ns:RegisterPatch("NovaWorldBuffs", {
     key = "NovaWorldBuffs_cAddOnsShim",
     label = "C_AddOns Polyfill",
     help = "Provides the C_AddOns namespace for TBC Classic where it does not exist.",
-    detail = "NovaWorldBuffs calls C_AddOns.IsAddOnLoaded directly at two runtime locations (CHAT_MSG_SYSTEM handler and world map marker scaling) without the nil guard used elsewhere. On TBC Classic Anniversary, C_AddOns is nil, causing Lua errors on every system message and world map open. This creates a polyfill mapping to the classic global APIs.",
+    detail = "NovaWorldBuffs tries to use a modern addon-checking method that does not exist in TBC Classic Anniversary. This causes errors every time you receive a system message or open the world map. The fix provides the missing method so those checks work correctly.",
     impact = "Compatibility", impactLevel = "High", category = "Compatibility",
     estimate = "Eliminates Lua errors on system messages and world map opens",
 })
@@ -55,17 +55,17 @@ ns:RegisterPatch("NovaWorldBuffs", {
     key = "NovaWorldBuffs_cSummonInfoShim",
     label = "C_SummonInfo Polyfill",
     help = "Provides the C_SummonInfo namespace for TBC Classic where it does not exist.",
-    detail = "NovaWorldBuffs uses C_SummonInfo.ConfirmSummon and C_SummonInfo.GetSummonConfirmTimeLeft for auto-accepting summons after Darkmoon Faire buffs. These APIs do not exist in TBC Classic Anniversary. This polyfill maps ConfirmSummon to the classic global and provides a visibility-based fallback for GetSummonConfirmTimeLeft.",
+    detail = "NovaWorldBuffs tries to auto-accept summons after Darkmoon Faire buffs using methods that only exist in Retail WoW. On TBC Classic Anniversary, this causes errors when a summon appears. The fix provides working replacements so auto-accept works correctly.",
     impact = "Compatibility", impactLevel = "Medium", category = "Compatibility",
     estimate = "Restores auto-summon feature for Vanish/Feign Death users at DMF",
 })
 ns:RegisterPatch("NovaWorldBuffs", {
     key = "NovaWorldBuffs_pairsByKeysOptimize",
     label = "Sorted Pairs Optimize",
-    help = "Reduces table allocations in the sorted pairs iterator used throughout NWB.",
-    detail = "NWB:pairsByKeys allocates a new table and closure on every call. It is called from the 1-second ticker, layer frame recalculation, Felwood marker updates, and guild data status checks. This replaces it with a version that reuses a single sort buffer, eliminating repeated allocations.",
+    help = "Stops NovaWorldBuffs from creating and throwing away temporary data every second while sorting timers.",
+    detail = "NovaWorldBuffs creates and throws away temporary data every time it sorts its timer lists -- which happens every second. Over time, this builds up memory that has to be cleaned up, causing brief hitches. The fix reuses the same sorting workspace instead of recreating it constantly.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
-    estimate = "Reduces GC pressure from 3-6 table allocations per second on layered servers",
+    estimate = "Less memory churn from timer sorting on layered servers",
 })
 
 local GetTime = GetTime
