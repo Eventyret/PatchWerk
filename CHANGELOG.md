@@ -33,6 +33,9 @@ Think of this as a world buff for your addon folder.
 - Patch failure messages now tell you to type `/pw` instead of leaving you guessing
 - All patch descriptions rewritten in plain English — no more programmer-speak in your tooltips
 
+**Thanks to:**
+- **Jerrystclair** for reporting the ESC bug — even a mage couldn't portal out of that one
+
 ---
 *102 patches. 34 addons. Zero enrage timers.*
 

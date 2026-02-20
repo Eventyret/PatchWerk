@@ -63,6 +63,12 @@ ns.changelog = {
                     "All patch descriptions rewritten in plain English — no more programmer-speak in your tooltips",
                 },
             },
+            {
+                header = "Thanks to:",
+                entries = {
+                    "Jerrystclair for reporting the ESC bug — even a mage couldn't portal out of that one",
+                },
+            },
         },
     },
 }
