@@ -30,7 +30,6 @@ ns.changelog = {
                 entries = {
                     "In-game changelog popup — you're reading it right now, grats",
                     "Baganator patches moved in-house — bag sorting and lock fixes no longer need a separate addon",
-                    "Addon registry centralized — one source of truth instead of 35 files whispering different stories",
                     "Setup wizard got a glow-up — 'Skip setup' is actually readable now, and it tells you about /pw if things go sideways",
                 },
             },
@@ -223,7 +222,17 @@ local function CreateChangelogFrame()
     gotItBtn:SetScript("OnClick", function() ns:CloseChangelog() end)
 
     -- ESC / X / Got it all dismiss and mark as seen
-    tinsert(UISpecialFrames, "PatchWerk_Changelog")
+    -- Avoid tinsert(UISpecialFrames) — writing to that table taints the
+    -- ESC key processing path, causing ADDON_ACTION_BLOCKED on Quit/Logout.
+    f:EnableKeyboard(true)
+    f:SetScript("OnKeyDown", function(self, key)
+        if key == "ESCAPE" then
+            self:SetPropagateKeyboardInput(false)
+            self:Hide()
+        else
+            self:SetPropagateKeyboardInput(true)
+        end
+    end)
     f:SetScript("OnHide", function()
         overlay:Hide()
         local db = ns:GetDB()

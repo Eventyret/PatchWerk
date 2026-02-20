@@ -27,7 +27,6 @@ ns.registry = {
     { id = "VuhDo",              label = "VuhDo (Raid Frames)",                     deps = { "VuhDo" },               status = "verified",    targetVersion = "3.197-tbcc" },
     { id = "Cell",               label = "Cell (Raid Frames)",                      deps = { "Cell" },                status = "verified",    targetVersion = "r274-release" },
     { id = "BigDebuffs",         label = "BigDebuffs (Debuff Display)",             deps = { "BigDebuffs" },          status = "verified",    targetVersion = "v57" },
-    { id = "EasyFrames",         label = "EasyFrames (Unit Frames)",                deps = { "EasyFrames" },          status = "verified" },
     { id = "BugSack",            label = "BugSack (Error Display)",                 deps = { "BugSack" },             status = "verified",    targetVersion = "v11.2.9" },
     { id = "LoonBestInSlot",     label = "LoonBestInSlot (Gear Guide)",             deps = { "LoonBestInSlot" },      status = "shim-fixed", targetVersion = "6.0.0" },
     { id = "NovaInstanceTracker", label = "Nova Instance Tracker",                  deps = { "NovaInstanceTracker" }, status = "verified",    targetVersion = "2.17" },
