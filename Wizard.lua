@@ -52,7 +52,7 @@ local function BuildWelcomePage(container)
 
     local sub = page:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     sub:SetPoint("TOP", title, "BOTTOM", 0, -4)
-    sub:SetText("|cffaaaaaaPerformance patches for your addons|r")
+    sub:SetText("|cffaaaaaaNo enrage timer. No tank swap. Just pure, uninterrupted performance.|r")
 
     local body = page:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     body:SetPoint("TOP", sub, "BOTTOM", 0, -10)
@@ -61,8 +61,10 @@ local function BuildWelcomePage(container)
     body:SetJustifyH("CENTER")
     body:SetWordWrap(true)
     body:SetText(
-        "PatchWerk speeds up your addons and fixes common bugs " ..
-        "automatically. All patches are enabled by default.\n\n" ..
+        "Same addons, same features, no more lag. " ..
+        "PatchWerk stops your addons from doing more work than " ..
+        "they need to — and fixes the ones that forgot how to " ..
+        "behave on TBC Classic. All patches are enabled by default.\n\n" ..
         "Type |cffffd100/pw|r anytime to adjust. If an addon ever " ..
         "acts weird, open |cffffd100/pw|r and turn its patches off."
     )
