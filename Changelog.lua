@@ -20,6 +20,29 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.2.1",
+        title = "Hotfix",
+        subtitle = "The Emergency Maintenance Nobody Announced",
+        flavor = "PatchWerk reporting in from the repair bot queue with another round of fixes.",
+        sections = {
+            {
+                header = "Fixed before anyone filed a ticket:",
+                entries = {
+                    "ESC/Exit Game no longer triggers 'blocked from an action' — one line of shim code was poisoning the Quit button since day one",
+                    "EasyFrames patch removed entirely — it was breaking the pet bar and causing taint errors. Sometimes the best fix is /gkick",
+                    "AutoLayer actually leaves the group after hopping now — race conditions meant it just stood there like a confused warlock pet",
+                    "Wizard and Changelog popups no longer taint the ESC key — they handle Escape on their own now",
+                },
+            },
+            {
+                header = "Newly attuned:",
+                entries = {
+                    "BigWigs Flash Alert Recovery — boss screen-flash and icon-pulse alerts restored on TBC Classic",
+                },
+            },
+        },
+    },
+    {
         version = "1.2.0",
         title = "Quality & Polish",
         subtitle = "The One Where Everything Got a Little Shinier",

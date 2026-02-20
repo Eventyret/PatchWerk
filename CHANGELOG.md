@@ -1,5 +1,21 @@
 # PatchWerk Changelog
 
+## v1.2.1 — "The Emergency Maintenance Nobody Announced"
+
+PatchWerk reporting in from the repair bot queue with another round of fixes.
+
+**Fixed before anyone filed a ticket:**
+- ESC → Exit Game no longer triggers "!PatchWerk has been blocked from an action" — turns out one line of shim code was poisoning the Quit button since day one
+- EasyFrames patch removed entirely — it was breaking the pet action bar and causing taint errors. Sometimes the best fix is /gkick
+- AutoLayer actually leaves the group after hopping now — race conditions meant it sometimes just stood there like a confused warlock pet
+- Wizard and Changelog popups no longer taint the ESC key — they learned to handle Escape on their own instead of borrowing Blizzard's homework
+
+**Newly attuned:**
+- BigWigs Flash Alert Recovery — boss screen-flash and icon-pulse alerts are restored on TBC Classic. The original code dies on load, so PatchWerk finds the broken plugin and rebuilds it from spare parts
+
+---
+*102 patches. 34 addons. Zero enrage timers.*
+
 ## v1.2.0 — "The One Where Everything Got a Little Shinier"
 
 Think of this as a world buff for your addon folder.
@@ -7,7 +23,6 @@ Think of this as a world buff for your addon folder.
 **Shiny new things:**
 - In-game changelog popup — shows you what changed after each update so you're never out of the loop
 - Baganator patches moved in-house — bag sorting and lock fixes no longer need a separate addon
-- Addon registry centralized — one source of truth for all 35 addons instead of metadata scattered across every file
 - Setup wizard got a glow-up — "Skip setup" is actually readable now, and it tells you about `/pw` if things go sideways
 
 **Bugs that got /kicked:**
