@@ -415,7 +415,7 @@ end
 -- These values must match retail exactly as addons compare against them.
 ------------------------------------------------------------------------
 
-Enum = Enum or {}
+if not Enum then Enum = {} end
 
 if not Enum.ItemClass then
     Enum.ItemClass = {
@@ -635,17 +635,25 @@ if not Enum.UIMapType then
 end
 
 ------------------------------------------------------------------------
--- 14. SetColorTexture — REMOVED
--- Writing to the shared Texture metatable __index taints ALL texture
--- method dispatch game-wide. This makes GameMenuFrame buttons tainted
--- at creation, which blocks the protected Quit() and Logout() calls
--- with ADDON_ACTION_FORBIDDEN every time ESC is pressed.
---
--- Addons that call texture:SetColorTexture() on TBC Classic will get
--- "attempt to call method 'SetColorTexture' (a nil value)" errors.
--- PatchWerk handles the most critical cases (BigWigs Flash) with
--- per-addon recovery patches in Patches/.
+-- 14. SetColorTexture (Texture metatable patch)
+-- Retail Texture objects have SetColorTexture(r,g,b,a) which creates a
+-- solid-color texture. TBC Classic does NOT have this method.
+-- We patch the shared Texture metatable so ALL textures gain the method.
+-- Uses WHITE8x8 + SetVertexColor as the safe TBC workaround.
 ------------------------------------------------------------------------
+
+do
+    local tmpFrame   = CreateFrame("Frame")
+    local tmpTexture = tmpFrame:CreateTexture()
+    local mt  = getmetatable(tmpTexture)
+    local idx = mt and mt.__index
+    if idx and not idx.SetColorTexture then
+        idx.SetColorTexture = function(self, r, g, b, a)
+            self:SetTexture("Interface\\Buttons\\WHITE8x8")
+            self:SetVertexColor(r, g, b, a or 1)
+        end
+    end
+end
 
 ------------------------------------------------------------------------
 -- 15. EventRegistry
