@@ -16,9 +16,9 @@ local _, ns = ...
 -- Patch metadata (consumed by Options.lua for the settings GUI)
 ------------------------------------------------------------------------
 ns:RegisterPatch("Gargul", {
-    key = "Gargul_commRefreshSkip", label = "Comm Refresh Skip",
+    key = "Gargul_commRefreshSkip", label = "Message Roster Skip",
     help = "Stops Gargul from rechecking your entire raid roster on every single incoming message.",
-    detail = "Every addon message Gargul receives triggers a full raid roster scan -- iterating all 40 slots, calling GetRaidRosterInfo for each, and firing multiple internal events. During an active GDKP auction with rapid bidding, dozens of messages arrive per second, making this the single biggest performance bottleneck.",
+    detail = "Every addon message Gargul receives triggers a full raid roster scan -- checking all 40 raid slots one by one. During an active GDKP auction with rapid bidding, dozens of messages arrive per second, making this the single biggest performance bottleneck.",
     impact = "FPS", impactLevel = "High", category = "Performance",
     estimate = "~3-8 FPS during active GDKP auctions with many bidders",
 })
@@ -39,7 +39,7 @@ ns:RegisterPatch("Gargul", {
 ns:RegisterPatch("Gargul", {
     key = "Gargul_commBoxPrune", label = "Message Cleanup",
     help = "Periodically cleans up old tracked messages to prevent memory growth over long sessions.",
-    detail = "Every comm message that expects a response is stored in a tracking table that is never pruned. Over a long GDKP session with hundreds of auctions, version checks every 30 minutes, and sync operations, this table grows unboundedly. This adds periodic cleanup of entries older than 5 minutes.",
+    detail = "Every message that expects a response is stored in a tracking list that is never cleaned up. Over a long GDKP session with hundreds of auctions and sync operations, this list grows without limit. This adds periodic cleanup of entries older than 5 minutes.",
     impact = "Memory", impactLevel = "Medium", category = "Performance",
     estimate = "Prevents slow memory growth during long GDKP sessions",
 })

@@ -67,7 +67,7 @@ function ns:ScanOutdatedPatches()
                     if g.id == key then found = true; break end
                 end
                 if not found then
-                    self:Print("|cffffff00Warning: versionOverrides key '" .. key .. "' has no matching addon group|r")
+                    self:Print("|cffffff00Warning: version override '" .. key .. "' does not match any known addon.|r")
                 end
             end
         end
@@ -128,21 +128,21 @@ end
 
 function ns:ReportOutdatedPatches()
     if #self.outdatedPatches == 0 then
-        self:Print("All patches match installed addon versions.")
+        self:Print("All patches are up to date with your installed addons.")
         return
     end
 
-    self:Print("|cffffff00Version mismatches:|r")
+    self:Print("|cffffff00Some addons have updated since their patches were written:|r")
     for groupId, data in pairs(self.versionResults) do
         local hint = ClassifyDelta(data.expected, data.installed)
         local tag
         if hint == "bump" then
-            tag = "|cff33e633[bump]|r"
+            tag = "|cff33e633[minor]|r"
         else
-            tag = "|cffff6666[review]|r"
+            tag = "|cffff6666[check needed]|r"
         end
-        self:Print("  " .. tag .. " |cffffffff" .. groupId .. "|r  |cff808080"
-            .. data.expected .. "|r -> |cff33ccff" .. data.installed .. "|r"
+        self:Print("  " .. tag .. " |cffffffff" .. groupId .. "|r  was |cff808080"
+            .. data.expected .. "|r, now |cff33ccff" .. data.installed .. "|r"
             .. "  |cffaaaaaa(" .. #data.patches .. " patches)|r")
     end
 end
@@ -219,9 +219,9 @@ local function OnAddonMessage(prefix, message, channel, sender)
         if ns:GetOption("showUpdateNotification")
             and db.updateNotificationShown ~= remoteVersion then
             db.updateNotificationShown = remoteVersion
-            ns:Print("|cffffff00A newer version (|cff33e633" .. remoteVersion
-                .. "|cffffff00) is available! You have |cffff6666"
-                .. ns.VERSION .. "|cffffff00. Get it at: |cff66bbff"
+            ns:Print("|cffffff00A new version (|cff33e633v" .. remoteVersion
+                .. "|cffffff00) is available! You're running |cffff6666v"
+                .. ns.VERSION .. "|cffffff00. Download it here: |cff66bbff"
                 .. "https://github.com/Eventyret/PatchWerk/releases" .. "|r")
         end
     end
@@ -246,8 +246,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
             C_Timer.After(3, function()
                 local count = ns:CountUndismissedOutdated()
                 if count > 0 then
-                    ns:Print("|cffffff00" .. count .. " addon" .. (count > 1 and "s" or "")
-                        .. " updated since patches were written.|r /pw outdated for details.")
+                    ns:Print("|cffffff00" .. count .. " addon" .. (count > 1 and "s have" or " has")
+                        .. " been updated and may need attention.|r Type /pw outdated for details.")
                 end
             end)
         end

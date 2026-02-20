@@ -21,13 +21,13 @@ local _, ns = ...
 ------------------------------------------------------------------------
 ns:RegisterPatch("RatingBuster", {
     key = "RatingBuster_debugstackOptimize",
-    label = "TipHooker debugstack Bypass",
-    help = "Replaces expensive debugstack() calls in RatingBuster's tooltip hooker with a lightweight flag check.",
-    detail = "RatingBuster's TipHooker hooks OnTooltipSetItem on every tracked tooltip (GameTooltip, ShoppingTooltip1/2, ItemRefTooltip, etc.).  Each time OnTooltipSetItem fires, the handler calls debugstack():find(\"OnUpdate\") to detect if the tooltip was set during an OnUpdate cycle.  debugstack() captures the entire Lua call stack as a formatted string, which involves walking the stack, formatting frame names, line numbers, and concatenating them.  In scenarios with frequent tooltip updates (scrolling through bag items, browsing the auction house), this runs dozens of times per second.  This patch replaces the debugstack() check with a simple boolean flag that is set to true inside OnUpdate wrappers and checked in the tooltip handler, eliminating the stack capture entirely.",
+    label = "Tooltip Speed Boost",
+    help = "Speeds up RatingBuster's tooltip processing by replacing a slow internal check with a fast one.",
+    detail = "Every time you hover an item, RatingBuster runs a slow internal check to figure out how the tooltip was triggered. This check captures a snapshot of everything happening in the game engine, which is expensive to do dozens of times per second. This patch replaces that slow check with a simple yes/no flag, making tooltips noticeably snappier when browsing bags, the auction house, or vendor windows.",
     impact = "FPS",
     impactLevel = "Medium",
     category = "Performance",
-    estimate = "~5-15% tooltip processing improvement",
+    estimate = "Snappier tooltips when browsing items",
 })
 
 ------------------------------------------------------------------------

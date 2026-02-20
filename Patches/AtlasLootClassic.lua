@@ -16,9 +16,9 @@ local _, ns = ...
 ------------------------------------------------------------------------
 ns:RegisterPatch("AtlasLootClassic", {
     key = "AtlasLootClassic_searchDebounce",
-    label = "Search Box Debounce",
+    label = "Search Box Delay",
     help = "Adds a short delay before filtering items while you type in the search box.",
-    detail = "Every single keypress triggers a full 30-button filter pass with string matching. Typing quickly causes dozens of unnecessary filter cycles. This adds a 150ms debounce so the filter only runs once you pause typing.",
+    detail = "Every single keypress triggers a full 30-button filter pass. Typing quickly causes dozens of unnecessary filter cycles. This adds a brief pause so the filter only runs once you stop typing.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Eliminates lag spikes when typing in the search box",
 })
@@ -33,10 +33,10 @@ ns:RegisterPatch("AtlasLootClassic", {
 ns:RegisterPatch("AtlasLootClassic", {
     key = "AtlasLootClassic_searchLowerCache",
     label = "Search Name Cache",
-    help = "Caches lowercased item names so the search filter doesn't recalculate them every keypress.",
+    help = "Remembers item names so the search filter does not redo the same work every keypress.",
     detail = "The search filter converts every button name to lowercase each time you type a character. With 30 buttons, that is 30 repeated conversions per keypress that always produce the same result. The fix remembers the converted names so they are only done once per page.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
-    estimate = "Smoother search with less memory churn",
+    estimate = "Smoother search typing with less wasted work",
 })
 
 local GetTime = GetTime

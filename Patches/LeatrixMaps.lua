@@ -17,12 +17,12 @@ local _, ns = ...
 ns:RegisterPatch("LeatrixMaps", {
     key = "LeatrixMaps_areaLabelThrottle",
     label = "Area Label Throttle",
-    help = "Throttles the area label update from every frame to 4 times per second.",
-    detail = "Leatrix Maps replaces the default area label handler with its own AreaLabelOnUpdate function that runs every single frame while the World Map is open. Each call invokes C_Map.GetMapInfoAtPosition, table lookups, colour calculations, and string concatenation. At 60 fps that is 60 calls per second for text that only changes when you move the cursor to a new zone. This patch wraps the handler with a 0.25-second throttle so it fires at most 4 times per second, which is still instant to the eye but eliminates ~93% of the overhead.",
+    help = "Updates the zone label text 4 times per second instead of every frame.",
+    detail = "Leatrix Maps updates the area label on the World Map every single frame -- 60+ times per second -- even though the text only changes when you move your cursor to a different zone. Each update recalculates zone info, level ranges, and colors. This patch limits it to 4 times per second, which still feels instant but eliminates most of the overhead.",
     impact = "FPS",
     impactLevel = "Medium",
     category = "Performance",
-    estimate = "~5-10% FPS improvement when viewing the world map",
+    estimate = "Smoother World Map browsing, especially on lower-end systems",
 })
 
 ------------------------------------------------------------------------

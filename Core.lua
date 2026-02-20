@@ -144,7 +144,7 @@ patcher:SetScript("OnEvent", function(self)
                     patchedGroups[group] = true
                 end
             else
-                ns:Print("Patch '" .. name .. "' failed: " .. tostring(err) .. " -- type /pw to disable it")
+                ns:Print("|cffff6666" .. (pi.label or name) .. " could not be applied.|r Type /pw to disable it.")
             end
         end
     end

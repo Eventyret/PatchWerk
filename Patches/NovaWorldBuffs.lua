@@ -31,41 +31,41 @@ ns:RegisterPatch("NovaWorldBuffs", {
     key = "NovaWorldBuffs_openConfigFix",
     label = "Config Panel Fix",
     help = "Fixes the /nwb config command so it opens the settings panel on TBC.",
-    detail = "NovaWorldBuffs uses Settings.OpenToCategory to open its config panel, but this API does not exist on TBC Classic Anniversary. This wraps the openConfig function with a fallback to InterfaceOptionsFrame_OpenToCategory.",
+    detail = "NovaWorldBuffs tries to open its settings panel using a method that only exists in Retail WoW. On TBC Classic Anniversary, typing /nwb config would throw an error instead. This fix provides a working fallback so the command opens settings correctly.",
     impact = "Compatibility", impactLevel = "High", category = "Compatibility",
     estimate = "Makes /nwb config work reliably on TBC Classic Anniversary",
 })
 ns:RegisterPatch("NovaWorldBuffs", {
     key = "NovaWorldBuffs_markerThrottle",
     label = "Map Marker Throttle",
-    help = "Throttles unthrottled world map marker updates from every frame to once per second.",
+    help = "Updates world map buff markers once per second instead of every frame.",
     detail = "World buff markers, DMF markers, and Felwood markers all update their timer text on every rendered frame (60+ fps) with no throttle. Songflower markers are already properly throttled to once per second. This applies the same 1-second throttle to the unthrottled markers, covering worldmap, minimap, and DMF displays.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "FPS improvement when viewing the world map or Felwood minimap",
 })
 ns:RegisterPatch("NovaWorldBuffs", {
     key = "NovaWorldBuffs_cAddOnsShim",
-    label = "C_AddOns Polyfill",
-    help = "Provides the C_AddOns namespace for TBC Classic where it does not exist.",
-    detail = "NovaWorldBuffs tries to use a modern addon-checking method that does not exist in TBC Classic Anniversary. This causes errors every time you receive a system message or open the world map. The fix provides the missing method so those checks work correctly.",
+    label = "Addon Check Fix",
+    help = "Fixes missing addon-checking features that cause errors on TBC Classic.",
+    detail = "NovaWorldBuffs tries to check whether other addons are installed using a method that only exists in Retail WoW. On TBC Classic Anniversary, this causes errors every time you receive a system message or open the world map. This fix provides working replacements so those checks succeed without errors.",
     impact = "Compatibility", impactLevel = "High", category = "Compatibility",
     estimate = "Eliminates Lua errors on system messages and world map opens",
 })
 ns:RegisterPatch("NovaWorldBuffs", {
     key = "NovaWorldBuffs_cSummonInfoShim",
-    label = "C_SummonInfo Polyfill",
-    help = "Provides the C_SummonInfo namespace for TBC Classic where it does not exist.",
-    detail = "NovaWorldBuffs tries to auto-accept summons after Darkmoon Faire buffs using methods that only exist in Retail WoW. On TBC Classic Anniversary, this causes errors when a summon appears. The fix provides working replacements so auto-accept works correctly.",
+    label = "Summon Auto-Accept Fix",
+    help = "Fixes the auto-accept summon feature that breaks on TBC Classic.",
+    detail = "NovaWorldBuffs tries to auto-accept summons after getting Darkmoon Faire buffs using methods that only exist in Retail WoW. On TBC Classic Anniversary, this causes errors when a summon appears. This fix provides working replacements so auto-accept works correctly.",
     impact = "Compatibility", impactLevel = "Medium", category = "Compatibility",
     estimate = "Restores auto-summon feature for Vanish/Feign Death users at DMF",
 })
 ns:RegisterPatch("NovaWorldBuffs", {
     key = "NovaWorldBuffs_pairsByKeysOptimize",
-    label = "Sorted Pairs Optimize",
+    label = "Timer Sort Cleanup",
     help = "Stops NovaWorldBuffs from creating and throwing away temporary data every second while sorting timers.",
-    detail = "NovaWorldBuffs creates and throws away temporary data every time it sorts its timer lists -- which happens every second. Over time, this builds up memory that has to be cleaned up, causing brief hitches. The fix reuses the same sorting workspace instead of recreating it constantly.",
+    detail = "NovaWorldBuffs creates and throws away temporary data every time it sorts its timer lists -- which happens every second. Over time, this builds up memory that has to be cleaned up, causing brief hitches. The fix reuses the same workspace instead of recreating it constantly.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
-    estimate = "Less memory churn from timer sorting on layered servers",
+    estimate = "Reduces memory buildup from timer sorting on layered servers",
 })
 
 local GetTime = GetTime

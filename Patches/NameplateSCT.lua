@@ -17,8 +17,8 @@ local _, ns = ...
 ns:RegisterPatch("NameplateSCT", {
     key = "NameplateSCT_animationThrottle",
     label = "Animation Throttle",
-    help = "Caps the animation update loop to 30fps instead of running every frame.",
-    detail = "NameplateSCT runs an OnUpdate handler every single frame to animate floating combat text. With 10-20 active text animations during AoE combat, this means dozens of DB table lookups, easing calculations, and SetPoint calls happening 60+ times per second. Capping the animation loop to 30fps halves this work while keeping text movement visually smooth.",
+    help = "Caps the floating combat text animation to 30fps instead of running every frame.",
+    detail = "NameplateSCT updates every floating combat number on every single frame -- 60+ times per second. With 10-20 numbers on screen during AoE pulls, that is a lot of position and size recalculations each frame. Capping the animation to 30fps halves this work while keeping the text movement visually smooth.",
     impact = "FPS",
     impactLevel = "Medium",
     category = "Performance",

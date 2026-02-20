@@ -14,7 +14,7 @@ local _, ns = ...
 ns:RegisterPatch("SexyMap", {
     key = "SexyMap_slashCmdFix", label = "Slash Command Fix",
     help = "Fixes the /sexymap and /minimap commands so they open the settings panel.",
-    detail = "SexyMap uses Settings.OpenToCategory to open its config panel, but this API may not work correctly on TBC Classic Anniversary. This wraps the slash command with a fallback to the classic InterfaceOptionsFrame_OpenToCategory method.",
+    detail = "SexyMap tries to open its settings panel using a method that doesn't always work on TBC Classic Anniversary. This patch adds a fallback so the settings panel opens reliably every time.",
     impact = "Compatibility", impactLevel = "High", category = "Compatibility",
     estimate = "Makes /sexymap and right-click config work reliably",
 })

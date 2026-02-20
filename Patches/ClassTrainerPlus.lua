@@ -20,12 +20,12 @@ local _, ns = ...
 ns:RegisterPatch("ClassTrainerPlus", {
     key = "ClassTrainerPlus_shiftKeyThrottle",
     label = "Shift Key Throttle",
-    help = "Throttles the shift-key polling from every frame to 8 times per second.",
-    detail = "ClassTrainerPlus installs an OnUpdate script on ClassTrainerPlusFrame that calls IsShiftKeyDown() every single frame to detect when the player holds shift (toggling the Train button between 'Train' and 'Train All' and showing a cost tooltip). At 60+ fps this means 60+ redundant calls per second for a key state that changes at most a few times per minute. This patch wraps the OnUpdate handler with a 0.125-second elapsed-time accumulator, reducing polling to 8 times per second. This is still imperceptibly fast for the user but eliminates ~87% of the overhead.",
+    help = "Reduces shift-key checking from 60+ times per second to 8 while the trainer window is open.",
+    detail = "ClassTrainerPlus checks whether you are holding Shift every single frame to toggle the Train button between 'Train' and 'Train All'. At 60+ FPS, that is 60+ checks per second for a key you press at most a few times per minute. This patch reduces it to 8 checks per second, which still feels instant but cuts out most of the wasted work.",
     impact = "FPS",
     impactLevel = "Low",
     category = "Performance",
-    estimate = "~1-2% FPS improvement while trainer window is open",
+    estimate = "Small FPS improvement while the trainer window is open",
 })
 
 ------------------------------------------------------------------------

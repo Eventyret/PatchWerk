@@ -61,9 +61,8 @@ local function BuildWelcomePage(container)
     body:SetJustifyH("CENTER")
     body:SetWordWrap(true)
     body:SetText(
-        "PatchWerk patches your addons at load time: throttling " ..
-        "excessive updates, caching repeated work, and fixing " ..
-        "compatibility bugs. All patches are enabled by default.\n\n" ..
+        "PatchWerk speeds up your addons and fixes common bugs " ..
+        "automatically. All patches are enabled by default.\n\n" ..
         "Type |cffffd100/pw|r anytime to adjust. If an addon ever " ..
         "acts weird, open |cffffd100/pw|r and turn its patches off."
     )

@@ -15,18 +15,18 @@ local _, ns = ...
 ns:RegisterPatch("MoveAny", {
     key = "MoveAny_thinkHelpFrameSkip",
     label = "Profile Check Skip",
-    help = "Stops a perpetual polling loop that checks for EditMode profiles on TBC.",
-    detail = "MoveAny runs a ThinkHelpFrame function every 500ms that checks whether EditModeManagerFrame is using a preset profile. On TBC Classic Anniversary, EditModeManagerFrame does not exist, so this check always returns the same result and the loop does nothing useful. This stops the loop entirely.",
+    help = "Stops a repeating check that looks for a Retail WoW feature that does not exist on TBC.",
+    detail = "MoveAny checks twice per second for a UI layout system that only exists in Retail WoW. On TBC Classic Anniversary, this feature does not exist, so the check always gets the same answer and wastes resources. This stops the loop entirely.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
-    estimate = "Eliminates a 500ms perpetual polling loop",
+    estimate = "Eliminates a repeating check that runs twice per second",
 })
 ns:RegisterPatch("MoveAny", {
     key = "MoveAny_updateMoveFramesDebounce",
-    label = "Frame Registration Debounce",
-    help = "Prevents rapid repeated frame registration scans when many frames are created at once.",
-    detail = "MoveAny hooks the global CreateFrame function and triggers a full frame registration scan on every single frame creation. During loading screens and zone transitions, dozens to hundreds of frames are created per second, each triggering a redundant scan. This debounces CreateFrame-triggered scans to at most twice per second.",
+    label = "UI Scan Batching",
+    help = "Batches rapid UI scans together during loading screens and zone transitions.",
+    detail = "MoveAny scans for new movable UI elements every time a new window or panel is created. During loading screens and zone transitions, hundreds of these are created per second, each triggering a redundant scan. This batches those scans to at most twice per second, which is still responsive but far less wasteful.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
-    estimate = "Reduces load screen and zone transition overhead",
+    estimate = "Faster loading screens and zone transitions",
 })
 
 local GetTime = GetTime

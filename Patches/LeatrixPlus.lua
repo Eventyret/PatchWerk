@@ -27,13 +27,13 @@ local _, ns = ...
 ------------------------------------------------------------------------
 ns:RegisterPatch("LeatrixPlus", {
     key = "LeatrixPlus_taxiOnUpdateThrottle",
-    label = "Panel Combat-Hide Throttle",
-    help = "Replaces per-frame combat polling on config panels with an event-driven approach.",
-    detail = "Leatrix Plus installs OnUpdate scripts on its TaxiPanel and SideMinimap configuration panels that call UnitAffectingCombat(\"player\") every single frame while the panel is open.  Their only purpose is to hide the panel when the player enters combat.  This patch removes both OnUpdate handlers and replaces them with a single PLAYER_REGEN_DISABLED event listener that hides any open Leatrix Plus config panel the instant combat begins -- zero per-frame cost and more responsive.",
+    label = "Smarter Combat-Hide",
+    help = "Closes config panels when combat starts without checking every single frame.",
+    detail = "Leatrix Plus checks whether you are in combat every single frame while its Flight Map or Minimap settings panels are open, just to hide them when a fight starts. This patch replaces that constant checking with a single listener that fires the instant combat begins -- same result, no wasted work.",
     impact = "FPS",
     impactLevel = "Low",
     category = "Performance",
-    estimate = "Eliminates 2 per-frame combat polls while config panels are open",
+    estimate = "Small FPS boost while Leatrix Plus config panels are open",
 })
 
 ------------------------------------------------------------------------

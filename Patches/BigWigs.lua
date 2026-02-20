@@ -22,8 +22,8 @@ ns:RegisterPatch("BigWigs", {
 
 ns:RegisterPatch("BigWigs", {
     key = "BigWigs_flashRecovery", label = "Flash Alert Recovery",
-    help = "Recovers boss Flash/Pulse alerts that break without the retail SetColorTexture API.",
-    detail = "BigWigs Flash.lua uses the retail SetColorTexture API at file scope. On TBC Classic this API does not exist and the entire Flash plugin fails to initialize — no screen-flash or icon-pulse alerts during boss encounters. This patch detects the broken plugin and re-creates it using TBC-compatible APIs (SetTexture + SetVertexColor).",
+    help = "Recovers boss Flash/Pulse alerts that break on TBC Classic because of missing Retail WoW features.",
+    detail = "BigWigs uses a Retail WoW feature for its screen-flash effects that does not exist on TBC Classic. Without this fix, the entire Flash plugin fails to load -- meaning no screen-flash or icon-pulse alerts during boss encounters. This patch detects the broken plugin and rebuilds it using Classic-compatible methods.",
     impact = "FPS", impactLevel = "Low", category = "Fixes",
     estimate = "Restores boss flash and pulse visual alerts",
 })

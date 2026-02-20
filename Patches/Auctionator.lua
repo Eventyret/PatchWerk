@@ -31,7 +31,7 @@ ns:RegisterPatch("Auctionator", {
 ns:RegisterPatch("Auctionator", {
     key = "Auctionator_priceAgeOptimize", label = "Price Age Optimizer",
     help = "Makes price freshness calculations faster and lighter on memory.",
-    detail = "Every time you hover over an item, Auctionator creates throwaway data, sorts it, then discards it just to check how old the price is. During quick auction scans this causes tooltip lag. The fix does it without any throwaway data.",
+    detail = "Every time you hover over an item, Auctionator creates throwaway data, sorts it, then discards it just to check how old the price is. During quick auction scans this causes tooltip lag. The fix finds the answer directly without creating and throwing away extra data.",
     impact = "Memory", impactLevel = "Medium", category = "Performance",
     estimate = "Less memory growth during long AH sessions",
 })

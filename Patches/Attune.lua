@@ -15,25 +15,25 @@ local _, ns = ...
 ------------------------------------------------------------------------
 ns:RegisterPatch("Attune", {
     key = "Attune_spairsOptimize",
-    label = "Sorted Pairs Optimize",
+    label = "Sorted List Speedup",
     help = "Fixes the extremely slow sorted list builder used throughout Attune's UI.",
-    detail = "Attune counts the size of its data tables in a very slow way -- recounting everything from scratch on every single pass. With large attunement lists, this causes the work to grow exponentially. The fix uses a much faster counting method that finishes instantly.",
+    detail = "Attune counts the size of its data tables in a very slow way -- recounting everything from scratch on every single pass. With large attunement lists, this causes the work to grow dramatically. The fix uses a much faster counting method that finishes instantly.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Significant improvement when viewing attunement UI with many entries",
 })
 ns:RegisterPatch("Attune", {
     key = "Attune_bagUpdateDebounce",
-    label = "Bag Update Debounce",
+    label = "Bag Update Batching",
     help = "Batches bag updates so Attune only scans your items once instead of dozens of times per second.",
-    detail = "Attune's BAG_UPDATE handler iterates all attunement steps and calls GetItemCount for every item-type step on every single bag slot change. During looting, vendoring, or crafting, this fires dozens of times per second. This debounces the scan to run at most once per 0.5 seconds.",
+    detail = "Attune checks all attunement steps and counts every quest item on every single bag slot change. During looting, vendoring, or crafting, this fires dozens of times per second. The fix combines these rapid updates into a single scan every half second.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "Reduces lag spikes when looting or interacting with bags",
 })
 ns:RegisterPatch("Attune", {
     key = "Attune_cleuEarlyExit",
-    label = "Combat Log Early Exit",
-    help = "Skips combat log events that Attune cannot use.",
-    detail = "Attune only processes PARTY_KILL and UNIT_DIED combat log events but extracts all 16 parameters from every single event before checking. This adds an early check on the subevent type and skips the full handler for irrelevant events like SPELL_DAMAGE, SWING_DAMAGE, etc.",
+    label = "Combat Log Filter",
+    help = "Skips combat log events that Attune cannot use, like damage and healing.",
+    detail = "Attune only cares about kills and deaths in the combat log, but it reads all the details from every single combat event before deciding to ignore it. This adds an early check so irrelevant events like damage, healing, and buffs are skipped immediately without doing any extra work.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "Small improvement during combat with many enemies",
 })
