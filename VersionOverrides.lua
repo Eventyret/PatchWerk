@@ -20,4 +20,5 @@ local _, ns = ...
 ns.versionOverrides = {
     ["Plater"] = "Plater-v632-TBC",   -- verified 2026-02-20
     ["BigDebuffs"] = "v58",            -- verified 2026-02-20
+    ["BigWigs"] = "v406.5",            -- verified 2026-02-20
 }

@@ -37,8 +37,10 @@ end
 local function GetInstalledVersion(addonName)
     if not addonName or not GetMeta then return nil end
     local ok, version = pcall(GetMeta, addonName, "Version")
-    if ok and version and version ~= "" then return version end
-    return nil
+    if not ok or not version or version == "" then return nil end
+    -- Skip unpackaged dev builds (TOC still has the packaging placeholder)
+    if version:find("@") then return nil end
+    return version
 end
 
 function ns:ScanOutdatedPatches()
@@ -103,17 +105,12 @@ function ns:ReportOutdatedPatches()
         return
     end
 
-    self:Print("|cffffff00Some patches may need updating:|r")
+    self:Print("|cffffff00Version mismatches:|r")
     for groupId, data in pairs(self.versionResults) do
-        self:Print("  |cffffffff" .. groupId .. "|r (was: |cff808080"
-            .. data.expected .. "|r, now: |cff33ccff"
-            .. data.installed .. "|r)")
-        for _, pi in ipairs(data.patches) do
-            self:Print("    - " .. pi.label)
-        end
+        self:Print("  |cffffffff" .. groupId .. "|r  |cff808080"
+            .. data.expected .. "|r -> |cff33ccff" .. data.installed .. "|r"
+            .. "  |cffaaaaaa(" .. #data.patches .. " patches)|r")
     end
-    self:Print("These patches still work but should be verified.")
-    self:Print("Report issues: |cff66bbff" .. self.GITHUB_URL .. "|r")
 end
 
 -- Count outdated groups, excluding dismissed ones
