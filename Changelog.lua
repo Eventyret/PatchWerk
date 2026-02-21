@@ -20,6 +20,32 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.2.1",
+        title = "Bug Fixes",
+        subtitle = "The One Where Questie Learned to Count",
+        flavor = "Two bug reports walk into Shattrath. Both get fixed before the loading screen.",
+        sections = {
+            {
+                header = "Bugs that got /kicked:",
+                entries = {
+                    "Questie quest tracking no longer falls behind — looting 8 bones now shows 8/10, not 7/10. The quest log update was eating events instead of batching them",
+                    "AutoLayer right-clicking the status frame now always sends a hop request, even when your layer is unknown — no more surprise GUI popping up in Shattrath",
+                    "AutoLayer clicking to hop multiple times no longer queues up a conga line of requests — once you're mid-hop, extra clicks are ignored",
+                    "AutoLayer actually leaves the group when a hop times out after 90 seconds — no more standing in a party forever like a confused warlock pet (again)",
+                    "AutoLayer gives NovaWorldBuffs the full 5 seconds to confirm your new layer after hopping — it was starting the countdown too early and bailing before NWB could check",
+                    "AutoLayer 'Searching...' only shows when a hop request actually goes out — no more phantom searches when you click too fast",
+                    "AutoLayer picks up hop invites even if your last attempt failed — no more getting stuck because someone invited you right after a timeout",
+                },
+            },
+            {
+                header = "Thanks to:",
+                entries = {
+                    "Finn for reporting both issues while testing live on stream — go check him out at twitch.tv/finnwow31!",
+                },
+            },
+        },
+    },
+    {
         version = "1.2.0",
         title = "Quality & Polish",
         subtitle = "The One Where Everything Got a Little Shinier",
@@ -216,8 +242,33 @@ local function CreateChangelogFrame()
         if w and w > 0 then content:SetWidth(w) end
     end)
 
-    local contentHeight = BuildChangelogContent(content, entry)
-    content:SetHeight(math.max(contentHeight + 20, 100))
+    -- Render all changelog entries (latest first, older entries below)
+    local totalHeight = BuildChangelogContent(content, entry)
+    for i = 2, #ns.changelog do
+        local older = ns.changelog[i]
+        -- Version separator
+        local sep = content:CreateTexture(nil, "ARTWORK")
+        sep:SetHeight(1)
+        sep:SetPoint("TOPLEFT", 0, -(totalHeight + 16))
+        sep:SetPoint("RIGHT", content, "RIGHT", 0, 0)
+        SetSolidColor(sep, 0.25, 0.25, 0.25, 0.6)
+        totalHeight = totalHeight + 32
+
+        -- Older version header
+        local verHeader = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+        verHeader:SetPoint("TOPLEFT", 0, -totalHeight)
+        verHeader:SetText("v" .. older.version .. "  |cffbbbbbb\"" .. older.subtitle .. "\"|r")
+        totalHeight = totalHeight + 22
+
+        -- Render sections for this older entry
+        local olderContent = CreateFrame("Frame", nil, content)
+        olderContent:SetPoint("TOPLEFT", 0, -totalHeight)
+        olderContent:SetPoint("RIGHT", content, "RIGHT", 0, 0)
+        olderContent:SetHeight(800)
+        local olderHeight = BuildChangelogContent(olderContent, older)
+        totalHeight = totalHeight + olderHeight
+    end
+    content:SetHeight(math.max(totalHeight + 20, 100))
 
     -- Nav separator (above button bar)
     local navSep = f:CreateTexture(nil, "ARTWORK")

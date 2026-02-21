@@ -149,8 +149,10 @@ local hopState = {
     source = nil,           -- "OUTBOUND" (from SendLayerRequest) or "INBOUND" (from PARTY_INVITE_REQUEST)
     fromLayer = nil,
     phaseChanged = false,   -- true once UNIT_PHASE fires (hint that layer is changing)
+    phaseTimestamp = 0,     -- when UNIT_PHASE fired (for NWB grace period)
     timestamp = 0,
     lastKnownLayer = nil,
+    lastRequestTime = 0,    -- cooldown: when the last hop request was sent
 }
 
 local POLL_IDLE = 1.0
@@ -332,7 +334,7 @@ local function PollLayer()
     -- If we're IN_GROUP and UNIT_PHASE fired, give NWB 5s to confirm the new
     -- layer number. If it doesn't (no NPC targeted), leave anyway — the hop worked.
     if hopState.state == "IN_GROUP" and hopState.phaseChanged then
-        local elapsed = GetTime() - hopState.timestamp
+        local elapsed = GetTime() - hopState.phaseTimestamp
         -- NWB goes to 0 after UNIT_PHASE. If 5s pass without a new number, leave.
         if elapsed > 5.0 then
             hopState.state = "CONFIRMED"
@@ -357,13 +359,13 @@ local function PollLayer()
         hopState.phaseChanged = false
     end
     -- IN_GROUP safety net: if we've been in group for 90s without any
-    -- layer change detection, something went wrong — reset cleanly.
+    -- layer change detection, something went wrong — leave and reset.
     if hopState.state == "IN_GROUP" and (now - hopState.timestamp) > 90.0 then
+        LeaveHopGroup("timeout")
         hopState.state = "IDLE"
         hopState.source = nil
         hopState.fromLayer = nil
         hopState.phaseChanged = false
-        UIErrorsFrame:AddMessage("PatchWerk: Hop timed out", 1.0, 0.3, 0.3)
     end
     if hopState.state == "WAITING_INVITE" and (now - hopState.timestamp) > WAITING_TIMEOUT then
         if IsInGroup() then
@@ -493,18 +495,15 @@ local function CreateStatusFrame()
                 end
             else
                 -- Right-click: quick hop to any other layer
-                local currentLayer = NWB_CurrentLayer
-                local currentNum = currentLayer and tonumber(currentLayer)
-                if currentNum and currentNum > 0 and AutoLayer.SlashCommand then
-                    AutoLayer:SlashCommand("req")
-                    hopState.state = "WAITING_INVITE"
-                    hopState.fromLayer = currentNum
-                    hopState.timestamp = GetTime()
-                    UpdateStatusFrame()
-                elseif AutoLayer.HopGUI then
-                    -- Layer unknown, fall back to GUI
-                    AutoLayer:HopGUI()
-                end
+                -- Block when mid-hop or on cooldown (3s between requests)
+                if hopState.state == "IN_GROUP" or hopState.state == "CONFIRMED" then return end
+                if not AutoLayer.SlashCommand then return end
+                local now = GetTime()
+                if (now - hopState.lastRequestTime) < 3.0 then return end
+                -- Always send via SlashCommand — AutoLayer handles unknown
+                -- layers internally. Never fall back to HopGUI on right-click.
+                hopState.lastRequestTime = now
+                pcall(AutoLayer.SlashCommand, AutoLayer, "req")
             end
         end
     end)
@@ -814,11 +813,14 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
     if not AutoLayer then return end
 
     -- Hook SendLayerRequest to capture hop initiation (outbound path)
+    -- Allow from IDLE, WAITING_INVITE (retry), or NO_RESPONSE (retry after failure)
+    -- Block only when IN_GROUP or CONFIRMED (already mid-hop)
     hooksecurefunc(AutoLayer, "SendLayerRequest", function()
-        if hopState.state ~= "IDLE" then return end  -- don't overwrite active hop
+        if hopState.state == "IN_GROUP" or hopState.state == "CONFIRMED" then return end
         local currentLayer = NWB_CurrentLayer
         hopState.state = "WAITING_INVITE"
         hopState.source = "OUTBOUND"
+        hopState.phaseChanged = false
         hopState.fromLayer = currentLayer and tonumber(currentLayer) or nil
         hopState.timestamp = GetTime()
         UpdateStatusFrame()
@@ -836,12 +838,13 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
             -- Guard: can't accept an invite while already in a group
             if IsInGroup() then return end
 
-            if hopState.state == "IDLE" then
-                -- External invite while idle — track so auto-leave works
+            if hopState.state == "IDLE" or hopState.state == "NO_RESPONSE" then
+                -- External invite while idle or after a failed attempt — track so auto-leave works
                 local currentLayer = NWB_CurrentLayer
                 hopState.state = "WAITING_INVITE"
                 hopState.source = "INBOUND"
                 hopState.fromLayer = currentLayer and tonumber(currentLayer) or nil
+                hopState.phaseChanged = false
                 hopState.timestamp = GetTime()
                 UpdateStatusFrame()
             end
@@ -860,6 +863,7 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
             if IsInInstance() then return end
 
             hopState.phaseChanged = true
+            hopState.phaseTimestamp = GetTime()
             UpdateStatusFrame()
 
         elseif event == "GROUP_ROSTER_UPDATE" then

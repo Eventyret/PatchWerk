@@ -1,5 +1,24 @@
 # PatchWerk Changelog
 
+## v1.2.1 — "The One Where Questie Learned to Count"
+
+Two bug reports walk into Shattrath. Both get fixed before the loading screen.
+
+**Bugs that got /kicked:**
+- Questie quest tracking no longer falls behind — looting 8 bones now shows 8/10, not 7/10. The quest log update was eating events instead of batching them
+- AutoLayer right-clicking the status frame now always sends a hop request, even when your layer is unknown — no more surprise GUI popping up in Shattrath
+- AutoLayer clicking to hop multiple times no longer queues up a conga line of requests — once you're mid-hop, extra clicks are ignored
+- AutoLayer actually leaves the group when a hop times out after 90 seconds — no more standing in a party forever like a confused warlock pet (again)
+- AutoLayer gives NovaWorldBuffs the full 5 seconds to confirm your new layer after hopping — it was starting the countdown too early and bailing before NWB could check
+- AutoLayer "Searching..." only shows when a hop request actually goes out — no more phantom searches when you click too fast
+- AutoLayer picks up hop invites even if your last attempt failed — no more getting stuck because someone invited you right after a timeout
+
+**Thanks to:**
+- **[Finn](https://www.twitch.tv/finnwow31)** for reporting both issues while testing live on stream — go check him out!
+
+---
+*102 patches. 35 addons. Zero enrage timers.*
+
 ## v1.2.0 — "The One Where Everything Got a Little Shinier"
 
 Think of this as a world buff for your addon folder.

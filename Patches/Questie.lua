@@ -7,8 +7,8 @@
 -- during active questing trigger full quest log scans, and quest
 -- availability recalculations burst 4-6 times on state changes.
 -- These patches address:
---   1. Questie_questLogThrottle        - Burst-throttle QUEST_LOG_UPDATE
---                                        processing to one scan per 0.5s
+--   1. Questie_questLogThrottle        - Debounce QUEST_LOG_UPDATE scans
+--                                        (trailing-edge, 0.2s settle)
 --   2. Questie_availableQuestsDebounce - Debounce CalculateAndDrawAll to
 --                                        collapse rapid-fire burst calls
 ------------------------------------------------------------------------
@@ -20,8 +20,8 @@ local _, ns = ...
 ------------------------------------------------------------------------
 ns:RegisterPatch("Questie", {
     key = "Questie_questLogThrottle", label = "Quest Log Throttle",
-    help = "Limits quest log refreshes to twice per second when multiple quests update at once.",
-    detail = "Questie scans your entire quest log multiple times per second during active questing -- every mob kill, quest progress tick, and zone change triggers it. This causes noticeable FPS drops when you have 20+ active quests, especially in crowded quest hubs.",
+    help = "Batches rapid quest log scans into one update after activity settles.",
+    detail = "Questie scans your entire quest log multiple times per second during active questing -- every mob kill, quest progress tick, and zone change triggers it. This causes noticeable FPS drops when you have 20+ active quests, especially in crowded quest hubs. Updates are deferred by 0.2 seconds and then always fire, so quest progress is never lost.",
     impact = "FPS", impactLevel = "High", category = "Performance",
     estimate = "~2-4 FPS during active questing with 20+ quests",
 })
@@ -53,8 +53,9 @@ local GetTime = GetTime
 --
 -- Questie uses a module loader (QuestieLoader:ImportModule) to access
 -- its internal modules.  We import QuestEventHandler and wrap
--- QuestLogUpdate with a 0.5s burst throttle so that only the first
--- call in any 0.5s window actually executes.
+-- QuestLogUpdate with a trailing-edge debounce: calls within 0.2s of
+-- each other are collapsed, but the LAST call always fires — so quest
+-- progress is never lost, just slightly deferred.
 ------------------------------------------------------------------------
 ns.patches["Questie_questLogThrottle"] = function()
     if not QuestieLoader or not QuestieLoader.ImportModule then return end
@@ -63,13 +64,22 @@ ns.patches["Questie_questLogThrottle"] = function()
     if not ok or not QEH or not QEH.QuestLogUpdate then return end
 
     local origQLU = QEH.QuestLogUpdate
-    local lastScan = 0
+    local pendingTimer = nil
+    local pendingArgs = nil
 
     QEH.QuestLogUpdate = function(...)
-        local now = GetTime()
-        if (now - lastScan) < 0.5 then return end
-        lastScan = now
-        return origQLU(...)
+        pendingArgs = { ... }
+        if pendingTimer then
+            pendingTimer:Cancel()
+        end
+        pendingTimer = C_Timer.NewTimer(0.2, function()
+            pendingTimer = nil
+            if pendingArgs then
+                local args = pendingArgs
+                pendingArgs = nil
+                origQLU(unpack(args))
+            end
+        end)
     end
 end
 
