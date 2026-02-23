@@ -2,6 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
+| [v1.4.0](#v140--3-addons-patched-0-loot-frames-seen) | HazeLoot fast auto-loot, HazeCooldowns GCD fix, Plumber TBC compatibility |
 | [v1.3.3](#v133--the-one-where-we-stopped-guessing) | Passive hop detection, configurable toasts, status frame polish |
 | [v1.3.2](#v132--the-one-where-we-actually-checked) | GUID-based hop verification, no more false confirmations |
 | [v1.3.1](#v131--the-one-where-we-stopped-believing-the-host) | Hop detection hotfix |
@@ -19,6 +20,21 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 - **Shivaz** — reported the AutoLayer dungeon invite bug ([v1.3.0](#v130--the-one-where-gudachat-joined-the-party))
 
 ---
+
+## v1.4.0 — "3 Addons Patched, 0 Loot Frames Seen"
+
+No realm restart required. We fixed it while you were farming Primal Mana.
+
+**Newly attuned:**
+- HazeLoot: fast auto-loot — when auto-loot is on, items are grabbed instantly without the loot frame flashing on screen. Shift-click still shows the full interactive frame. Master loot always shows the frame so you can distribute properly
+- HazeCooldowns: cooldown text no longer shows countdown timers on the global cooldown. The GCD detection was completely broken on TBC Classic — every ability briefly flashed "1.5" after you pressed it. Now only real cooldowns get timers
+- Plumber: loot window, spell flyouts, and settings panel no longer crash on TBC Classic. The companion addon now fills in the missing game functions Plumber expects (toy collection, mount journal, spell readiness checks)
+
+**Behind the curtain:**
+- Companion addon learned four new tricks: toy collection lookups, mount journal queries, spell data readiness, and item data readiness — all returning safe defaults since those systems don't exist in TBC
+
+---
+*107 patches. 37 addons. Zero enrage timers.*
 
 ## v1.3.3 — "The One Where We Stopped Guessing"
 

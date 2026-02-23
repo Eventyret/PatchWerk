@@ -24,6 +24,28 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.4.0",
+        title = "Loot & Cooldowns",
+        subtitle = "3 Addons Patched, 0 Loot Frames Seen",
+        flavor = "No realm restart required. We fixed it while you were farming Primal Mana.",
+        sections = {
+            {
+                header = "Newly attuned:",
+                entries = {
+                    "HazeLoot: fast auto-loot \226\128\148 when auto-loot is on, items are grabbed instantly without the loot frame flashing. Shift-click still shows the interactive frame. Master loot always shows the frame so you can distribute properly",
+                    "HazeCooldowns: cooldown text no longer shows countdown timers on the global cooldown. The GCD detection was completely broken on TBC Classic \226\128\148 every ability briefly flashed '1.5' after you pressed it. Now only real cooldowns get timers",
+                    "Plumber: loot window, spell flyouts, and settings panel no longer crash on TBC Classic. The companion addon now fills in the missing game functions Plumber expects",
+                },
+            },
+            {
+                header = "Behind the curtain:",
+                entries = {
+                    "Companion addon learned four new tricks: toy collection lookups, mount journal queries, spell data readiness, and item data readiness",
+                },
+            },
+        },
+    },
+    {
         version = "1.3.3",
         title = "Hop Polish",
         subtitle = "The One Where We Stopped Guessing",
