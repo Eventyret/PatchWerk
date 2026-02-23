@@ -192,18 +192,55 @@ local function GetPartyMemberName()
 end
 
 ------------------------------------------------------------------------
--- Helper: Get current layer's zoneID from creature GUIDs.
--- Primary: parse current target's GUID directly.
--- Fallback: NWB.lastKnownLayerID (persists after switching targets).
+-- Helper: Extract zoneID from a creature GUID (nil if not a creature)
+------------------------------------------------------------------------
+local function ZoneIDFromGUID(guid)
+    if not guid then return nil end
+    local unitType, _, _, _, zoneID = strsplit("-", guid)
+    if unitType == "Creature" then
+        return tonumber(zoneID)
+    end
+    return nil
+end
+
+------------------------------------------------------------------------
+-- Mouseover zoneID cache: updated passively via UPDATE_MOUSEOVER_UNIT
+-- so we always have a recent zoneID even without explicit targeting.
+------------------------------------------------------------------------
+local lastMouseoverZoneID = nil
+
+local mouseoverFrame = CreateFrame("Frame")
+mouseoverFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
+mouseoverFrame:SetScript("OnEvent", function()
+    local zid = ZoneIDFromGUID(UnitGUID("mouseover"))
+    if zid then
+        lastMouseoverZoneID = zid
+    end
+end)
+
+------------------------------------------------------------------------
+-- Helper: Get current layer's zoneID from any available creature GUID.
+-- Priority: target > mouseover > nameplates > NWB.lastKnownLayerID
 ------------------------------------------------------------------------
 local function GetCurrentZoneID()
-    local guid = UnitGUID("target")
-    if guid then
-        local unitType, _, _, _, zoneID = strsplit("-", guid)
-        if unitType == "Creature" then
-            return tonumber(zoneID)
-        end
+    -- 1. Current target (most reliable — player explicitly chose this)
+    local zid = ZoneIDFromGUID(UnitGUID("target"))
+    if zid then return zid end
+
+    -- 2. Current mouseover (live — cursor is on a creature right now)
+    zid = ZoneIDFromGUID(UnitGUID("mouseover"))
+    if zid then return zid end
+
+    -- 3. Cached mouseover (last creature the cursor passed over)
+    if lastMouseoverZoneID then return lastMouseoverZoneID end
+
+    -- 4. Nameplate scan (nearby visible creatures, no targeting needed)
+    for i = 1, 40 do
+        zid = ZoneIDFromGUID(UnitGUID("nameplate" .. i))
+        if zid then return zid end
     end
+
+    -- 5. NWB fallback (persists after switching targets away from NPCs)
     if NWB and NWB.lastKnownLayerID and NWB.lastKnownLayerID ~= 0 then
         return tonumber(NWB.lastKnownLayerID)
     end
@@ -228,7 +265,9 @@ local function LeaveHopGroup(reason)
             NWB.currentLayer = 0
             if NWB.lastKnownLayerMapID then NWB.lastKnownLayerMapID = 0 end
             if NWB.lastKnownLayerMapZoneID then NWB.lastKnownLayerMapZoneID = 0 end
+            if NWB.lastKnownLayerID then NWB.lastKnownLayerID = 0 end
         end
+        lastMouseoverZoneID = nil
         if reason == "timeout" then
             UIErrorsFrame:AddMessage("PatchWerk: Left group \226\128\148 hop timed out", 0.2, 0.8, 1.0, 1.0, 5)
         end
@@ -338,9 +377,9 @@ local function UpdateStatusFrame()
         if hopState.state == "WAITING_INVITE" then
             hint = "|cff888888Waiting for an invite...|r"
         elseif hopState.state == "IN_GROUP" then
-            hint = "|cff888888Target NPC to confirm hop|r"
+            hint = "|cff888888Stay near NPCs to auto-detect|r"
         elseif hopState.state == "VERIFYING" then
-            hint = "|cff888888Target NPC to verify layer|r"
+            hint = "|cff888888Mouseover any NPC to verify|r"
         elseif hopState.state == "NO_RESPONSE" then
             hint = "|cff888888Right-click to try again|r"
         end
@@ -1008,7 +1047,10 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
                     NWB.currentLayer = 0
                     if NWB.lastKnownLayerMapID then NWB.lastKnownLayerMapID = 0 end
                     if NWB.lastKnownLayerMapZoneID then NWB.lastKnownLayerMapZoneID = 0 end
+                    if NWB.lastKnownLayerID then NWB.lastKnownLayerID = 0 end
                 end
+                -- Also clear our mouseover cache — it's from the old layer
+                lastMouseoverZoneID = nil
                 hopState.state = "VERIFYING"
                 hopState.verifyStart = GetTime()
                 hopState.lastNWBPoke = nil

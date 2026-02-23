@@ -7,12 +7,12 @@ PatchWerk was trusting UNIT_PHASE to prove your layer changed. Turns out UNIT_PH
 **Bugs that got /kicked:**
 - AutoLayer hop detection completely rebuilt — PatchWerk now reads the zoneID from creature GUIDs before and after a hop to verify you actually changed layers, instead of trusting UNIT_PHASE events that fire for other group members
 - PatchWerk stays in the hop group until it has proof your layer changed (GUID zoneID differs or NWB reports a new layer number). No more leaving after 5 seconds on blind faith
-- If the host leaves before PatchWerk can confirm, it enters a "Verifying" state and keeps checking — target any NPC to let it know where you ended up
+- If the host leaves before PatchWerk can confirm, it enters a "Verifying" state and keeps checking — mouseover or walk near any NPC to let it know where you ended up
 - "Thanks for the hop!" whispers only go out when the hop actually worked. No more thanking someone for a layer change that didn't happen
-- The status frame now shows "Target NPC to confirm hop" during an active hop, so you know what to do if things seem stuck
 - False-positive hop confirmations from other players cycling through the group no longer trigger early group-leave
 
 **Quality of life:**
+- Hop detection now picks up nearby NPCs passively — nameplates and mouseover are enough, you don't need to manually target anything
 - Status frame widened slightly so hint text no longer clips
 - Hop timeout extended from 90s to 120s — some layers take a minute to settle
 - New "Verifying..." state with pulsing animation when the group disbands before confirmation
