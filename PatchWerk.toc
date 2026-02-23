@@ -4,7 +4,7 @@
 ## Author: Eventyret
 ## IconTexture: Interface\Icons\Trade_Engineering
 ## Version: @project-version@
-## OptionalDeps: !BugGrabber, AtlasLootClassic, Attune, Auctionator, AutoLayer_Vanilla, Baganator, Bartender4, BigDebuffs, BigWigs, BugSack, Cell, ClassTrainerPlus, Details, Gargul, GatherMate2, GudaChat, Leatrix_Maps, Leatrix_Plus, LFGBulletinBoard, LoonBestInSlot, MoveAny, NameplateSCT, NovaInstanceTracker, NovaWorldBuffs, OmniCC, OmniCC_Config, Pawn, Plater, Prat-3.0, Quartz, QuestXP, Questie, RatingBuster, SexyMap, StatLogic, TipTac, TipTacTalents, Titan, TitanBag, TitanPerformance, TitanReputations, VuhDo, VuhDoOptions
+## OptionalDeps: !BugGrabber, AtlasLootClassic, Attune, Auctionator, AutoLayer_Vanilla, Baganator, Bartender4, BigDebuffs, BigWigs, BugSack, Cell, ClassTrainerPlus, Details, Gargul, GatherMate2, GudaChat, HazeCooldowns, HazeLoot, Leatrix_Maps, Leatrix_Plus, LFGBulletinBoard, LoonBestInSlot, MoveAny, NameplateSCT, NovaInstanceTracker, NovaWorldBuffs, OmniCC, OmniCC_Config, Pawn, Plater, Prat-3.0, Quartz, QuestXP, Questie, RatingBuster, SexyMap, StatLogic, TipTac, TipTacTalents, Titan, TitanBag, TitanPerformance, TitanReputations, VuhDo, VuhDoOptions
 ## SavedVariables: PatchWerkDB
 ## X-Curse-Project-ID: 1466413
 ## X-Wago-ID: 56ndBWG9
@@ -27,6 +27,8 @@ Patches\Details.lua
 Patches\Gargul.lua
 Patches\GatherMate2.lua
 Patches\GudaChat.lua
+Patches\HazeCooldowns.lua
+Patches\HazeLoot.lua
 Patches\LeatrixMaps.lua
 Patches\LeatrixPlus.lua
 Patches\LFGBulletinBoard.lua
