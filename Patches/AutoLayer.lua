@@ -599,7 +599,7 @@ local function CreateStatusFrame()
         f:ClearAllPoints()
         f:SetPoint(p[1], UIParent, p[3], p[4], p[5])
     else
-        f:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -200, -60)
+        f:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -200, -70)
     end
 
     -- Border (extends 1px beyond frame bounds)
