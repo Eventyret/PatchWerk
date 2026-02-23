@@ -149,6 +149,7 @@ ns:RegisterPatch("AutoLayer", {
 
 ns:RegisterDefault("AutoLayer_hopWhisperEnabled", true)
 ns:RegisterDefault("AutoLayer_hopWhisperMessage", "[PatchWerk] Thanks for the hop!")
+ns:RegisterDefault("AutoLayer_toastDuration", 8)
 ns:RegisterDefault("AutoLayer_statusFrame_point", nil)
 
 ------------------------------------------------------------------------
@@ -176,6 +177,10 @@ local POLL_IDLE = 1.0
 local POLL_ACTIVE = 0.1
 local CONFIRM_DURATION = 3.0
 local WAITING_TIMEOUT = 20.0
+
+local function GetToastDuration()
+    return ns:GetOption("AutoLayer_toastDuration") or 8
+end
 local NO_RESPONSE_DURATION = 5.0
 
 ------------------------------------------------------------------------
@@ -258,7 +263,7 @@ local function LeaveHopGroup(reason)
 
     if reason == "confirmed" then
         -- Layer already verified — NWB cache is correct, don't invalidate
-        UIErrorsFrame:AddMessage("PatchWerk: Hop confirmed", 0.2, 0.8, 1.0, 1.0, 5)
+        UIErrorsFrame:AddMessage("PatchWerk: Hop confirmed", 0.2, 0.8, 1.0, 1.0, GetToastDuration())
     else
         -- Invalidate NWB's stale layer cache for verifying/timeout
         NWB_CurrentLayer = 0
@@ -270,7 +275,7 @@ local function LeaveHopGroup(reason)
         end
         lastMouseoverZoneID = nil
         if reason == "timeout" then
-            UIErrorsFrame:AddMessage("PatchWerk: Left group \226\128\148 hop timed out", 0.2, 0.8, 1.0, 1.0, 5)
+            UIErrorsFrame:AddMessage("PatchWerk: Left group \226\128\148 hop timed out", 0.2, 0.8, 1.0, 1.0, GetToastDuration())
         end
     end
     -- Whisper is handled by ConfirmHop, not here
@@ -291,7 +296,7 @@ local function ConfirmHop(layerNum)
         else
             msg = "Hop confirmed!"
         end
-        UIErrorsFrame:AddMessage(msg, 1.0, 0.82, 0.0, 1.0, 5)
+        UIErrorsFrame:AddMessage(msg, 1.0, 0.82, 0.0, 1.0, GetToastDuration())
         PlaySound(SOUNDKIT and SOUNDKIT.MAP_PING or 3175)
     end
 
@@ -308,7 +313,7 @@ end
 -- Helper: Mark a hop as failed (reset state + orange message)
 ------------------------------------------------------------------------
 local function FailHop(reason)
-    UIErrorsFrame:AddMessage("PatchWerk: " .. reason, 1.0, 0.6, 0.0, 1.0, 5)
+    UIErrorsFrame:AddMessage("PatchWerk: " .. reason, 1.0, 0.6, 0.0, 1.0, GetToastDuration())
     hopState.state = "IDLE"
     hopState.source = nil
     hopState.fromLayer = nil
@@ -378,9 +383,9 @@ UpdateStatusFrame = function()
         if hopState.state == "WAITING_INVITE" then
             hint = "|cff888888Waiting for an invite...|r"
         elseif hopState.state == "IN_GROUP" then
-            hint = "|cff888888Stay near NPCs to auto-detect|r"
+            hint = "|cff888888Stay near NPCs to confirm layer|r"
         elseif hopState.state == "VERIFYING" then
-            hint = "|cff888888Mouseover any NPC to verify|r"
+            hint = "|cff888888Hover over any NPC to confirm|r"
         elseif hopState.state == "NO_RESPONSE" then
             hint = "|cff888888Right-click to try again|r"
         end
@@ -427,7 +432,7 @@ local function PollLayer()
         if ns.applied["AutoLayer_layerChangeToast"] and not midHop then
             local fromNum = lastNum or hopState.fromLayer
             local msg = "Layer " .. (fromNum or "?") .. " -> " .. currentNum
-            UIErrorsFrame:AddMessage(msg, 1.0, 0.82, 0.0, 1.0, 5)
+            UIErrorsFrame:AddMessage(msg, 1.0, 0.82, 0.0, 1.0, GetToastDuration())
             PlaySound(SOUNDKIT and SOUNDKIT.MAP_PING or 3175)
         end
 
@@ -1061,7 +1066,7 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
                 hopState.state = "VERIFYING"
                 hopState.verifyStart = GetTime()
                 hopState.lastNWBPoke = nil
-                UIErrorsFrame:AddMessage("PatchWerk: Verifying hop...", 0.2, 0.8, 1.0, 1.0, 5)
+                UIErrorsFrame:AddMessage("PatchWerk: Verifying hop...", 0.2, 0.8, 1.0, 1.0, GetToastDuration())
                 UpdateStatusFrame()
             end
         end

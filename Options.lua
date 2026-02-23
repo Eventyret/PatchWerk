@@ -414,7 +414,38 @@ local function BuildAddonGroup(content, groupInfo, installed)
         local msgHint = bf:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
         msgHint:SetPoint("TOPLEFT", 48, by - 22)
         msgHint:SetText("|cff555555Sent to the group host when auto-leaving after a hop.|r")
-        by = by - 44
+        by = by - 52
+
+        -- Toast duration slider
+        local durLabel = bf:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+        durLabel:SetPoint("TOPLEFT", 24, by)
+        local durVal = ns:GetOption("AutoLayer_toastDuration") or 8
+        durLabel:SetText("Toast duration: " .. durVal .. "s")
+
+        by = by - 18
+        local slider = CreateFrame("Slider", "PatchWerk_ToastDuration", bf, "OptionsSliderTemplate")
+        slider:SetPoint("TOPLEFT", 24, by)
+        slider:SetPoint("RIGHT", bf, "RIGHT", -24, 0)
+        slider:SetMinMaxValues(3, 15)
+        slider:SetValueStep(1)
+        slider:SetObeyStepOnDrag(true)
+        slider:SetValue(durVal)
+        _G[slider:GetName() .. "Low"]:SetText("3s")
+        _G[slider:GetName() .. "High"]:SetText("15s")
+        _G[slider:GetName() .. "Text"]:SetText("")
+        slider:SetScript("OnValueChanged", function(self, value)
+            value = math.floor(value + 0.5)
+            ns:SetOption("AutoLayer_toastDuration", value)
+            durLabel:SetText("Toast duration: " .. value .. "s")
+        end)
+        slider:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Toast Duration", 1, 1, 1)
+            GameTooltip:AddLine("How long hop notifications stay on screen (in seconds).", 1, 0.82, 0, true)
+            GameTooltip:Show()
+        end)
+        slider:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        by = by - 30
     end
 
     local bh = -by + 2
