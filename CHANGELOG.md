@@ -1,5 +1,25 @@
 # PatchWerk Changelog
 
+## v1.3.3 — "The One Where We Stopped Guessing"
+
+v1.3.2 rebuilt hop detection from scratch but still had a few tricks up its sleeve. This patch polishes the rough edges — hops actually leave the group now, detection works without manually targeting anything, and the toast messages stick around long enough to actually read.
+
+**Bugs that got /kicked:**
+- AutoLayer no longer silently stays in the hop group after confirming — a forward-reference bug meant the "leave group" step never ran, so PatchWerk whispered thanks and then just... stood there
+- Hop detection no longer breaks after a `/reload` — PatchWerk picks up the first nearby NPC as a baseline instead of staring at nothing forever
+- Stale layer data from before a hop no longer tricks PatchWerk into thinking you're still on the old layer
+
+**Quality of life:**
+- Hop detection now works passively — nameplates and mouseover are enough, you don't need to manually target anything. Stand near NPCs in any city and PatchWerk handles the rest
+- Toast messages stay on screen longer (8 seconds, up from 5) so you can actually read "Layer 5 -> 8" before it vanishes
+- Toast duration is now configurable (3–15 seconds) via a slider in AutoLayer settings
+- Status frame default position moved up to avoid overlapping debuffs
+- Hover the status frame for a clear explanation of what On/Off means
+- Hint text during hops updated: "Stay near NPCs to confirm layer" and "Hover over any NPC to confirm"
+
+---
+*105 patches. 36 addons. Zero enrage timers.*
+
 ## v1.3.2 — "The One Where We Actually Checked"
 
 PatchWerk was trusting UNIT_PHASE to prove your layer changed. Turns out UNIT_PHASE fires for *everyone else* in the group — other hoppers joining and leaving were constantly triggering it, so PatchWerk said "thanks for the hop!" while you sat on the same layer the whole time. Six hops. Same layer. Awkward whispers. Never again.
@@ -12,8 +32,6 @@ PatchWerk was trusting UNIT_PHASE to prove your layer changed. Turns out UNIT_PH
 - False-positive hop confirmations from other players cycling through the group no longer trigger early group-leave
 
 **Quality of life:**
-- Hop detection now picks up nearby NPCs passively — nameplates and mouseover are enough, you don't need to manually target anything
-- Status frame widened slightly so hint text no longer clips
 - Hop timeout extended from 90s to 120s — some layers take a minute to settle
 - New "Verifying..." state with pulsing animation when the group disbands before confirmation
 - Failed hops show an orange warning ("Layer unchanged" or "Hop timed out") instead of silently resetting
