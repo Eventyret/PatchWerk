@@ -25,6 +25,61 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.5.0-beta1",
+        title = "ElvUI Support",
+        subtitle = "The One Where ElvUI Walked Into the Repair Bot",
+        flavor = "Consider this the Emergency Maintenance your ElvUI never got. PatchWerk now supports ElvUI with 24 patches \226\128\148 the biggest single-addon drop yet. This is a beta \226\128\148 if something feels off, toggle it off with /pw and let us know!",
+        sections = {
+            {
+                header = "TBC Classic compatibility fixes:",
+                entries = {
+                    "ElvUI's addon manager skin no longer errors out when it tries to use Retail-only game functions",
+                    "ElvUI's bag skin can now find the container functions it needs on TBC Classic",
+                    "Loot history window no longer throws errors \226\128\148 TBC Classic doesn't have a loot history system",
+                    "Gem socket window skin no longer errors when opening the socketing UI",
+                    "Communities and Guild Finder skin checks whether those windows exist before trying to style them",
+                },
+            },
+            {
+                header = "Your dungeon pulls just got smoother:",
+                entries = {
+                    "Nameplate health updates are batched instead of processing every single damage tick individually",
+                    "Mouse highlight checking only runs when your mouse target actually changes",
+                    "Quest objective icons remember which enemies are quest targets instead of rescanning constantly",
+                    "Target indicator tracks your target once instead of re-checking every nameplate on every health update",
+                },
+            },
+            {
+                header = "Your raid frames thank you:",
+                entries = {
+                    "Idle unit frames skip expensive processing when the player shown hasn't changed",
+                    "Mouseover, target, and focus glow effects consolidated from 120 separate watchers into one pass",
+                    "Raid frame text is no longer rewritten when the displayed value hasn't actually changed",
+                    "Health bar color settings read once per update instead of 5+ repeated lookups",
+                },
+            },
+            {
+                header = "Action bars and bags:",
+                entries = {
+                    "Bar visibility recalculated 10 times per second instead of 20+ during casting \226\128\148 still feels instant",
+                    "Keybind text formatting skips buttons with no keybind assigned",
+                    "Button greying only recalculates when a cooldown actually starts or finishes",
+                    "Bag sorting pre-reads all item details once \226\128\148 up to 70% faster",
+                    "Rapid-fire bag events combined into a single refresh",
+                    "Chat URL detection does a quick check first \226\128\148 messages without links skip all pattern scans",
+                },
+            },
+            {
+                header = "Quality of life:",
+                entries = {
+                    "Tooltip inspect data expires after 30 seconds instead of 2 minutes",
+                    "Heal prediction bars skip resizing when health bar dimensions haven't changed",
+                    "Buff/debuff filter rebuilds skipped when settings are unchanged",
+                },
+            },
+        },
+    },
+    {
         version = "1.4.0",
         title = "Loot & Cooldowns",
         subtitle = "3 Addons Patched, 0 Loot Frames Seen",

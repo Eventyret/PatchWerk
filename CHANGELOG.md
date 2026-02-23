@@ -2,6 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
+| [v1.5.0-beta1](#v150-beta1--the-one-where-elvui-walked-into-the-repair-bot) | ElvUI support — 24 patches across nameplates, unit frames, action bars, bags, and TBC compatibility |
 | [v1.4.0](#v140--3-addons-patched-0-loot-frames-seen) | HazeLoot fast auto-loot, HazeCooldowns GCD fix, Plumber TBC compatibility |
 | [v1.3.3](#v133--the-one-where-we-stopped-guessing) | Passive hop detection, configurable toasts, status frame polish |
 | [v1.3.2](#v132--the-one-where-we-actually-checked) | GUID-based hop verification, no more false confirmations |
@@ -20,6 +21,51 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 - **Shivaz** — reported the AutoLayer dungeon invite bug ([v1.3.0](#v130--the-one-where-gudachat-joined-the-party))
 
 ---
+
+## v1.5.0-beta1 — "The One Where ElvUI Walked Into the Repair Bot"
+
+Consider this the Emergency Maintenance your ElvUI never got. PatchWerk now supports ElvUI with 24 targeted patches — the biggest single-addon integration yet. This is a **beta release** so we can collect feedback before going stable. If something feels off, please report it!
+
+> **This is a beta.** All 24 patches are enabled by default. If any patch causes issues, you can toggle it off individually with `/pw` and let us know which one. Bug reports, feedback, and "it's smoother now" messages are all welcome — leave a comment on CurseForge, Wago, or open a GitHub issue.
+
+**TBC Classic compatibility fixes:**
+- ElvUI's addon manager skin no longer errors out when it tries to use Retail-only game functions — the skin is now wrapped in crash protection so your addon list always works
+- ElvUI's bag skin can now find the container functions it needs on TBC Classic — missing game functions are bridged to their classic equivalents
+- Loot history window no longer throws errors — TBC Classic doesn't have a loot history system, so ElvUI now gets safe empty results instead of a crash
+- Gem socket window skin no longer errors when opening the socketing UI — the missing socket type lookup is handled gracefully
+- Communities and Guild Finder skin no longer fires into the void — these windows don't exist in TBC Classic, so the skin checks first and skips quietly
+
+**Nameplate performance — your dungeon pulls just got smoother:**
+- Health updates are now batched instead of processing every single damage tick individually — in a big pull with 10+ enemies, this cuts nameplate update work dramatically
+- Mouse highlight checking replaced with a smarter approach that only runs when your mouse target actually changes, instead of constantly polling every visible nameplate
+- Quest objective icons now remember which enemies are quest targets instead of rescanning tooltip text every time a nameplate appears
+- Target indicator now tracks your target once when it changes, instead of re-checking every nameplate on every health update
+
+**Unit frame performance — your raid frames thank you:**
+- Idle unit frames now skip expensive processing when the player shown hasn't changed — in a 40-player raid, this eliminates thousands of redundant checks per second
+- Mouseover, target, and focus glow effects consolidated from 120 separate watchers into a single combined pass
+- Text on raid frame tags (name, health, power) is no longer rewritten when the displayed value hasn't actually changed — skips unnecessary layout recalculations
+- Health bar color settings are now read once per update instead of being looked up 5+ times through nested tables
+
+**Action bar performance:**
+- Bar visibility during casting is now recalculated 10 times per second instead of 20+ — still feels instant, cuts the work in half
+- Keybind text formatting skips buttons that have no keybind assigned, avoiding thousands of pointless text operations during bar reloads
+- Button greying (desaturation) only recalculates when a cooldown actually starts or finishes, not on every update tick
+- Data bar visual rebuilds are skipped entirely when your settings haven't changed — only the actual XP/rep values update
+
+**Bag and chat improvements:**
+- Bag sorting pre-reads all item details once before sorting begins, instead of re-reading them on every single comparison — up to 70% faster sorting
+- Rapid-fire bag events (from vendoring, sorting, moving items) are combined into a single refresh instead of processing each one individually
+- Bag slot item details are remembered between refreshes — opening your bags no longer queries the game for every single slot from scratch
+- Chat URL detection does a quick check first — messages that obviously don't contain links skip all 5 pattern scans entirely
+
+**Quality of life:**
+- Tooltip inspect data now expires after 30 seconds instead of 2 minutes — you'll see gear changes faster when mousing over players
+- Heal prediction bars skip resizing when the health bar dimensions haven't actually changed — fewer wasted layout updates in raids
+- Buff/debuff filter rebuilds are skipped when settings haven't changed — faster profile switching
+
+---
+*131 patches. 38 addons. Zero enrage timers. This is a beta — [report issues here](https://github.com/Eventyret/PatchWerk/issues).*
 
 ## v1.4.0 — "3 Addons Patched, 0 Loot Frames Seen"
 
