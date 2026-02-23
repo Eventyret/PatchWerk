@@ -383,13 +383,6 @@ UpdateStatusFrame = function()
             hint = "|cff888888Mouseover any NPC to verify|r"
         elseif hopState.state == "NO_RESPONSE" then
             hint = "|cff888888Right-click to try again|r"
-        elseif hopState.state == "IDLE" or hopState.state == "CONFIRMED" then
-            local enabled = AutoLayer.db and AutoLayer.db.profile.enabled
-            if enabled then
-                hint = "|cff888888Inviting players who ask|r"
-            else
-                hint = "|cff888888Not inviting players|r"
-            end
         end
 
         statusFrame.hintText:SetText(hint or "")
@@ -684,11 +677,17 @@ local function CreateStatusFrame()
         GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
         GameTooltip:SetText("|cff33ccffAutoLayer|r |cff808080(PatchWerk)|r")
 
-        -- Show session stats in tooltip
-        if AutoLayer and AutoLayer.db and AutoLayer.db.profile.enabled then
+        -- Status explanation
+        if AutoLayer and AutoLayer.db then
+            GameTooltip:AddLine(" ")
+            if AutoLayer.db.profile.enabled then
+                GameTooltip:AddLine("Listening for layer requests and auto-inviting", 0.4, 1.0, 0.4)
+            else
+                GameTooltip:AddLine("Not listening — players asking for layers are ignored", 1.0, 0.4, 0.4)
+            end
+
             local layered = AutoLayer.db.profile.layered or 0
             if layered > 0 then
-                GameTooltip:AddLine(" ")
                 GameTooltip:AddDoubleLine("Helped this session:", "|cffffcc00" .. layered .. " players|r")
             end
         end
