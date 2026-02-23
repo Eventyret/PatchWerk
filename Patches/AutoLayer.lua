@@ -383,10 +383,17 @@ UpdateStatusFrame = function()
             hint = "|cff888888Mouseover any NPC to verify|r"
         elseif hopState.state == "NO_RESPONSE" then
             hint = "|cff888888Right-click to try again|r"
+        elseif hopState.state == "IDLE" or hopState.state == "CONFIRMED" then
+            local enabled = AutoLayer.db and AutoLayer.db.profile.enabled
+            if enabled then
+                hint = "|cff888888Inviting players who ask|r"
+            else
+                hint = "|cff888888Not inviting players|r"
+            end
         end
 
+        statusFrame.hintText:SetText(hint or "")
         if hint then
-            statusFrame.hintText:SetText(hint)
             statusFrame.hintText:Show()
             statusFrame:SetHeight(46)
         else
@@ -592,7 +599,7 @@ local function CreateStatusFrame()
         f:ClearAllPoints()
         f:SetPoint(p[1], UIParent, p[3], p[4], p[5])
     else
-        f:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -200, -140)
+        f:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", -200, -60)
     end
 
     -- Border (extends 1px beyond frame bounds)
