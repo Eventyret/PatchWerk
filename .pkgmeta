@@ -1,7 +1,7 @@
 package-as: PatchWerk
 
 manual-changelog:
-  filename: CHANGELOG.md
+  filename: RELEASE_NOTES.md
   markup-type: markdown
 
 move-folders:
@@ -17,4 +17,5 @@ ignore:
   - Patchwerk.png
   - CLAUDE.md
   - .claude
+  - RELEASE_NOTES.md
   - .gitignore

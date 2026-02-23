@@ -22,15 +22,16 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 
 ## v1.3.3 — "The One Where We Stopped Guessing"
 
-v1.3.2 rebuilt hop detection from scratch but still had a few tricks up its sleeve. This patch polishes the rough edges — hops actually leave the group now, detection works without manually targeting anything, and the toast messages stick around long enough to actually read.
+v1.3.2 rebuilt hop detection from scratch — and accidentally broke a few things along the way. This patch fixes those regressions and makes the whole experience smoother.
 
 **Bugs that got /kicked:**
-- AutoLayer no longer silently stays in the hop group after confirming — a forward-reference bug meant the "leave group" step never ran, so PatchWerk whispered thanks and then just... stood there
-- Hop detection no longer breaks after a `/reload` — PatchWerk picks up the first nearby NPC as a baseline instead of staring at nothing forever
-- Stale layer data from before a hop no longer tricks PatchWerk into thinking you're still on the old layer
+- AutoLayer now actually leaves the group after confirming a hop — v1.3.2 introduced a bug where PatchWerk whispered "thanks for the hop!" and then just... stood there in the group forever
+- Hop detection no longer breaks after a `/reload` — another v1.3.2 regression where PatchWerk lost track of your layer and couldn't confirm anything until you restarted the game
+- Layer info from before a hop no longer lingers and confuses the next detection — v1.3.2 wasn't clearing old data properly
+- Clicking quests in the quest log no longer flickers — both the Questie and QuestXP performance patches were delaying updates even while you were browsing the log. Now updates fire instantly when the quest log is open, and only batch in the background during combat
 
 **Quality of life:**
-- Hop detection now works passively — nameplates and mouseover are enough, you don't need to manually target anything. Stand near NPCs in any city and PatchWerk handles the rest
+- You no longer need to manually target an NPC to confirm hops — just stand near any creatures in a city and PatchWerk picks up the layer automatically from nearby nameplates and mouseover
 - Toast messages stay on screen longer (8 seconds, up from 5) so you can actually read "Layer 5 -> 8" before it vanishes
 - Toast duration is now configurable (3–15 seconds) via a slider in AutoLayer settings
 - Status frame default position moved up to avoid overlapping debuffs

@@ -53,9 +53,10 @@ local GetTime = GetTime
 --
 -- Questie uses a module loader (QuestieLoader:ImportModule) to access
 -- its internal modules.  We import QuestEventHandler and wrap
--- QuestLogUpdate with a trailing-edge debounce: calls within 0.2s of
--- each other are collapsed, but the LAST call always fires — so quest
--- progress is never lost, just slightly deferred.
+-- QuestLogUpdate with a trailing-edge debounce that only activates
+-- when the quest log is closed (background events from mob kills,
+-- zone changes).  When the quest log is open, updates fire instantly
+-- so clicking quests feels responsive.
 ------------------------------------------------------------------------
 ns.patches["Questie_questLogThrottle"] = function()
     if not QuestieLoader or not QuestieLoader.ImportModule then return end
@@ -65,20 +66,25 @@ ns.patches["Questie_questLogThrottle"] = function()
 
     local origQLU = QEH.QuestLogUpdate
     local pendingTimer = nil
-    local pendingArgs = nil
+    local WINDOW = 0.2
 
     QEH.QuestLogUpdate = function(...)
-        pendingArgs = { ... }
+        if QuestLogFrame and QuestLogFrame:IsShown() then
+            if pendingTimer then
+                pendingTimer:Cancel()
+                pendingTimer = nil
+            end
+            origQLU(...)
+            return
+        end
+
+        local args = { ... }
         if pendingTimer then
             pendingTimer:Cancel()
         end
-        pendingTimer = C_Timer.NewTimer(0.2, function()
+        pendingTimer = C_Timer.NewTimer(WINDOW, function()
             pendingTimer = nil
-            if pendingArgs then
-                local args = pendingArgs
-                pendingArgs = nil
-                origQLU(unpack(args))
-            end
+            origQLU(unpack(args))
         end)
     end
 end

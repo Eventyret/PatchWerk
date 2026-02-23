@@ -99,7 +99,16 @@ ns.patches["QuestXP_questLogDebounce"] = function()
     -- closures call QXP:QuestLog_Update(addonName) which resolves to
     -- qxpFrame.QuestLog_Update(qxpFrame, addonName) — so replacing the
     -- method on the frame table intercepts all existing hook calls.
+    -- When the quest log is open, fire immediately so XP annotations
+    -- update in sync with Blizzard's redraw (no flicker on clicks).
+    -- Only debounce background events when the log is closed.
     qxpFrame.QuestLog_Update = function(self, addonName)
+        if QuestLogFrame and QuestLogFrame:IsShown() then
+            timerFrame:Hide()
+            pendingAddonName = nil
+            origQuestLogUpdate(qxpFrame, addonName)
+            return
+        end
         pendingAddonName = addonName
         elapsed = 0
         timerFrame:Show()
