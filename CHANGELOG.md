@@ -1,5 +1,25 @@
 # PatchWerk Changelog
 
+| Version | Highlights |
+|---------|-----------|
+| [v1.3.3](#v133--the-one-where-we-stopped-guessing) | Passive hop detection, configurable toasts, status frame polish |
+| [v1.3.2](#v132--the-one-where-we-actually-checked) | GUID-based hop verification, no more false confirmations |
+| [v1.3.1](#v131--the-one-where-we-stopped-believing-the-host) | Hop detection hotfix |
+| [v1.3.0](#v130--the-one-where-gudachat-joined-the-party) | GudaChat support, instance guard, keyword cache |
+| [v1.2.1](#v121--the-one-where-questie-learned-to-count) | Questie tracking fix, AutoLayer hop reliability |
+| [v1.2.0](#v120--the-one-where-everything-got-a-little-shinier) | In-game changelog, settings overhaul, BigWigs flash recovery |
+| [v1.1.0](#v110--the-one-where-patchwerk-got-a-makeover) | Settings panel, hop tracking, enhanced tooltips |
+
+### Special Thanks
+
+Bug reports, testing, and feedback from these legends made PatchWerk better for everyone:
+
+- **[Finn](https://www.twitch.tv/finnwow31)** — live stream testing and bug reports ([v1.2.1](#v121--the-one-where-questie-learned-to-count))
+- **Jerrystclair** — reported the ESC/Exit Game bug ([v1.2.0](#v120--the-one-where-everything-got-a-little-shinier))
+- **Shivaz** — reported the AutoLayer dungeon invite bug ([v1.3.0](#v130--the-one-where-gudachat-joined-the-party))
+
+---
+
 ## v1.3.3 — "The One Where We Stopped Guessing"
 
 v1.3.2 rebuilt hop detection from scratch but still had a few tricks up its sleeve. This patch polishes the rough edges — hops actually leave the group now, detection works without manually targeting anything, and the toast messages stick around long enough to actually read.
