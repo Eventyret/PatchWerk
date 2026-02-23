@@ -157,6 +157,7 @@ ns:RegisterDefault("AutoLayer_statusFrame_point", nil)
 
 local statusFrame = nil
 local pollerStarted = false
+local UpdateStatusFrame  -- forward declaration (called by ConfirmHop/FailHop before definition)
 
 local hopState = {
     state = "IDLE",         -- IDLE, WAITING_INVITE, IN_GROUP, VERIFYING, CONFIRMED, NO_RESPONSE
@@ -331,7 +332,7 @@ end
 ------------------------------------------------------------------------
 -- Helper: Update the status frame display
 ------------------------------------------------------------------------
-local function UpdateStatusFrame()
+UpdateStatusFrame = function()
     if not statusFrame or not statusFrame:IsShown() then return end
     if not AutoLayer or not AutoLayer.db then return end
 
