@@ -153,6 +153,11 @@ if not C_Spell then
         local _, duration = _GetSpellCooldown(spellID)
         return duration or 0
     end
+
+    -- In TBC Classic spell data is always available synchronously
+    function C_Spell.IsSpellDataCached(spellID)
+        return _GetSpellInfo(spellID) ~= nil
+    end
 end
 
 ------------------------------------------------------------------------
@@ -200,6 +205,11 @@ if not C_Item then
 
     -- No-op: retail uses this to request async item data loading
     function C_Item.RequestLoadItemDataByID() end
+
+    -- In TBC Classic item data is always available synchronously
+    function C_Item.IsItemDataCachedByID(itemID)
+        return _GetItemInfo(itemID) ~= nil
+    end
 
     -- ItemLocation-based stubs (no TBC equivalent)
     function C_Item.DoesItemExist()         return false end
@@ -388,7 +398,35 @@ if not C_BattleNet then
 end
 
 ------------------------------------------------------------------------
--- 12. Misc stubs
+-- 12. C_ToyBox
+-- Retail toy collection API. TBC Classic has no toy box system.
+------------------------------------------------------------------------
+
+if not C_ToyBox then
+    C_ToyBox = {}
+
+    function C_ToyBox.GetToyInfo()      return nil end
+    function C_ToyBox.IsToyUsable()     return false end
+    function C_ToyBox.GetNumTotalDisplayedToys() return 0 end
+    function C_ToyBox.GetNumLearnedDisplayedToys() return 0 end
+end
+
+------------------------------------------------------------------------
+-- 13. C_MountJournal
+-- Retail mount journal API. TBC Classic has no mount journal.
+------------------------------------------------------------------------
+
+if not C_MountJournal then
+    C_MountJournal = {}
+
+    function C_MountJournal.GetMountInfoByID()      return nil end
+    function C_MountJournal.GetMountInfoExtraByID()  return nil end
+    function C_MountJournal.GetNumMounts()           return 0 end
+    function C_MountJournal.GetNumDisplayedMounts()  return 0 end
+end
+
+------------------------------------------------------------------------
+-- 14. Misc stubs
 -- Small namespaces that various addons may reference.
 ------------------------------------------------------------------------
 
@@ -418,7 +456,7 @@ if not C_Seasons then
 end
 
 ------------------------------------------------------------------------
--- 13. Enum tables
+-- 15. Enum tables
 -- Retail exposes many constants through the global Enum table.
 -- These values must match retail exactly as addons compare against them.
 ------------------------------------------------------------------------
@@ -643,7 +681,7 @@ if not Enum.UIMapType then
 end
 
 ------------------------------------------------------------------------
--- 14. SetColorTexture (Texture metatable patch)
+-- 16. SetColorTexture (Texture metatable patch)
 -- Retail Texture objects have SetColorTexture(r,g,b,a) which creates a
 -- solid-color texture. TBC Classic does NOT have this method.
 -- We patch the shared Texture metatable so ALL textures gain the method.
@@ -664,7 +702,7 @@ do
 end
 
 ------------------------------------------------------------------------
--- 15. EventRegistry
+-- 17. EventRegistry
 -- Retail global event dispatch system used by modern addons and
 -- Blizzard UI code alike. Supports both WoW frame events and custom
 -- named events with owner/handle-based registration.
@@ -739,7 +777,7 @@ if not EventRegistry then
 end
 
 ------------------------------------------------------------------------
--- 16. MenuUtil + MenuResponse
+-- 18. MenuUtil + MenuResponse
 -- Retail context-menu system. Bridges to TBC's EasyMenu/UIDropDownMenu.
 -- MenuResponse is a simple enum used by menu callbacks.
 ------------------------------------------------------------------------
@@ -947,7 +985,7 @@ if not MenuUtil then
 end
 
 ------------------------------------------------------------------------
--- 17. Settings
+-- 19. Settings
 -- Retail interface options API. Bridges to TBC's InterfaceOptionsFrame.
 ------------------------------------------------------------------------
 
