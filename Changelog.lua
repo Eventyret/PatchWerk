@@ -20,17 +20,54 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
-        version = "1.3.2",
-        title = "Layer Detection Fix",
-        subtitle = "The One Where NWB Forgot Which Layer It Was On",
-        flavor = "Turns out v1.3.1 was only half the story. The stale data was coming from inside the house.",
+        version = "1.3.3",
+        title = "Hop Polish",
+        subtitle = "The One Where We Stopped Guessing",
+        flavor = "v1.3.2 rebuilt hop detection from scratch but still had a few tricks up its sleeve. This one finishes the job.",
         sections = {
             {
                 header = "Bugs that got /kicked:",
                 entries = {
-                    "AutoLayer now correctly detects when your client changes layers during a hop — the phase event fires for group members, not yourself, and PatchWerk was only listening for you. Oops",
-                    "NovaWorldBuffs' internal layer cache is now cleared after leaving a hop group — NWB was restoring stale layer data from a backup cache, so 'Layer 1' stuck around even after hopping to Layer 5",
-                    "Hop confirmation messages no longer display a layer number that might be wrong — you'll see 'Hop complete!' instead of a stale number that NWB hasn't updated yet",
+                    "AutoLayer no longer silently stays in the hop group after confirming — it whispered thanks and then just... stood there. Now it actually leaves",
+                    "Hop detection no longer breaks after a /reload — PatchWerk picks up the first nearby NPC as a baseline instead of staring at nothing forever",
+                    "Stale layer data from before a hop no longer tricks PatchWerk into thinking you're still on the old layer",
+                },
+            },
+            {
+                header = "Quality of life:",
+                entries = {
+                    "Hop detection now works passively — nameplates and mouseover are enough, you don't need to manually target anything. Just stand near NPCs and PatchWerk handles the rest",
+                    "Toast messages stay on screen longer (8 seconds, up from 5) so you can actually read 'Layer 5 -> 8' before it vanishes",
+                    "Toast duration is now configurable (3-15 seconds) via a slider in AutoLayer settings",
+                    "Status frame default position moved up to avoid overlapping debuffs",
+                    "Hover the status frame for a clear explanation of what On/Off means",
+                    "Hint text during hops updated with clearer guidance",
+                },
+            },
+        },
+    },
+    {
+        version = "1.3.2",
+        title = "Layer Detection Rebuilt",
+        subtitle = "The One Where We Actually Checked",
+        flavor = "PatchWerk was trusting UNIT_PHASE to prove your layer changed. Six hops. Same layer. Awkward whispers. Never again.",
+        sections = {
+            {
+                header = "Bugs that got /kicked:",
+                entries = {
+                    "AutoLayer hop detection completely rebuilt — PatchWerk now compares creature GUIDs before and after a hop to verify you actually changed layers, instead of trusting events that fire for other group members",
+                    "PatchWerk stays in the hop group until it has proof your layer changed. No more leaving after 5 seconds on blind faith",
+                    "If the host leaves before PatchWerk can confirm, it enters a 'Verifying' state and keeps checking",
+                    "'Thanks for the hop!' whispers only go out when the hop actually worked. No more thanking someone for a layer change that didn't happen",
+                    "False-positive hop confirmations from other players cycling through the group no longer trigger early group-leave",
+                },
+            },
+            {
+                header = "Quality of life:",
+                entries = {
+                    "Hop timeout extended from 90s to 120s — some layers take a minute to settle",
+                    "New 'Verifying...' state with pulsing animation when the group disbands before confirmation",
+                    "Failed hops show an orange warning instead of silently resetting",
                 },
             },
         },
