@@ -12,7 +12,7 @@ Ever loaded into Shattrath and watched your FPS drop faster than a tank without 
 
 PatchWerk makes them behave. Same addons, same features, no more lag. It stops the stuff you never see: addons refreshing every single frame, recalculating things that havent changed, and eating memory they never give back. Nothing on disk is changed, and every patch is safe to toggle on or off.
 
-> **102 patches** across **34 addons** for WoW TBC Classic Anniversary. Install it, log in, and get back to parsing.
+> **105 patches** across **35 addons** for WoW TBC Classic Anniversary. Install it, log in, and get back to parsing.
 
 ---
 
@@ -67,6 +67,7 @@ PatchWerk makes them behave. Same addons, same features, no more lag. It stops t
 | [QuestXP](https://www.curseforge.com/wow/addons/questxp) | Quest log updates debounced |
 | [RatingBuster](https://www.curseforge.com/wow/addons/rating-buster) | Stat comparisons run leaner |
 | [ClassTrainerPlus](https://www.curseforge.com/wow/addons/classtrainerplus) | Shift key polling throttled |
+| [Baganator](https://www.curseforge.com/wow/addons/baganator) | Smoother bag sorting and item updates |
 
 ### Compatibility
 
@@ -85,6 +86,7 @@ PatchWerk makes them behave. Same addons, same features, no more lag. It stops t
 |---|---|
 | [EasyFrames](https://www.curseforge.com/wow/addons/easy-frames) | 36T health text fixed to K/M/B |
 | [AutoLayer](https://www.curseforge.com/wow/addons/autolayer) | Movable status frame with layer, status, and session stats. Layer change toast notifications. Full hop lifecycle tracking with auto group-leave and thank-you whisper. Enhanced minimap tooltip |
+| [GudaChat](https://www.curseforge.com/wow/addons/gudachat) | Arrow key message history, /tt whisper target, /clear commands |
 
 ---
 
@@ -140,13 +142,13 @@ Found a bug? Want PatchWerk to support another addon? Open an issue:
 
 TBC Classic Anniversary is a weird place for addons. Some were written for retail and expect functions that simply arent here. Others were built for Classic Era and never got optimized for TBC. A lot of them run background work every single frame because nobody told them to stop.
 
-PatchWerk was born out of staring at profiler output and wondering why Details is rebuilding colors 60 times a second, or why Plater creates a new timer every frame. These arent bad addons. Theyre great addons that just need a nudge. Rather than waiting for 34 different authors to each ship a fix, PatchWerk patches them all in one place, at load time, without touching a single file on disk.
+PatchWerk was born out of staring at profiler output and wondering why Details is rebuilding colors 60 times a second, or why Plater creates a new timer every frame. These arent bad addons. Theyre great addons that just need a nudge. Rather than waiting for 35 different authors to each ship a fix, PatchWerk patches them all in one place, at load time, without touching a single file on disk.
 
 If you have ever `/reload`d to fix lag and it actually worked, theres a good chance PatchWerk would have fixed it for you permanently.
 
 ## Thank You
 
-PatchWerk only exists because 34 addon authors put in the work first. Every addon on the list above is built and maintained by people who do this in their free time so the rest of us can have a better game. PatchWerk doesnt replace what they do. It just helps their stuff run a little smoother on a version of WoW that most of them never specifically built for.
+PatchWerk only exists because 35 addon authors put in the work first. Every addon on the list above is built and maintained by people who do this in their free time so the rest of us can have a better game. PatchWerk doesnt replace what they do. It just helps their stuff run a little smoother on a version of WoW that most of them never specifically built for.
 
 If you use any of these addons, go leave them a thumbs up on CurseForge or star them on GitHub. They earned it.
 

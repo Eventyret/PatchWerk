@@ -39,7 +39,7 @@ v1.3.2 rebuilt hop detection from scratch — and accidentally broke a few thing
 - Hint text during hops updated: "Stay near NPCs to confirm layer" and "Hover over any NPC to confirm"
 
 ---
-*105 patches. 36 addons. Zero enrage timers.*
+*105 patches. 35 addons. Zero enrage timers.*
 
 ## v1.3.2 — "The One Where We Actually Checked"
 
@@ -58,7 +58,7 @@ PatchWerk was trusting UNIT_PHASE to prove your layer changed. Turns out UNIT_PH
 - Failed hops show an orange warning ("Layer unchanged" or "Hop timed out") instead of silently resetting
 
 ---
-*105 patches. 36 addons. Zero enrage timers.*
+*105 patches. 35 addons. Zero enrage timers.*
 
 ## v1.3.1 — "The One Where We Stopped Believing the Host"
 
@@ -70,7 +70,7 @@ Hotfix incoming. No arena season reset required.
 - All hop-related messages (layer confirmed, layer changed, left group) now stay on screen for 5 seconds instead of vanishing instantly
 
 ---
-*105 patches. 36 addons. Zero enrage timers.*
+*105 patches. 35 addons. Zero enrage timers.*
 
 ## v1.3.0 — "The One Where GudaChat Joined the Party"
 
@@ -97,7 +97,7 @@ Welcome to the raid, GudaChat. Your buffs are ready.
 - **Shivaz** for reporting the AutoLayer dungeon bug — apparently asking for a layer in guild chat is faster than a mage portal for getting into dungeons you weren't invited to
 
 ---
-*105 patches. 36 addons. Zero enrage timers.*
+*105 patches. 35 addons. Zero enrage timers.*
 
 ## v1.2.1 — "The One Where Questie Learned to Count"
 
