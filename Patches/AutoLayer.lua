@@ -388,19 +388,12 @@ local function PollLayer()
     -- IN_GROUP: GUID zoneID + NWB verification (stay in group until proof)
     if ns.applied["AutoLayer_hopTransitionTracker"] and hopState.state == "IN_GROUP" then
         local zoneID = GetTargetZoneID()
-        local layerConfirmed = false
 
-        -- Method 1: GUID zoneID changed (NWB-independent, instant)
+        -- While in group, ONLY trust GUID zoneID comparison.
+        -- NWB_CurrentLayer is a shared global that can reflect the HOST's
+        -- layer from their NPC targets, not ours. NWB is only reliable
+        -- after leaving the group (VERIFYING state handles that).
         if zoneID and hopState.fromZoneID and zoneID ~= hopState.fromZoneID then
-            layerConfirmed = true
-        end
-        -- Method 2: NWB recovered a different layer number
-        if currentNum and currentNum > 0 and hopState.fromLayer
-           and currentNum ~= hopState.fromLayer then
-            layerConfirmed = true
-        end
-
-        if layerConfirmed then
             hopState.hostName = hopState.hostName or GetPartyMemberName()
             ConfirmHop(currentNum and currentNum > 0 and currentNum or nil)
             C_Timer.After(0.5, function()
