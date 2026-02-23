@@ -385,15 +385,22 @@ local function PollLayer()
 
     end
 
-    -- IN_GROUP: GUID zoneID + NWB verification (stay in group until proof)
+    -- IN_GROUP: verify hop via GUID zoneID or NWB layer number.
+    -- NWB reads YOUR target only (not party members'), so both methods
+    -- are trustworthy. Either one changing = you phased to a new layer.
     if ns.applied["AutoLayer_hopTransitionTracker"] and hopState.state == "IN_GROUP" then
         local zoneID = GetTargetZoneID()
+        local layerConfirmed = false
 
-        -- While in group, ONLY trust GUID zoneID comparison.
-        -- NWB_CurrentLayer is a shared global that can reflect the HOST's
-        -- layer from their NPC targets, not ours. NWB is only reliable
-        -- after leaving the group (VERIFYING state handles that).
         if zoneID and hopState.fromZoneID and zoneID ~= hopState.fromZoneID then
+            layerConfirmed = true
+        end
+        if currentNum and currentNum > 0 and hopState.fromLayer
+           and hopState.fromLayer > 0 and currentNum ~= hopState.fromLayer then
+            layerConfirmed = true
+        end
+
+        if layerConfirmed then
             hopState.hostName = hopState.hostName or GetPartyMemberName()
             ConfirmHop(currentNum and currentNum > 0 and currentNum or nil)
             C_Timer.After(0.5, function()
@@ -404,26 +411,23 @@ local function PollLayer()
         end
     end
 
-    -- VERIFYING: group disbanded before we confirmed — poll GUID + NWB
+    -- VERIFYING: group disbanded before we confirmed — poll GUID + NWB.
+    -- NWB cache was cleared on group disband, so require 2s minimum
+    -- before trusting NWB (avoids stale cache restore race conditions).
     if ns.applied["AutoLayer_hopTransitionTracker"] and hopState.state == "VERIFYING" then
         local elapsed = GetTime() - hopState.verifyStart
         local zoneID = GetTargetZoneID()
 
-        -- GUID zoneID changed → confirmed
         if zoneID and hopState.fromZoneID and zoneID ~= hopState.fromZoneID then
             ConfirmHop(currentNum and currentNum > 0 and currentNum or nil)
-        -- NWB shows different layer → confirmed
-        elseif currentNum and currentNum > 0 and hopState.fromLayer
-               and currentNum ~= hopState.fromLayer then
+        elseif elapsed > 2 and currentNum and currentNum > 0 and hopState.fromLayer
+               and hopState.fromLayer > 0 and currentNum ~= hopState.fromLayer then
             ConfirmHop(currentNum)
-        -- NWB recovered SAME layer after 5s → hop didn't work
-        elseif currentNum and currentNum > 0 and hopState.fromLayer
-               and currentNum == hopState.fromLayer and elapsed > 5 then
+        elseif elapsed > 5 and currentNum and currentNum > 0 and hopState.fromLayer
+               and hopState.fromLayer > 0 and currentNum == hopState.fromLayer then
             FailHop("Layer unchanged \226\128\148 hop may not have worked")
-        -- 30s timeout → no data at all
         elseif elapsed > 30 then
             FailHop("Hop not confirmed \226\128\148 target an NPC to check your layer")
-        -- Nudge NWB to re-detect (every 3s)
         elseif elapsed > 1.5 and NWB and NWB.setCurrentLayerText
                and UnitExists("target") then
             if not hopState.lastNWBPoke or (GetTime() - hopState.lastNWBPoke) > 3 then
