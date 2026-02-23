@@ -37,6 +37,14 @@ if not C_AddOns then
     }
 end
 
+-- Reverse shims: create globals from C_AddOns for addons that use the old API
+if C_AddOns then
+    if not IsAddOnLoaded then IsAddOnLoaded = C_AddOns.IsAddOnLoaded end
+    if not GetAddOnMetadata then GetAddOnMetadata = C_AddOns.GetAddOnMetadata end
+    if not GetAddOnInfo then GetAddOnInfo = C_AddOns.GetAddOnInfo end
+    if not GetNumAddOns then GetNumAddOns = C_AddOns.GetNumAddOns end
+end
+
 ------------------------------------------------------------------------
 -- 3. C_CVar
 -- Retail moved CVar access into C_CVar. TBC has plain globals.

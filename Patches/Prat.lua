@@ -6,8 +6,7 @@
 --   1. Prat_smfThrottle          - Throttle SMFHax ChatFrame_OnUpdate
 --   2. Prat_timestampCache       - Cache timestamp format strings per second
 --   3. Prat_bubblesGuard         - Skip bubble scan when none exist
---   4. Prat_playerNamesThrottle  - Throttle UNIT_AURA in PlayerNames
---   5. Prat_guildRosterThrottle  - Rate-limit GuildRoster() calls (network)
+--   4. Prat_guildRosterThrottle  - Rate-limit GuildRoster() calls (network)
 ------------------------------------------------------------------------
 
 local _, ns = ...
@@ -35,13 +34,6 @@ ns:RegisterPatch("Prat", {
     detail = "Prat scans for chat bubbles 10 times per second even when you're completely alone or in an instance where no one is talking. The fix skips this entirely when no bubbles exist.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "Reduces baseline overhead while solo or in instances",
-})
-ns:RegisterPatch("Prat", {
-    key = "Prat_playerNamesThrottle", label = "Player Info Throttle",
-    help = "Throttles player name lookups during buff and debuff changes to 5 times per second.",
-    detail = "Prat's player name coloring system reacts to every buff and debuff change in your raid to track player classes. In raids, these changes happen 20-50 times per second but player names never change when someone gains a buff. This patch limits those checks to 5 per second.",
-    impact = "FPS", impactLevel = "Low", category = "Performance",
-    estimate = "~1-3 FPS in 25-man raids during heavy buff/debuff activity",
 })
 ns:RegisterPatch("Prat", {
     key = "Prat_guildRosterThrottle", label = "Guild Roster Rate Limit",
@@ -216,40 +208,7 @@ ns.patches["Prat_bubblesGuard"] = function()
 end
 
 ------------------------------------------------------------------------
--- 4. Prat_playerNamesThrottle
---
--- The PlayerNames module registers for UNIT_AURA events to track
--- player class/name info.  In raids, UNIT_AURA fires 20-50 times per
--- second as buffs and debuffs apply across all raid members.  Player
--- name/class info doesn't change on aura updates.
---
--- Fix: Throttle the UNIT_AURA handler to 5Hz (200ms).  Player info
--- updates are purely cosmetic (chat name coloring) and don't need
--- instant responsiveness.
-------------------------------------------------------------------------
-ns.patches["Prat_playerNamesThrottle"] = function()
-    if not Prat then return end
-    local addon = Prat.Addon
-    if not addon or not addon.GetModule then return end
-
-    local ok, pnModule = pcall(addon.GetModule, addon, "PlayerNames", true)
-    if not ok or not pnModule then return end
-    if not pnModule.UNIT_AURA then return end
-
-    local origAura = pnModule.UNIT_AURA
-    local lastAuraUpdate = 0
-    local THROTTLE = 0.2
-
-    pnModule.UNIT_AURA = function(self, event, ...)
-        local now = GetTime()
-        if now - lastAuraUpdate < THROTTLE then return end
-        lastAuraUpdate = now
-        return origAura(self, event, ...)
-    end
-end
-
-------------------------------------------------------------------------
--- 5. Prat_guildRosterThrottle
+-- 4. Prat_guildRosterThrottle
 --
 -- The PlayerNames module calls C_GuildInfo.GuildRoster() (or the legacy
 -- GuildRoster()) inside its GUILD_ROSTER_UPDATE handler.  This creates

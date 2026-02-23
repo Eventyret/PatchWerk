@@ -95,6 +95,7 @@ local pendingReload = false
 local allCheckboxes = {}
 local groupCheckboxes = {}
 local groupCountLabels = {}
+local groupInstalled = {}
 local statusLabels = {}
 local collapsed = {}
 local reloadBanner = nil
@@ -130,7 +131,10 @@ local function RefreshGroupCounts()
         end
         local label = groupCountLabels[gcKey]
         if label then
-            if active == total then
+            if not groupInstalled[gcKey] then
+                -- Not installed: show "enabled" in muted gray (patches aren't actually running)
+                label:SetText(string.format("|cff808080%d/%d enabled|r", active, total))
+            elseif active == total then
                 label:SetText(string.format("|cff33e633%d/%d active|r", active, total))
             elseif active > 0 then
                 label:SetText(string.format("|cffffff00%d/%d active|r", active, total))
@@ -187,6 +191,7 @@ local function BuildAddonGroup(content, groupInfo, installed)
     if #patches == 0 then return nil end
 
     local ck = groupId
+    groupInstalled[ck] = installed
     if collapsed[ck] == nil then collapsed[ck] = not installed end
 
     local gf = CreateFrame("Frame", nil, content)

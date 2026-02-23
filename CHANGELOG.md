@@ -1,5 +1,32 @@
 # PatchWerk Changelog
 
+## v1.3.0 — "The One Where GudaChat Joined the Party"
+
+Welcome to the raid, GudaChat. Your buffs are ready.
+
+**Shiny new things:**
+- GudaChat is now a supported addon with three QOL tweaks ported from Prat for lightweight chat users:
+  - Arrow key message history — just hit Up/Down to cycle through sent messages, no Alt needed
+  - /tt whisper target — type /tt to whisper whoever you're targeting
+  - /clear and /clearall commands — wipe your chat windows without scrolling back to the Stone Age
+- AutoLayer keyword cache now also covers the new prefix filter from v1.7.7 — fewer throwaway tables in busy channels
+- Older addons that use classic API functions now find them even when only the modern versions exist — covers more edge cases
+
+**Bugs that got /kicked:**
+- AutoLayer no longer messes with your group inside dungeons or raids — if you're the party leader in a dungeon and someone asks for a layer in guild chat, AutoLayer now ignores it instead of inviting them into your run. Requesting a layer hop while inside an instance is also blocked
+- Prat's "Player Info Throttle" patch has been removed — it was never actually doing anything, like a ret paladin casting Blessing of Kings on someone who already has it
+- GudaChat arrow keys now survive opening and closing chat — Blizzard was resetting the mode every time you pressed Enter
+- Settings panel says "enabled" instead of "active" for addons you don't have installed — because "2/2 active" when nothing is running was confusing everyone
+
+**Behind the curtain:**
+- Version compatibility verified for 8 addon updates (Details, BigWigs, BigDebuffs, NovaInstanceTracker, AutoLayer, LoonBestInSlot, Prat, RatingBuster)
+
+**Thanks to:**
+- **Shivaz** for reporting the AutoLayer dungeon bug — apparently asking for a layer in guild chat is faster than a mage portal for getting into dungeons you weren't invited to
+
+---
+*105 patches. 36 addons. Zero enrage timers.*
+
 ## v1.2.1 — "The One Where Questie Learned to Count"
 
 Two bug reports walk into Shattrath. Both get fixed before the loading screen.

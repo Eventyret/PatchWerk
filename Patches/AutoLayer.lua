@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------
 -- PatchWerk - Performance, bug fix, and UX patches for AutoLayer_Vanilla
 --
--- AutoLayer_Vanilla (v1.7.6) is a layer-hopping automation addon for
+-- AutoLayer_Vanilla (v1.7.7) is a layer-hopping automation addon for
 -- TBC Classic Anniversary. It monitors chat channels and auto-invites
 -- players requesting layer transfers, with a hard dependency on
 -- NovaWorldBuffs for layer detection (NWB_CurrentLayer global).
@@ -16,6 +16,7 @@
 --   7. AutoLayer_layerChangeToast    - Layer change notification (Tweaks)
 --   8. AutoLayer_hopTransitionTracker - Hop lifecycle tracker (Tweaks)
 --   9. AutoLayer_enhancedTooltip     - Enhanced minimap tooltip (Tweaks)
+--  10. AutoLayer_instanceGuard       - Block invites and hops inside instances (Fixes)
 ------------------------------------------------------------------------
 
 local _, ns = ...
@@ -58,7 +59,7 @@ ns:RegisterPatch("AutoLayer", {
     key = "AutoLayer_parseCache",
     label = "Keyword Cache",
     help = "Remembers your trigger words and blacklist instead of rebuilding them on every chat message.",
-    detail = "AutoLayer rebuilds its keyword and blacklist tables from scratch on every incoming chat message. In busy channels like Trade or LookingForGroup, this creates thousands of throwaway tables per minute, causing memory buildup and brief hitches. This patch remembers the tables and only rebuilds when your settings actually change.",
+    detail = "AutoLayer rebuilds its keyword, blacklist, and prefix tables from scratch on every incoming chat message. In busy channels like Trade or LookingForGroup, this creates thousands of throwaway tables per minute, causing memory buildup and brief hitches. This patch remembers the tables and only rebuilds when your settings actually change.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "~1-2 FPS in busy chat environments",
 })
@@ -131,6 +132,16 @@ ns:RegisterPatch("AutoLayer", {
     detail = "Enhances the AutoLayer minimap icon tooltip with richer information including current layer with color coding, total available layers from NovaWorldBuffs, session invite count, AutoLayer enabled/disabled status, and active hop transition state if mid-hop.",
     category = "Tweaks",
     estimate = "Visual enhancement, tooltip only",
+})
+
+-- 10. Instance Guard
+ns:RegisterPatch("AutoLayer", {
+    key = "AutoLayer_instanceGuard",
+    label = "Instance Guard",
+    help = "Prevents AutoLayer from inviting players or leaving your group while you're inside a dungeon or raid.",
+    detail = "AutoLayer has no awareness of dungeon or raid instances. If you're the party leader inside a dungeon and someone asks for a layer in guild chat, AutoLayer will happily invite them into your dungeon group. Likewise, requesting a layer hop while in an instance will leave your dungeon party without warning. This patch blocks both paths when you're inside an instance.",
+    category = "Fixes",
+    estimate = "Prevents accidental group disruption in dungeons and raids",
 })
 
 ns:RegisterDefault("AutoLayer_hopWhisperEnabled", true)
@@ -495,8 +506,9 @@ local function CreateStatusFrame()
                 end
             else
                 -- Right-click: quick hop to any other layer
-                -- Block when mid-hop or on cooldown (3s between requests)
+                -- Block when mid-hop, on cooldown, or inside an instance
                 if hopState.state == "IN_GROUP" or hopState.state == "CONFIRMED" then return end
+                if IsInInstance() then return end
                 if not AutoLayer.SlashCommand then return end
                 local now = GetTime()
                 if (now - hopState.lastRequestTime) < 3.0 then return end
@@ -583,9 +595,10 @@ end
 ------------------------------------------------------------------------
 -- 2. AutoLayer_parseCache
 --
--- configuration.lua:25-65 — ParseTriggers(), ParseBlacklist(), and
--- ParseInvertKeywords() rebuild tables via string.gmatch on every
--- chat message. Fix: cache parsed tables, invalidate on setter calls.
+-- configuration.lua:25-65 — ParseTriggers(), ParseBlacklist(),
+-- ParseInvertKeywords(), and ParseIgnorePrefixes() rebuild tables via
+-- string.gmatch on every chat message. Fix: cache parsed tables,
+-- invalidate on setter calls.
 ------------------------------------------------------------------------
 ns.patches["AutoLayer_parseCache"] = function()
     if not ns:IsAddonLoaded("AutoLayer_Vanilla") then return end
@@ -594,11 +607,13 @@ ns.patches["AutoLayer_parseCache"] = function()
     local cachedTriggers = nil
     local cachedBlacklist = nil
     local cachedInvertKeywords = nil
+    local cachedIgnorePrefixes = nil
 
     -- Save originals
     local origParseTriggers = AutoLayer.ParseTriggers
     local origParseBlacklist = AutoLayer.ParseBlacklist
     local origParseInvertKeywords = AutoLayer.ParseInvertKeywords
+    local origParseIgnorePrefixes = AutoLayer.ParseIgnorePrefixes
 
     -- Cached replacements
     AutoLayer.ParseTriggers = function(self)
@@ -620,6 +635,20 @@ ns.patches["AutoLayer_parseCache"] = function()
             cachedInvertKeywords = origParseInvertKeywords(self)
         end
         return cachedInvertKeywords
+    end
+
+    -- ParseIgnorePrefixes only exists in v1.7.7+
+    if origParseIgnorePrefixes then
+        AutoLayer.ParseIgnorePrefixes = function(self)
+            if not cachedIgnorePrefixes then
+                cachedIgnorePrefixes = origParseIgnorePrefixes(self)
+            end
+            return cachedIgnorePrefixes
+        end
+
+        hooksecurefunc(AutoLayer, "SetIgnorePrefixes", function()
+            cachedIgnorePrefixes = nil
+        end)
     end
 
     -- Invalidate caches when setters are called
@@ -998,5 +1027,53 @@ ns.patches["AutoLayer_enhancedTooltip"] = function()
         tooltip:AddLine(" ")
         tooltip:AddLine("|cff808080Left-click to toggle|r")
         tooltip:AddLine("|cff808080Right-click to hop layers|r")
+    end
+end
+
+------------------------------------------------------------------------
+-- 10. AutoLayer_instanceGuard
+--
+-- AutoLayer has no IsInInstance() checks anywhere. Two dangerous paths:
+--
+-- A) Hosting path (ProcessMessage in layering.lua):
+--    When the player is party leader inside a dungeon, AutoLayer still
+--    processes layer requests from chat and invites people into the
+--    dungeon group via C_PartyInfo.InviteUnit(). If autokick is enabled,
+--    it may even kick a dungeon member to make room.
+--
+-- B) Requesting path (SendLayerRequest in hopping.lua):
+--    Calls LeaveParty() unconditionally without checking if the player
+--    is inside an instance, instantly dropping from the dungeon group.
+--
+-- Fix: Hook both ProcessMessage and SendLayerRequest with instance
+-- guards that silently block when IsInInstance() returns true.
+------------------------------------------------------------------------
+ns.patches["AutoLayer_instanceGuard"] = function()
+    if not ns:IsAddonLoaded("AutoLayer_Vanilla") then return end
+    if not AutoLayer then return end
+
+    -- A) Guard the hosting path: block ProcessMessage inside instances
+    local origProcessMessage = AutoLayer.ProcessMessage
+    if origProcessMessage then
+        AutoLayer.ProcessMessage = function(self, ...)
+            local inInstance, instanceType = IsInInstance()
+            if inInstance and (instanceType == "party" or instanceType == "raid") then
+                return
+            end
+            return origProcessMessage(self, ...)
+        end
+    end
+
+    -- B) Guard the requesting path: block SendLayerRequest inside instances
+    local origSendLayerRequest = AutoLayer.SendLayerRequest
+    if origSendLayerRequest then
+        AutoLayer.SendLayerRequest = function(self, ...)
+            local inInstance, instanceType = IsInInstance()
+            if inInstance and (instanceType == "party" or instanceType == "raid") then
+                self:Print("Can't request a layer hop while inside a dungeon or raid.")
+                return
+            end
+            return origSendLayerRequest(self, ...)
+        end
     end
 end

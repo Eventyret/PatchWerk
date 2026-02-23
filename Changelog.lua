@@ -20,6 +20,45 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.3.0",
+        title = "New Addon Support",
+        subtitle = "The One Where GudaChat Joined the Party",
+        flavor = "Welcome to the raid, GudaChat. Your buffs are ready.",
+        sections = {
+            {
+                header = "Shiny new things:",
+                entries = {
+                    "GudaChat is now supported — three QOL tweaks ported from Prat for lightweight chat users",
+                    "Arrow key message history — just hit Up/Down to cycle sent messages, no Alt needed",
+                    "/tt whisper target — type /tt to whisper whoever you're targeting",
+                    "/clear and /clearall commands — wipe your chat windows without scrolling back to the Stone Age",
+                    "AutoLayer keyword cache now also covers the new prefix filter from v1.7.7",
+                },
+            },
+            {
+                header = "Bugs that got /kicked:",
+                entries = {
+                    "AutoLayer no longer messes with your group inside dungeons or raids — layer requests from guild chat are ignored while you're in an instance, and requesting a hop is blocked too",
+                    "Prat's 'Player Info Throttle' removed — it was never actually doing anything, like casting Kings on someone who already has it",
+                    "GudaChat arrow keys now survive opening and closing chat — Blizzard was resetting the mode every time you pressed Enter",
+                    "Settings panel says 'enabled' instead of 'active' for addons you don't have installed",
+                },
+            },
+            {
+                header = "Behind the curtain:",
+                entries = {
+                    "Version compatibility verified for 8 addon updates (Details, BigWigs, BigDebuffs, NovaInstanceTracker, AutoLayer, LoonBestInSlot, Prat, RatingBuster)",
+                },
+            },
+            {
+                header = "Thanks to:",
+                entries = {
+                    "Shivaz for reporting the AutoLayer dungeon bug — apparently asking for a layer in guild chat is faster than a mage portal for getting into dungeons you weren't invited to",
+                },
+            },
+        },
+    },
+    {
         version = "1.2.1",
         title = "Bug Fixes",
         subtitle = "The One Where Questie Learned to Count",
