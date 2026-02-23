@@ -192,14 +192,22 @@ local function GetPartyMemberName()
 end
 
 ------------------------------------------------------------------------
--- Helper: Get zoneID from target creature GUID (layer identifier)
+-- Helper: Get current layer's zoneID from creature GUIDs.
+-- Primary: parse current target's GUID directly.
+-- Fallback: NWB.lastKnownLayerID (persists after switching targets).
 ------------------------------------------------------------------------
-local function GetTargetZoneID()
+local function GetCurrentZoneID()
     local guid = UnitGUID("target")
-    if not guid then return nil end
-    local unitType, _, _, _, zoneID = strsplit("-", guid)
-    if unitType ~= "Creature" then return nil end
-    return tonumber(zoneID)
+    if guid then
+        local unitType, _, _, _, zoneID = strsplit("-", guid)
+        if unitType == "Creature" then
+            return tonumber(zoneID)
+        end
+    end
+    if NWB and NWB.lastKnownLayerID and NWB.lastKnownLayerID ~= 0 then
+        return tonumber(NWB.lastKnownLayerID)
+    end
+    return nil
 end
 
 ------------------------------------------------------------------------
@@ -389,7 +397,7 @@ local function PollLayer()
     -- NWB reads YOUR target only (not party members'), so both methods
     -- are trustworthy. Either one changing = you phased to a new layer.
     if ns.applied["AutoLayer_hopTransitionTracker"] and hopState.state == "IN_GROUP" then
-        local zoneID = GetTargetZoneID()
+        local zoneID = GetCurrentZoneID()
         local layerConfirmed = false
 
         if zoneID and hopState.fromZoneID and zoneID ~= hopState.fromZoneID then
@@ -416,7 +424,7 @@ local function PollLayer()
     -- before trusting NWB (avoids stale cache restore race conditions).
     if ns.applied["AutoLayer_hopTransitionTracker"] and hopState.state == "VERIFYING" then
         local elapsed = GetTime() - hopState.verifyStart
-        local zoneID = GetTargetZoneID()
+        local zoneID = GetCurrentZoneID()
 
         if zoneID and hopState.fromZoneID and zoneID ~= hopState.fromZoneID then
             ConfirmHop(currentNum and currentNum > 0 and currentNum or nil)
@@ -936,7 +944,7 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
         hopState.state = "WAITING_INVITE"
         hopState.source = "OUTBOUND"
         hopState.fromLayer = currentLayer and tonumber(currentLayer) or nil
-        hopState.fromZoneID = GetTargetZoneID()
+        hopState.fromZoneID = GetCurrentZoneID()
         hopState.timestamp = GetTime()
         UpdateStatusFrame()
     end)
@@ -958,7 +966,7 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
                 hopState.state = "WAITING_INVITE"
                 hopState.source = "INBOUND"
                 hopState.fromLayer = currentLayer and tonumber(currentLayer) or nil
-                hopState.fromZoneID = GetTargetZoneID()
+                hopState.fromZoneID = GetCurrentZoneID()
                 hopState.timestamp = GetTime()
                 UpdateStatusFrame()
             end
