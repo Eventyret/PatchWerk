@@ -20,6 +20,22 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.3.1",
+        title = "Hop Detection Hotfix",
+        subtitle = "The One Where We Stopped Believing the Host",
+        flavor = "Hotfix incoming. No arena season reset required.",
+        sections = {
+            {
+                header = "Bugs that got /kicked:",
+                entries = {
+                    "AutoLayer no longer falsely confirms a layer hop just because the host targeted an NPC — your client must actually change layers before PatchWerk believes it worked",
+                    "Layer change toasts no longer flash during a hop when the number can't be trusted — the toast only appears once the hop is confirmed",
+                    "All hop-related messages now stay on screen for 5 seconds instead of vanishing instantly",
+                },
+            },
+        },
+    },
+    {
         version = "1.3.0",
         title = "New Addon Support",
         subtitle = "The One Where GudaChat Joined the Party",

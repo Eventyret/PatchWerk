@@ -206,7 +206,7 @@ local function LeaveHopGroup(reason, layerStr)
     elseif reason == "timeout" then
         msg = msg .. " \226\128\148 hop timed out"
     end
-    UIErrorsFrame:AddMessage(msg, 0.2, 0.8, 1.0)
+    UIErrorsFrame:AddMessage(msg, 0.2, 0.8, 1.0, 1.0, 5)
 
     -- Thank-you whisper to the group host (if enabled)
     if memberName and ns:GetOption("AutoLayer_hopWhisperEnabled") then
@@ -300,41 +300,49 @@ local function PollLayer()
     local lastNum = hopState.lastKnownLayer
 
     -- Detect layer change (NWB confirmed a new layer number)
-    -- Also compare against fromLayer as fallback when lastKnownLayer is nil
+    -- IMPORTANT: NWB_CurrentLayer is a shared global updated when ANY party
+    -- member targets an NPC. During a hop, the host's NPC targets can set
+    -- NWB_CurrentLayer to THEIR layer before your client actually phases.
+    -- We only trust an NWB layer change as YOUR layer if UNIT_PHASE has
+    -- already fired (phaseChanged == true), proving your client phased.
     local layerChanged = false
     if currentNum and currentNum > 0 then
         if lastNum and lastNum > 0 and currentNum ~= lastNum then
             layerChanged = true
         elseif not lastNum and hopState.fromLayer and currentNum ~= hopState.fromLayer then
             layerChanged = true
-        -- Defense-in-depth: if lastKnownLayer was prematurely updated to the
-        -- new layer (NWB detected change during WAITING_INVITE before state
-        -- transitioned to IN_GROUP), compare against fromLayer instead.
-        elseif (hopState.state == "IN_GROUP" or hopState.state == "WAITING_INVITE")
-            and hopState.fromLayer and currentNum ~= hopState.fromLayer
-            and currentNum == lastNum then
-            layerChanged = true
         end
     end
     if layerChanged then
-        -- Layer changed! Fire toast (patch 7)
-        if ns.applied["AutoLayer_layerChangeToast"] then
+        -- During an active hop (IN_GROUP or WAITING_INVITE), NWB_CurrentLayer
+        -- can't be trusted — it might be the HOST's layer from their NPC
+        -- targets, not ours. Only show the toast and act on it when we have
+        -- proof that OUR client phased (UNIT_PHASE fired).
+        local midHop = (hopState.state == "IN_GROUP" or hopState.state == "WAITING_INVITE")
+
+        -- Layer change toast (patch 7)
+        if ns.applied["AutoLayer_layerChangeToast"] and not midHop then
             local fromNum = lastNum or hopState.fromLayer
             local msg = "Layer " .. (fromNum or "?") .. " -> " .. currentNum
-            UIErrorsFrame:AddMessage(msg, 1.0, 0.82, 0.0)
+            UIErrorsFrame:AddMessage(msg, 1.0, 0.82, 0.0, 1.0, 5)
             PlaySound(SOUNDKIT and SOUNDKIT.MAP_PING or 3175)
         end
 
-        -- Transition tracker: NWB confirmed the new layer — leave group (patch 8)
-        -- Also handle WAITING_INVITE: the player may have phased and NWB
-        -- detected the new layer before GROUP_ROSTER_UPDATE transitioned
-        -- state to IN_GROUP (race condition).
+        -- Transition tracker: NWB confirmed a new layer — leave group (patch 8)
+        -- Requires UNIT_PHASE (phaseChanged) to prove YOUR client phased.
         if ns.applied["AutoLayer_hopTransitionTracker"]
-            and (hopState.state == "IN_GROUP"
-                 or (hopState.state == "WAITING_INVITE" and IsInGroup())) then
+            and hopState.state == "IN_GROUP"
+            and hopState.phaseChanged then
             hopState.state = "CONFIRMED"
             hopState.timestamp = GetTime()
             local layerStr = tostring(currentNum)
+            -- Show the toast now that it's verified
+            if ns.applied["AutoLayer_layerChangeToast"] then
+                local fromNum = lastNum or hopState.fromLayer
+                local msg = "Layer " .. (fromNum or "?") .. " -> " .. currentNum
+                UIErrorsFrame:AddMessage(msg, 1.0, 0.82, 0.0, 1.0, 5)
+                PlaySound(SOUNDKIT and SOUNDKIT.MAP_PING or 3175)
+            end
             C_Timer.After(0.5, function()
                 LeaveHopGroup("confirmed", layerStr)
             end)
@@ -897,48 +905,34 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
 
         elseif event == "GROUP_ROSTER_UPDATE" then
             if hopState.state == "WAITING_INVITE" and IsInGroup() then
-                -- Accepted the invite, now in the hop group
+                -- Accepted the invite, now in the hop group.
+                -- DO NOT read NWB_CurrentLayer here for confirmation — at this
+                -- point it might reflect the HOST's layer (from their NPC
+                -- targets), not ours. Let PollLayer + UNIT_PHASE handle it.
                 hopState.state = "IN_GROUP"
                 hopState.timestamp = GetTime()
-                -- Snapshot layer if not captured yet
-                local currentLayer = NWB_CurrentLayer
-                local currentNum = currentLayer and tonumber(currentLayer)
-                if currentNum and currentNum > 0 and not hopState.fromLayer then
-                    hopState.fromLayer = currentNum
-                end
                 UpdateStatusFrame()
-                -- Check if layer already changed while we were WAITING_INVITE
-                -- (race condition: NWB detected new layer before this event)
-                if ns.applied["AutoLayer_hopTransitionTracker"]
-                    and currentNum and currentNum > 0
-                    and hopState.fromLayer and currentNum ~= hopState.fromLayer then
-                    hopState.state = "CONFIRMED"
-                    hopState.timestamp = GetTime()
-                    local layerStr = tostring(currentNum)
-                    C_Timer.After(0.5, function()
-                        LeaveHopGroup("confirmed", layerStr)
-                    end)
-                    UpdateStatusFrame()
-                end
+
             elseif hopState.state == "IN_GROUP" and not IsInGroup() then
-                -- Other player left or we got kicked. Check if the layer
-                -- actually changed before resetting — the host often leaves
-                -- before NWB has confirmed the new layer number.
-                local curLayer = NWB_CurrentLayer and tonumber(NWB_CurrentLayer)
-                if curLayer and curLayer > 0 and hopState.fromLayer and curLayer ~= hopState.fromLayer then
-                    -- Layer DID change — treat as confirmed hop
-                    hopState.state = "CONFIRMED"
-                    hopState.timestamp = GetTime()
-                    local layerStr = tostring(curLayer)
-                    UIErrorsFrame:AddMessage("PatchWerk: Layer " .. layerStr .. " confirmed", 0.2, 0.8, 1.0)
-                elseif hopState.phaseChanged then
-                    -- UNIT_PHASE fired (layer is changing) but NWB hasn't
-                    -- confirmed the number yet — treat as successful hop
-                    hopState.state = "CONFIRMED"
-                    hopState.timestamp = GetTime()
-                    UIErrorsFrame:AddMessage("PatchWerk: Layer changed", 0.2, 0.8, 1.0)
+                -- Other player left or we got kicked.
+                -- Only trust NWB layer data if UNIT_PHASE confirmed we phased.
+                if hopState.phaseChanged then
+                    local curLayer = NWB_CurrentLayer and tonumber(NWB_CurrentLayer)
+                    if curLayer and curLayer > 0 and hopState.fromLayer and curLayer ~= hopState.fromLayer then
+                        -- UNIT_PHASE fired AND NWB confirms a different layer
+                        hopState.state = "CONFIRMED"
+                        hopState.timestamp = GetTime()
+                        local layerStr = tostring(curLayer)
+                        UIErrorsFrame:AddMessage("PatchWerk: Layer " .. layerStr .. " confirmed", 0.2, 0.8, 1.0, 1.0, 5)
+                    else
+                        -- UNIT_PHASE fired but NWB hasn't confirmed the new
+                        -- number yet — still trust the phase change as a hop
+                        hopState.state = "CONFIRMED"
+                        hopState.timestamp = GetTime()
+                        UIErrorsFrame:AddMessage("PatchWerk: Layer changed", 0.2, 0.8, 1.0, 1.0, 5)
+                    end
                 else
-                    -- Layer unchanged or unknown — genuine failure/kick
+                    -- No UNIT_PHASE fired — layer never changed, genuine failure
                     hopState.state = "IDLE"
                     hopState.source = nil
                     hopState.fromLayer = nil

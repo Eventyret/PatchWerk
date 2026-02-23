@@ -1,5 +1,17 @@
 # PatchWerk Changelog
 
+## v1.3.1 — "The One Where We Stopped Believing the Host"
+
+Hotfix incoming. No arena season reset required.
+
+**Bugs that got /kicked:**
+- AutoLayer no longer falsely confirms a layer hop just because the host targeted an NPC — your client must actually change layers before PatchWerk believes it worked. Previously, joining a hop group and seeing the host's layer number was enough to trigger "thanks for the hop!" while you were still sitting on your original layer
+- Layer change toasts ("Layer 1 -> 4") no longer flash during a hop when the number can't be trusted — the toast now only appears once the hop is actually confirmed
+- All hop-related messages (layer confirmed, layer changed, left group) now stay on screen for 5 seconds instead of vanishing instantly
+
+---
+*105 patches. 36 addons. Zero enrage timers.*
+
 ## v1.3.0 — "The One Where GudaChat Joined the Party"
 
 Welcome to the raid, GudaChat. Your buffs are ready.
