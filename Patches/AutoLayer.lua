@@ -398,8 +398,19 @@ local function PollLayer()
     -- are trustworthy. Either one changing = you phased to a new layer.
     if ns.applied["AutoLayer_hopTransitionTracker"] and hopState.state == "IN_GROUP" then
         local zoneID = GetCurrentZoneID()
-        local layerConfirmed = false
 
+        -- Late baseline capture: if we had no creature targeted (or NWB
+        -- was unknown) when the hop started, grab the first zoneID/layer
+        -- we see as the "before" snapshot. This covers /reload mid-hop
+        -- and hops initiated from areas with no NPC targeted.
+        if zoneID and not hopState.fromZoneID then
+            hopState.fromZoneID = zoneID
+        end
+        if currentNum and currentNum > 0 and not hopState.fromLayer then
+            hopState.fromLayer = currentNum
+        end
+
+        local layerConfirmed = false
         if zoneID and hopState.fromZoneID and zoneID ~= hopState.fromZoneID then
             layerConfirmed = true
         end
@@ -425,6 +436,14 @@ local function PollLayer()
     if ns.applied["AutoLayer_hopTransitionTracker"] and hopState.state == "VERIFYING" then
         local elapsed = GetTime() - hopState.verifyStart
         local zoneID = GetCurrentZoneID()
+
+        -- Late baseline capture (same as IN_GROUP — covers edge cases)
+        if zoneID and not hopState.fromZoneID then
+            hopState.fromZoneID = zoneID
+        end
+        if currentNum and currentNum > 0 and not hopState.fromLayer then
+            hopState.fromLayer = currentNum
+        end
 
         if zoneID and hopState.fromZoneID and zoneID ~= hopState.fromZoneID then
             ConfirmHop(currentNum and currentNum > 0 and currentNum or nil)
