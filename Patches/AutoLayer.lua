@@ -197,12 +197,31 @@ local function LeaveHopGroup(reason, layerStr)
 
     LeaveParty()
 
+    -- Force-invalidate NWB's stale layer cache. After UNIT_PHASE, NWB's
+    -- recalcMinimapLayerFrame() restores the OLD layer from its backup
+    -- (lastKnownLayerMapID), so NWB_CurrentLayer goes 1→0→1 instead of
+    -- showing the new layer. Clear it so NWB shows "Unknown" until the
+    -- player targets a new NPC, which will correctly detect the new layer.
+    NWB_CurrentLayer = 0
+    if NWB then
+        NWB.currentLayer = 0
+        if NWB.lastKnownLayerMapID then NWB.lastKnownLayerMapID = 0 end
+        if NWB.lastKnownLayerMapZoneID then NWB.lastKnownLayerMapZoneID = 0 end
+        -- Try to re-detect from current target after a short delay
+        -- (player might already have an NPC targeted on the new layer)
+        C_Timer.After(1.5, function()
+            if NWB.setCurrentLayerText and UnitExists("target") then
+                pcall(NWB.setCurrentLayerText, NWB, "target")
+            end
+        end)
+    end
+
     -- Status message
     local msg = "PatchWerk: Left group"
     if reason == "confirmed" and layerStr then
         msg = msg .. " \226\128\148 layer " .. layerStr .. " confirmed"
     elseif reason == "phase_changed" then
-        msg = msg .. " \226\128\148 layer changed"
+        msg = msg .. " \226\128\148 hop complete"
     elseif reason == "timeout" then
         msg = msg .. " \226\128\148 hop timed out"
     end
@@ -246,8 +265,11 @@ local function UpdateStatusFrame()
     elseif hopState.state == "IN_GROUP" then
         infoStr = "|cffff9933Hopping...|r"
     elseif hopState.state == "CONFIRMED" then
-        local newLayer = layerKnown and currentLayer or "?"
-        infoStr = "|cff33ff33Now on layer " .. newLayer .. "!|r"
+        -- Don't show NWB layer number here — it's stale after phasing.
+        -- NWB restores the old layer from its backup cache, so it still
+        -- shows the PRE-hop layer. Show a generic success message instead.
+        -- NWB will re-detect the correct layer when the player targets an NPC.
+        infoStr = "|cff33ff33Hop complete!|r"
     elseif enabled then
         if layerKnown then
             infoStr = "|cff33ff33On|r  |cff555555·|r  Layer " .. currentLayer
@@ -328,23 +350,22 @@ local function PollLayer()
             PlaySound(SOUNDKIT and SOUNDKIT.MAP_PING or 3175)
         end
 
-        -- Transition tracker: NWB confirmed a new layer — leave group (patch 8)
-        -- Requires UNIT_PHASE (phaseChanged) to prove YOUR client phased.
+        -- Transition tracker: NWB shows a different layer AND UNIT_PHASE
+        -- already fired — this is a genuine layer change.
+        -- Note: NWB numbers during a hop CAN be stale (NWB restores old
+        -- layer from backup cache). We use this path as a fast exit when
+        -- NWB genuinely updated, but don't trust the number for display.
         if ns.applied["AutoLayer_hopTransitionTracker"]
             and hopState.state == "IN_GROUP"
             and hopState.phaseChanged then
             hopState.state = "CONFIRMED"
             hopState.timestamp = GetTime()
-            local layerStr = tostring(currentNum)
-            -- Show the toast now that it's verified
             if ns.applied["AutoLayer_layerChangeToast"] then
-                local fromNum = lastNum or hopState.fromLayer
-                local msg = "Layer " .. (fromNum or "?") .. " -> " .. currentNum
-                UIErrorsFrame:AddMessage(msg, 1.0, 0.82, 0.0, 1.0, 5)
+                UIErrorsFrame:AddMessage("Hop complete!", 1.0, 0.82, 0.0, 1.0, 5)
                 PlaySound(SOUNDKIT and SOUNDKIT.MAP_PING or 3175)
             end
             C_Timer.After(0.5, function()
-                LeaveHopGroup("confirmed", layerStr)
+                LeaveHopGroup("phase_changed")
             end)
         end
     end
@@ -888,14 +909,12 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
             -- If WAITING_INVITE (OUTBOUND), the invite arrived as expected — no change
 
         elseif event == "UNIT_PHASE" then
-            -- UNIT_PHASE fires when the player's phase changes. During a
-            -- hop this is a strong hint the layer is changing, but NOT proof —
-            -- NWB still needs to confirm the new layer number via NPC GUID.
-            -- We use this to mark the phase as changed so PollLayer knows
-            -- to auto-leave once NWB confirms (or on a shorter timeout).
-            local unit = ...
-            -- Accept "player" or nil (TBC Classic may not pass a unit arg)
-            if unit and unit ~= "player" then return end
+            -- UNIT_PHASE fires for GROUP MEMBERS when they phase, not for
+            -- yourself. In a 2-person layer hop, the event fires with
+            -- "party1" (the other person phasing relative to you). NWB uses
+            -- UnitIsGroupLeader(unit) to detect this. We accept ANY unit
+            -- during an active hop — if anyone in the group is phasing,
+            -- it means the layer transition is happening.
             if hopState.state ~= "IN_GROUP" then return end
             if IsInInstance() then return end
 
@@ -915,22 +934,13 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
 
             elseif hopState.state == "IN_GROUP" and not IsInGroup() then
                 -- Other player left or we got kicked.
-                -- Only trust NWB layer data if UNIT_PHASE confirmed we phased.
+                -- Only trust UNIT_PHASE as proof of phasing. NWB_CurrentLayer
+                -- is unreliable here — it restores the old layer from its
+                -- backup cache after UNIT_PHASE resets it to 0.
                 if hopState.phaseChanged then
-                    local curLayer = NWB_CurrentLayer and tonumber(NWB_CurrentLayer)
-                    if curLayer and curLayer > 0 and hopState.fromLayer and curLayer ~= hopState.fromLayer then
-                        -- UNIT_PHASE fired AND NWB confirms a different layer
-                        hopState.state = "CONFIRMED"
-                        hopState.timestamp = GetTime()
-                        local layerStr = tostring(curLayer)
-                        UIErrorsFrame:AddMessage("PatchWerk: Layer " .. layerStr .. " confirmed", 0.2, 0.8, 1.0, 1.0, 5)
-                    else
-                        -- UNIT_PHASE fired but NWB hasn't confirmed the new
-                        -- number yet — still trust the phase change as a hop
-                        hopState.state = "CONFIRMED"
-                        hopState.timestamp = GetTime()
-                        UIErrorsFrame:AddMessage("PatchWerk: Layer changed", 0.2, 0.8, 1.0, 1.0, 5)
-                    end
+                    hopState.state = "CONFIRMED"
+                    hopState.timestamp = GetTime()
+                    UIErrorsFrame:AddMessage("PatchWerk: Hop complete", 0.2, 0.8, 1.0, 1.0, 5)
                 else
                     -- No UNIT_PHASE fired — layer never changed, genuine failure
                     hopState.state = "IDLE"

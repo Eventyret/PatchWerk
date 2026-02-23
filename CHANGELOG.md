@@ -1,5 +1,17 @@
 # PatchWerk Changelog
 
+## v1.3.2 — "The One Where NWB Forgot Which Layer It Was On"
+
+Turns out v1.3.1 was only half the story. The stale data was coming from inside the house.
+
+**Bugs that got /kicked:**
+- AutoLayer now correctly detects when your client actually changes layers during a hop — the UNIT_PHASE event fires for group members (like "party1"), not for yourself, and PatchWerk was only listening for "player". Oops
+- NovaWorldBuffs' internal layer cache is now cleared after leaving a hop group — NWB was restoring stale layer data from a backup cache faster than PatchWerk could read the new one, so "Layer 1" stuck around even after hopping to Layer 5
+- Hop confirmation messages no longer display a layer number that might be wrong — you'll see "Hop complete!" instead of a stale "Now on layer 1!" that NWB hasn't updated yet. NWB recovers the correct layer naturally once you target an NPC
+
+---
+*105 patches. 36 addons. Zero enrage timers.*
+
 ## v1.3.1 — "The One Where We Stopped Believing the Host"
 
 Hotfix incoming. No arena season reset required.

@@ -20,6 +20,22 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.3.2",
+        title = "Layer Detection Fix",
+        subtitle = "The One Where NWB Forgot Which Layer It Was On",
+        flavor = "Turns out v1.3.1 was only half the story. The stale data was coming from inside the house.",
+        sections = {
+            {
+                header = "Bugs that got /kicked:",
+                entries = {
+                    "AutoLayer now correctly detects when your client changes layers during a hop — the phase event fires for group members, not yourself, and PatchWerk was only listening for you. Oops",
+                    "NovaWorldBuffs' internal layer cache is now cleared after leaving a hop group — NWB was restoring stale layer data from a backup cache, so 'Layer 1' stuck around even after hopping to Layer 5",
+                    "Hop confirmation messages no longer display a layer number that might be wrong — you'll see 'Hop complete!' instead of a stale number that NWB hasn't updated yet",
+                },
+            },
+        },
+    },
+    {
         version = "1.3.1",
         title = "Hop Detection Hotfix",
         subtitle = "The One Where We Stopped Believing the Host",
