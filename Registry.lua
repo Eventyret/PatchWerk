@@ -38,7 +38,7 @@ ns.registry = {
     { id = "MoveAny",            label = "MoveAny (UI Mover)",                     deps = { "MoveAny" },             status = "verified",    targetVersion = "1.8.250" },
     { id = "Attune",             label = "Attune (Attunement Tracker)",             deps = { "Attune" },              status = "verified",    targetVersion = "266" },
     { id = "NovaWorldBuffs",     label = "NovaWorldBuffs (World Buff Timers)",      deps = { "NovaWorldBuffs" },      status = "shim-fixed", targetVersion = "3.30" },
-    { id = "LeatrixMaps",        label = "Leatrix Maps",                            deps = { "Leatrix_Maps" },        status = "verified",    targetVersion = "2.5.09" },
+    { id = "LeatrixMaps",        label = "Leatrix Maps",                            deps = { "Leatrix_Maps" },        status = "verified",    targetVersion = "2.5.07" },
     { id = "LeatrixPlus",        label = "Leatrix Plus (QOL)",                      deps = { "Leatrix_Plus" },        status = "verified",    targetVersion = "2.5.09" },
     { id = "NameplateSCT",       label = "NameplateSCT (Combat Text)",              deps = { "NameplateSCT" },        status = "verified",    targetVersion = "1.52" },
     { id = "QuestXP",            label = "QuestXP (Quest XP Display)",              deps = { "QuestXP" },             status = "verified",    targetVersion = "0.6.2" },
