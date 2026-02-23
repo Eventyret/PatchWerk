@@ -11,6 +11,7 @@
 local _, ns = ...
 
 local ipairs = ipairs
+local tinsert = tinsert
 local CreateFrame = CreateFrame
 local UIParent = UIParent
 
@@ -521,16 +522,8 @@ local function CreateChangelogFrame()
         navLabel:SetText("|cff888888" .. index .. " / " .. #ns.changelog .. "|r")
     end
 
-    -- ESC dismissal (avoid tinsert into UISpecialFrames — causes taint)
-    f:EnableKeyboard(true)
-    f:SetScript("OnKeyDown", function(self, key)
-        if key == "ESCAPE" then
-            self:SetPropagateKeyboardInput(false)
-            self:Hide()
-        else
-            self:SetPropagateKeyboardInput(true)
-        end
-    end)
+    -- ESC dismissal via UISpecialFrames (named frame required)
+    tinsert(UISpecialFrames, "PatchWerk_Changelog")
     f:SetScript("OnHide", function()
         overlay:Hide()
         local db = ns:GetDB()

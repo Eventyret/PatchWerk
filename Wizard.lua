@@ -7,6 +7,7 @@
 local _, ns = ...
 
 local ipairs = ipairs
+local tinsert = tinsert
 local wipe = wipe
 local CreateFrame = CreateFrame
 local UIParent = UIParent
@@ -312,17 +313,7 @@ local function CreateWizardFrame()
     f.nextBtn = nextBtn
 
     -- ESC to close (only marks complete if Finish/Skip was clicked)
-    -- Avoid tinsert(UISpecialFrames) — writing to that table taints the
-    -- ESC key processing path, causing ADDON_ACTION_BLOCKED on Quit/Logout.
-    f:EnableKeyboard(true)
-    f:SetScript("OnKeyDown", function(self, key)
-        if key == "ESCAPE" then
-            self:SetPropagateKeyboardInput(false)
-            self:Hide()
-        else
-            self:SetPropagateKeyboardInput(true)
-        end
-    end)
+    tinsert(UISpecialFrames, "PatchWerk_Wizard")
     f:SetScript("OnHide", function()
         overlay:Hide()
         if completingWizard then
