@@ -1,5 +1,9 @@
 -- Changelog.lua: In-game changelog popup for PatchWerk
 --
+-- Two-panel layout: version list + thanks on the left,
+-- scrollable patch notes on the right. Clicking a version
+-- switches the right panel. No more scroll doom.
+--
 -- Shows a "What's New" popup once per version on login.
 -- Auto-shows after the wizard is completed, not during first-run.
 -- Any dismiss (ESC, X, Got it) marks the version as seen.
@@ -207,22 +211,31 @@ ns.changelog = {
 }
 
 ---------------------------------------------------------------------------
--- Frame state
+-- Special Thanks (shown on the left panel, always visible)
 ---------------------------------------------------------------------------
-local CHANGELOG_WIDTH = 560
-local CHANGELOG_HEIGHT = 520
+ns.changelogThanks = {
+    { name = "Finn", link = "twitch.tv/finnwow31", note = "Live testing & bug reports" },
+    { name = "Jerrystclair", note = "Reported the ESC bug" },
+    { name = "Shivaz", note = "Reported the dungeon invite bug" },
+}
+
+---------------------------------------------------------------------------
+-- Frame layout
+---------------------------------------------------------------------------
+local FRAME_WIDTH = 680
+local FRAME_HEIGHT = 520
+local LEFT_WIDTH = 160
 
 local changelogFrame = nil
 
 ---------------------------------------------------------------------------
--- Build the scrollable content for a changelog entry
+-- Build scrollable section content for one changelog entry
 ---------------------------------------------------------------------------
 local function BuildChangelogContent(parent, entry)
     local y = 0
-    local ROW_PAD = 4  -- breathing room between entries
+    local ROW_PAD = 4
 
     for i, section in ipairs(entry.sections) do
-        -- Section header (gold)
         local header = parent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
         header:SetPoint("TOPLEFT", 0, y)
         header:SetPoint("RIGHT", parent, "RIGHT", 0, 0)
@@ -230,7 +243,6 @@ local function BuildChangelogContent(parent, entry)
         header:SetText("|cffffd100" .. section.header .. "|r")
         y = y - 20
 
-        -- Bullet entries (white, word-wrapped — measure real height)
         for _, text in ipairs(section.entries) do
             local bullet = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
             bullet:SetPoint("TOPLEFT", 12, y)
@@ -239,14 +251,11 @@ local function BuildChangelogContent(parent, entry)
             bullet:SetWordWrap(true)
             bullet:SetText("|cffdddddd\194\183|r  " .. text)
 
-            -- GetStringHeight returns the actual rendered height including
-            -- word wrap.  Falls back to 18 if layout hasn't run yet.
             local h = bullet:GetStringHeight()
             if not h or h < 10 then h = 18 end
             y = y - h - ROW_PAD
         end
 
-        -- Spacing between sections
         if i < #entry.sections then
             y = y - 12
         end
@@ -256,13 +265,11 @@ local function BuildChangelogContent(parent, entry)
 end
 
 ---------------------------------------------------------------------------
--- Create the changelog frame (lazy, called once)
+-- Create the two-panel changelog frame (lazy, called once)
 ---------------------------------------------------------------------------
 local function CreateChangelogFrame()
     if changelogFrame then return changelogFrame end
-
-    local entry = ns.changelog[1]
-    if not entry then return nil end
+    if not ns.changelog or not ns.changelog[1] then return nil end
 
     -- Full-screen dimmed overlay
     local overlay = CreateFrame("Frame", "PatchWerk_ChangelogOverlay", UIParent)
@@ -276,7 +283,7 @@ local function CreateChangelogFrame()
 
     -- Main frame
     local f = CreateFrame("Frame", "PatchWerk_Changelog", overlay)
-    f:SetSize(CHANGELOG_WIDTH, CHANGELOG_HEIGHT)
+    f:SetSize(FRAME_WIDTH, FRAME_HEIGHT)
     f:SetPoint("CENTER")
     f:SetClampedToScreen(true)
     f:SetFrameStrata("DIALOG")
@@ -293,7 +300,7 @@ local function CreateChangelogFrame()
     bg:SetAllPoints()
     SetSolidColor(bg, 0.05, 0.05, 0.05, 0.97)
 
-    -- Close "X" link (top-right)
+    -- Close "X" (top-right)
     local closeBtn = CreateFrame("Button", nil, f)
     closeBtn:SetSize(24, 18)
     closeBtn:SetPoint("TOPRIGHT", -8, -6)
@@ -304,97 +311,236 @@ local function CreateChangelogFrame()
     closeBtn:SetScript("OnLeave", function() closeTxt:SetText("|cff666666X|r") end)
     closeBtn:SetScript("OnClick", function() ns:CloseChangelog() end)
 
-    -- Title: "PatchWerk"
+    -- Title: "PatchWerk" (top-left)
     local title = f:CreateFontString(nil, "ARTWORK", "GameFontNormalHuge")
-    title:SetPoint("TOPLEFT", 30, -16)
+    title:SetPoint("TOPLEFT", 16, -12)
     title:SetText("|cff33ccffPatchWerk|r")
 
-    -- "What's New in vX.Y.Z"
-    local versionLine = f:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-    versionLine:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
-    versionLine:SetText("What's New in v" .. entry.version)
+    local tagline = f:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    tagline:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -2)
+    tagline:SetText("|cff666666Patch Notes|r")
 
-    -- Subtitle (punny)
-    local subtitle = f:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    subtitle:SetPoint("TOPLEFT", versionLine, "BOTTOMLEFT", 0, -4)
-    subtitle:SetPoint("RIGHT", f, "RIGHT", -30, 0)
-    subtitle:SetJustifyH("LEFT")
-    subtitle:SetWordWrap(true)
-    subtitle:SetText("|cffbbbbbb\"" .. entry.subtitle .. "\"|r")
+    ---------------------------------------------------------------------------
+    -- Left panel: vertical separator + version buttons + thanks
+    ---------------------------------------------------------------------------
+    local leftTop = -52
 
-    -- Flavor text (grey)
-    local flavor = f:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    flavor:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -8)
-    flavor:SetPoint("RIGHT", f, "RIGHT", -30, 0)
-    flavor:SetJustifyH("LEFT")
-    flavor:SetWordWrap(true)
-    flavor:SetText("|cff888888" .. entry.flavor .. "|r")
+    -- Vertical separator between panels
+    local vSep = f:CreateTexture(nil, "ARTWORK")
+    vSep:SetWidth(1)
+    vSep:SetPoint("TOPLEFT", LEFT_WIDTH, leftTop)
+    vSep:SetPoint("BOTTOMLEFT", LEFT_WIDTH, 44)
+    SetSolidColor(vSep, 0.25, 0.25, 0.25, 0.6)
+
+    -- Version buttons
+    local versionButtons = {}
+    local selectedIndex = 1
+
+    -- Right panel elements (declared here so SelectVersion can access them)
+    local rightTitle, rightSubtitle, rightFlavor
+    local versionScrollFrames = {}
+
+    local function SelectVersion(index)
+        selectedIndex = index
+        local entry = ns.changelog[index]
+
+        -- Update button highlights
+        for i, btn in ipairs(versionButtons) do
+            if i == index then
+                btn.bg:SetVertexColor(0.15, 0.4, 0.6, 0.8)
+                btn.label:SetTextColor(1, 1, 1)
+            else
+                btn.bg:SetVertexColor(0.1, 0.1, 0.1, 0)
+                btn.label:SetTextColor(0.6, 0.6, 0.6)
+            end
+        end
+
+        -- Update right panel header
+        rightTitle:SetText("v" .. entry.version .. "  —  " .. entry.title)
+        rightSubtitle:SetText("|cffbbbbbb\"" .. entry.subtitle .. "\"|r")
+        rightFlavor:SetText("|cff888888" .. entry.flavor .. "|r")
+
+        -- Show/hide content scroll frames
+        for i, sf in ipairs(versionScrollFrames) do
+            if i == index then sf:Show() else sf:Hide() end
+        end
+    end
+
+    local by = leftTop - 6
+    for i, entry in ipairs(ns.changelog) do
+        local btn = CreateFrame("Button", nil, f)
+        btn:SetPoint("TOPLEFT", 4, by)
+        btn:SetSize(LEFT_WIDTH - 10, 22)
+
+        local btnBg = btn:CreateTexture(nil, "BACKGROUND")
+        btnBg:SetAllPoints()
+        SetSolidColor(btnBg, 0.1, 0.1, 0.1, 0)
+        btn.bg = btnBg
+
+        local label = btn:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+        label:SetPoint("LEFT", 8, 0)
+        label:SetText("v" .. entry.version)
+        label:SetTextColor(0.6, 0.6, 0.6)
+        btn.label = label
+
+        -- "NEW" badge on the latest version
+        if i == 1 then
+            local badge = btn:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+            badge:SetPoint("LEFT", label, "RIGHT", 4, 0)
+            badge:SetText("|cff33ff33NEW|r")
+        end
+
+        btn:SetScript("OnClick", function() SelectVersion(i) end)
+        btn:SetScript("OnEnter", function()
+            if i ~= selectedIndex then
+                btnBg:SetVertexColor(0.15, 0.15, 0.15, 0.5)
+            end
+        end)
+        btn:SetScript("OnLeave", function()
+            if i ~= selectedIndex then
+                btnBg:SetVertexColor(0.1, 0.1, 0.1, 0)
+            end
+        end)
+
+        versionButtons[i] = btn
+        by = by - 24
+    end
+
+    -- Thanks section (bottom of left panel)
+    if ns.changelogThanks and #ns.changelogThanks > 0 then
+        local thanksSep = f:CreateTexture(nil, "ARTWORK")
+        thanksSep:SetHeight(1)
+        thanksSep:SetPoint("BOTTOMLEFT", 8, 100)
+        thanksSep:SetPoint("RIGHT", vSep, "LEFT", -8, 0)
+        SetSolidColor(thanksSep, 0.25, 0.25, 0.25, 0.4)
+
+        local thanksHeader = f:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+        thanksHeader:SetPoint("TOPLEFT", thanksSep, "BOTTOMLEFT", 0, -6)
+        thanksHeader:SetText("|cffffd100Special Thanks|r")
+
+        local ty = -22
+        for _, person in ipairs(ns.changelogThanks) do
+            local line = f:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+            line:SetPoint("TOPLEFT", thanksSep, "BOTTOMLEFT", 0, ty)
+            line:SetPoint("RIGHT", vSep, "LEFT", -8, 0)
+            line:SetJustifyH("LEFT")
+            line:SetWordWrap(true)
+
+            local text = "|cff33ccff" .. person.name .. "|r"
+            if person.note then
+                text = text .. "\n|cff888888" .. person.note .. "|r"
+            end
+            line:SetText(text)
+
+            local h = line:GetStringHeight()
+            if not h or h < 12 then h = 24 end
+            ty = ty - h - 4
+        end
+    end
+
+    ---------------------------------------------------------------------------
+    -- Right panel: header + scrollable content per version
+    ---------------------------------------------------------------------------
+    local rightLeft = LEFT_WIDTH + 14
+    local rightRight = -16
+
+    rightTitle = f:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    rightTitle:SetPoint("TOPLEFT", rightLeft, leftTop - 2)
+    rightTitle:SetPoint("RIGHT", f, "RIGHT", rightRight, 0)
+    rightTitle:SetJustifyH("LEFT")
+
+    rightSubtitle = f:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    rightSubtitle:SetPoint("TOPLEFT", rightTitle, "BOTTOMLEFT", 0, -4)
+    rightSubtitle:SetPoint("RIGHT", f, "RIGHT", rightRight, 0)
+    rightSubtitle:SetJustifyH("LEFT")
+    rightSubtitle:SetWordWrap(true)
+
+    rightFlavor = f:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    rightFlavor:SetPoint("TOPLEFT", rightSubtitle, "BOTTOMLEFT", 0, -6)
+    rightFlavor:SetPoint("RIGHT", f, "RIGHT", rightRight, 0)
+    rightFlavor:SetJustifyH("LEFT")
+    rightFlavor:SetWordWrap(true)
 
     -- Separator below flavor
     local headerSep = f:CreateTexture(nil, "ARTWORK")
     headerSep:SetHeight(1)
-    headerSep:SetPoint("TOPLEFT", flavor, "BOTTOMLEFT", -14, -10)
-    headerSep:SetPoint("RIGHT", f, "RIGHT", -16, 0)
+    headerSep:SetPoint("TOPLEFT", rightFlavor, "BOTTOMLEFT", -4, -8)
+    headerSep:SetPoint("RIGHT", f, "RIGHT", rightRight, 0)
     SetSolidColor(headerSep, 0.25, 0.25, 0.25, 0.6)
 
-    -- Scroll frame for section content
-    local sf = CreateFrame("ScrollFrame", "PatchWerk_ChangelogScroll", f, "UIPanelScrollFrameTemplate")
-    sf:SetPoint("TOPLEFT", headerSep, "BOTTOMLEFT", 4, -8)
-    sf:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -44, 50)
+    -- Pre-build a scroll frame + content for each version
+    for i, entry in ipairs(ns.changelog) do
+        local sf = CreateFrame("ScrollFrame", "PatchWerk_ChangelogScroll" .. i, f, "UIPanelScrollFrameTemplate")
+        sf:SetPoint("TOPLEFT", headerSep, "BOTTOMLEFT", 4, -8)
+        sf:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -36, 50)
+        sf:Hide()
 
-    local content = CreateFrame("Frame", nil, sf)
-    content:SetWidth(sf:GetWidth() > 0 and sf:GetWidth() or 460)
-    content:SetHeight(800)
-    sf:SetScrollChild(content)
-    sf:SetScript("OnSizeChanged", function(s, w)
-        if w and w > 0 then content:SetWidth(w) end
-    end)
+        local content = CreateFrame("Frame", nil, sf)
+        local contentWidth = FRAME_WIDTH - LEFT_WIDTH - 70
+        content:SetWidth(contentWidth)
+        content:SetHeight(800)
+        sf:SetScrollChild(content)
+        sf:SetScript("OnSizeChanged", function(s, w)
+            if w and w > 0 then content:SetWidth(w) end
+        end)
 
-    -- Render all changelog entries (latest first, older entries below)
-    local totalHeight = BuildChangelogContent(content, entry)
-    for i = 2, #ns.changelog do
-        local older = ns.changelog[i]
-        -- Version separator
-        local sep = content:CreateTexture(nil, "ARTWORK")
-        sep:SetHeight(1)
-        sep:SetPoint("TOPLEFT", 0, -(totalHeight + 16))
-        sep:SetPoint("RIGHT", content, "RIGHT", 0, 0)
-        SetSolidColor(sep, 0.25, 0.25, 0.25, 0.6)
-        totalHeight = totalHeight + 32
+        local h = BuildChangelogContent(content, entry)
+        content:SetHeight(math.max(h + 20, 100))
 
-        -- Older version header
-        local verHeader = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-        verHeader:SetPoint("TOPLEFT", 0, -totalHeight)
-        verHeader:SetText("v" .. older.version .. "  |cffbbbbbb\"" .. older.subtitle .. "\"|r")
-        totalHeight = totalHeight + 22
-
-        -- Render sections for this older entry
-        local olderContent = CreateFrame("Frame", nil, content)
-        olderContent:SetPoint("TOPLEFT", 0, -totalHeight)
-        olderContent:SetPoint("RIGHT", content, "RIGHT", 0, 0)
-        olderContent:SetHeight(800)
-        local olderHeight = BuildChangelogContent(olderContent, older)
-        totalHeight = totalHeight + olderHeight
+        versionScrollFrames[i] = sf
     end
-    content:SetHeight(math.max(totalHeight + 20, 100))
 
-    -- Nav separator (above button bar)
+    ---------------------------------------------------------------------------
+    -- Bottom bar
+    ---------------------------------------------------------------------------
     local navSep = f:CreateTexture(nil, "ARTWORK")
     navSep:SetHeight(1)
     navSep:SetPoint("BOTTOMLEFT", 0, 44)
     navSep:SetPoint("BOTTOMRIGHT", 0, 44)
     SetSolidColor(navSep, 0.25, 0.25, 0.25, 0.6)
 
-    -- "Got it" button (bottom-right)
+    -- "Got it" button
     local gotItBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
     gotItBtn:SetPoint("BOTTOMRIGHT", -12, 6)
     gotItBtn:SetSize(80, 24)
     gotItBtn:SetText("Got it")
     gotItBtn:SetScript("OnClick", function() ns:CloseChangelog() end)
 
-    -- ESC / X / Got it all dismiss and mark as seen
-    -- Avoid tinsert(UISpecialFrames) — writing to that table taints the
-    -- ESC key processing path, causing ADDON_ACTION_BLOCKED on Quit/Logout.
+    -- Prev / Next buttons
+    local prevBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    prevBtn:SetPoint("BOTTOMLEFT", LEFT_WIDTH + 8, 6)
+    prevBtn:SetSize(24, 24)
+    prevBtn:SetText("<")
+    prevBtn:SetScript("OnClick", function()
+        if selectedIndex < #ns.changelog then
+            SelectVersion(selectedIndex + 1)
+        end
+    end)
+
+    local nextBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    nextBtn:SetPoint("LEFT", prevBtn, "RIGHT", 4, 0)
+    nextBtn:SetSize(24, 24)
+    nextBtn:SetText(">")
+    nextBtn:SetScript("OnClick", function()
+        if selectedIndex > 1 then
+            SelectVersion(selectedIndex - 1)
+        end
+    end)
+
+    local navLabel = f:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    navLabel:SetPoint("LEFT", nextBtn, "RIGHT", 8, 0)
+    f.navLabel = navLabel
+
+    -- Wrap SelectVersion to update nav buttons
+    local origSelect = SelectVersion
+    SelectVersion = function(index)
+        origSelect(index)
+        prevBtn:SetEnabled(index < #ns.changelog)
+        nextBtn:SetEnabled(index > 1)
+        navLabel:SetText("|cff888888" .. index .. " / " .. #ns.changelog .. "|r")
+    end
+
+    -- ESC dismissal (avoid tinsert into UISpecialFrames — causes taint)
     f:EnableKeyboard(true)
     f:SetScript("OnKeyDown", function(self, key)
         if key == "ESCAPE" then
@@ -410,7 +556,11 @@ local function CreateChangelogFrame()
         if db then db.lastSeenChangelogVersion = ns.VERSION end
     end)
 
+    -- Select the latest version by default
+    SelectVersion(1)
+
     f.overlay = overlay
+    f.SelectVersion = SelectVersion
     changelogFrame = f
     return f
 end
@@ -422,6 +572,7 @@ end
 function ns:ShowChangelog()
     local f = CreateChangelogFrame()
     if not f then return end
+    f.SelectVersion(1)
     f.overlay:Show()
     f:Show()
 end
