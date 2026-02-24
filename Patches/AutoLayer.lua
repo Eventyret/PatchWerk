@@ -443,24 +443,26 @@ local function PollLayer()
     -- are trustworthy. Either one changing = you phased to a new layer.
     if ns.applied["AutoLayer_hopTransitionTracker"] and hopState.state == "IN_GROUP" then
         local zoneID = GetCurrentZoneID()
-
-        -- Late baseline capture: if we had no creature targeted (or NWB
-        -- was unknown) when the hop started, grab the first zoneID/layer
-        -- we see as the "before" snapshot. This covers /reload mid-hop
-        -- and hops initiated from areas with no NPC targeted.
-        if zoneID and not hopState.fromZoneID then
-            hopState.fromZoneID = zoneID
-        end
-        if currentNum and currentNum > 0 and not hopState.fromLayer then
-            hopState.fromLayer = currentNum
-        end
+        local elapsed = GetTime() - hopState.timestamp
 
         local layerConfirmed = false
+        -- Method 1: GUID zoneID comparison (requires pre-hop baseline)
         if zoneID and hopState.fromZoneID and zoneID ~= hopState.fromZoneID then
             layerConfirmed = true
         end
+        -- Method 2: NWB layer number comparison (requires pre-hop baseline)
         if currentNum and currentNum > 0 and hopState.fromLayer
            and hopState.fromLayer > 0 and currentNum ~= hopState.fromLayer then
+            layerConfirmed = true
+        end
+        -- Method 3: No GUID baseline — trust the hop after a grace period.
+        -- When no creature was available at hop start (common on fresh login
+        -- or zones without visible nameplates), we have no "before" zoneID
+        -- to compare against. A late baseline capture would incorrectly
+        -- snapshot the NEW layer's zoneID (the phase is near-instant), making
+        -- detection impossible. Instead, after 3s in group the phase has
+        -- certainly completed — confirm based on the group join itself.
+        if not layerConfirmed and not hopState.fromZoneID and elapsed > 3.0 then
             layerConfirmed = true
         end
 
@@ -482,19 +484,15 @@ local function PollLayer()
         local elapsed = GetTime() - hopState.verifyStart
         local zoneID = GetCurrentZoneID()
 
-        -- Late baseline capture (same as IN_GROUP — covers edge cases)
-        if zoneID and not hopState.fromZoneID then
-            hopState.fromZoneID = zoneID
-        end
-        if currentNum and currentNum > 0 and not hopState.fromLayer then
-            hopState.fromLayer = currentNum
-        end
-
         if zoneID and hopState.fromZoneID and zoneID ~= hopState.fromZoneID then
             ConfirmHop(currentNum and currentNum > 0 and currentNum or nil)
         elseif elapsed > 2 and currentNum and currentNum > 0 and hopState.fromLayer
                and hopState.fromLayer > 0 and currentNum ~= hopState.fromLayer then
             ConfirmHop(currentNum)
+        -- No GUID baseline: confirm after 2s (same reasoning as IN_GROUP Method 3).
+        -- The player went through the full invite/group/disband hop cycle.
+        elseif not hopState.fromZoneID and elapsed > 2 then
+            ConfirmHop(currentNum and currentNum > 0 and currentNum or nil)
         elseif elapsed > 5 and currentNum and currentNum > 0 and hopState.fromLayer
                and hopState.fromLayer > 0 and currentNum == hopState.fromLayer then
             FailHop("Layer unchanged \226\128\148 hop may not have worked")
@@ -998,7 +996,9 @@ end
 --   CONFIRMED -> IDLE (after 3 seconds)
 --
 -- Verification uses creature GUID zoneIDs (same NPC on different
--- layers has different zoneIDs) and NWB layer numbers. Stays in
+-- layers has different zoneIDs) and NWB layer numbers. When no
+-- baseline was available at hop start (fresh login, no nearby
+-- nameplates), confirms after a grace period in group. Stays in
 -- group until proof of hop, never trusts UNIT_PHASE alone.
 ------------------------------------------------------------------------
 ns.patches["AutoLayer_hopTransitionTracker"] = function()
@@ -1049,6 +1049,12 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
                 hopState.state = "IN_GROUP"
                 hopState.timestamp = GetTime()
                 hopState.hostName = GetPartyMemberName()
+                -- Clear stale layer caches — fromZoneID was already captured
+                -- at hop start, and the phase is about to (or has just) happened.
+                -- Without this, GetCurrentZoneID() returns the pre-hop zoneID
+                -- from cached sources, matching fromZoneID and blocking detection.
+                lastMouseoverZoneID = nil
+                if NWB and NWB.lastKnownLayerID then NWB.lastKnownLayerID = 0 end
                 UpdateStatusFrame()
 
             elseif hopState.state == "IN_GROUP" and not IsInGroup() then
