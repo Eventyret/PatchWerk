@@ -25,6 +25,33 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.4.1",
+        title = "Cross-Continent Hops",
+        subtitle = "The One Where Layers Learned Geography",
+        flavor = "Another patch cycle. No realm restarts, no 6-hour downtime. You're welcome.",
+        sections = {
+            {
+                header = "What got buffed:",
+                entries = {
+                    "AutoLayer now detects when a hop host is on a different continent and leaves within seconds \226\128\148 Azeroth and Outland have separate layer pools, so a host in Orgrimmar can't change your layer in Nagrand",
+                    "Cross-continent mismatches auto-retry up to 3 times to find someone on your continent",
+                    "Hosts that were already skipped are remembered for 5 minutes \226\128\148 repeat invites are rejected instantly",
+                    "Shift+Left-click the status frame to cancel an active hop at any time",
+                    "Thank-you whisper got a personality upgrade: \"Hopped! Smoother than a Paladin bubble-hearth. Cheers!\"",
+                },
+            },
+            {
+                header = "Bugs that got /kicked:",
+                entries = {
+                    "AutoLayer no longer gets stuck in the group after a successful hop \226\128\148 the root cause of \"hop complete but still in party\" reports has been fixed",
+                    "Hop confirmation no longer falsely reports \"failed\" in NPC-sparse areas \226\128\148 PatchWerk now waits longer before giving up",
+                    "Stale invites from other hosts no longer pull you into a new group after a confirmed hop",
+                    "Hop verification no longer times out on fresh login",
+                },
+            },
+        },
+    },
+    {
         version = "1.5.0-beta1",
         title = "ElvUI Support",
         subtitle = "The One Where ElvUI Walked Into the Repair Bot",

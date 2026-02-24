@@ -2,6 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
+| [v1.4.1](#v141--the-one-where-layers-learned-geography) | AutoLayer cross-continent hop detection, auto-retry, and cancel button |
 | [v1.5.0-beta1](#v150-beta1--the-one-where-elvui-walked-into-the-repair-bot) | ElvUI support — 24 patches across nameplates, unit frames, action bars, bags, and TBC compatibility |
 | [v1.4.0](#v140--3-addons-patched-0-loot-frames-seen) | HazeLoot fast auto-loot, HazeCooldowns GCD fix, Plumber TBC compatibility |
 | [v1.3.3](#v133--the-one-where-we-stopped-guessing) | Passive hop detection, configurable toasts, status frame polish |
@@ -21,6 +22,26 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 - **Shivaz** — reported the AutoLayer dungeon invite bug ([v1.3.0](#v130--the-one-where-gudachat-joined-the-party))
 
 ---
+
+## v1.4.1 — "The One Where Layers Learned Geography"
+
+Another patch cycle. No realm restarts, no 6-hour downtime. You're welcome.
+
+**What got buffed:**
+- AutoLayer now detects when a hop host is on a different continent and leaves within seconds — no more sitting in a group for 2 minutes waiting for a hop that can never happen. Azeroth and Outland have completely separate layer pools, so a host in Orgrimmar can't change your layer in Nagrand
+- When a cross-continent mismatch is detected, PatchWerk whispers the host why you left ("I'm in Outland — layers don't cross the Dark Portal!") and automatically retries up to 3 times to find someone on your continent
+- Hosts that were already skipped are remembered for 5 minutes — if the same person keeps inviting, PatchWerk leaves instantly without re-checking or re-whispering
+- Shift+Left-click the AutoLayer status frame to cancel an active hop at any time — leaves the group and resets everything
+- Thank-you whisper after a successful hop got a personality upgrade: "Hopped! Smoother than a Paladin bubble-hearth. Cheers!"
+
+**Bugs that got /kicked:**
+- AutoLayer no longer gets permanently stuck in the group after a successful hop — a long-standing issue where the leave command silently crashed has been fixed. This was the root cause of "hop complete but still in party" reports
+- Hop confirmation no longer falsely reports "failed" when layer data isn't available yet — if you're in an NPC-sparse area (open fields, far from towns), PatchWerk now waits longer before giving up instead of declaring failure
+- Stale invites from other hosts no longer pull you into a new group right after a confirmed hop — PatchWerk now rejects group joins when you've already landed on your new layer
+- Hop verification no longer times out on fresh login when layer data wasn't ready yet
+
+---
+*107 patches. 37 addons. Zero enrage timers.*
 
 ## v1.5.0-beta1 — "The One Where ElvUI Walked Into the Repair Bot"
 
