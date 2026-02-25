@@ -94,6 +94,18 @@ loader:SetScript("OnEvent", function(self, event, addon)
         end
     end
 
+    -- Migrate stale defaults that changed between versions
+    local MIGRATIONS = {
+        { key = "AutoLayer_hopWhisperMessage",
+          old = "[PatchWerk] Thanks for the hop!",
+          new = "[PatchWerk] Hopped! Smoother than a Paladin bubble-hearth. Cheers!" },
+    }
+    for _, m in ipairs(MIGRATIONS) do
+        if PatchWerkDB[m.key] == m.old then
+            PatchWerkDB[m.key] = m.new
+        end
+    end
+
     -- Prune stale keys from old patch versions
     local RESERVED_DB_KEYS = {
         dismissedOutdated = true,
@@ -169,3 +181,98 @@ patcher:SetScript("OnEvent", function(self)
     end
 
 end)
+
+------------------------------------------------------------------------
+-- Taint Diagnostic: identifies EXACTLY which globals PatchWerk tainted.
+-- Runs automatically on ADDON_ACTION_FORBIDDEN and via /pw taintcheck.
+------------------------------------------------------------------------
+function ns:RunTaintCheck()
+    self:Print("|cffffcc00--- Taint Diagnostic ---")
+    local taintCount = 0
+    local pwCount = 0
+
+    local function Check(label, tbl, key)
+        if tbl[key] == nil then return end
+        local ok, secure, taintedBy = pcall(issecurevariable, tbl, key)
+        if not ok then return end
+        if secure then return end
+        taintCount = taintCount + 1
+        local isPW = (taintedBy == "PatchWerk" or taintedBy == "!PatchWerk")
+        if isPW then pwCount = pwCount + 1 end
+        local tag = isPW and "|cffff3333" or "|cffffcc00"
+        self:Print(tag .. "TAINT:|r " .. label .. "." .. key .. " -> |cff33ccff" .. (taintedBy or "?") .. "|r")
+    end
+
+    -- SpellBook-critical globals
+    local spellbook = {
+        "CastSpell", "SpellBook_GetSpellBookSlot", "SpellButton_UpdateButton",
+        "SpellBookFrame_Update", "SpellBookFrame_UpdateSpells",
+        "GetSpellBookItemInfo", "GetSpellBookItemName", "GetSpellInfo",
+        "GetSpellTexture", "GetSpellCooldown", "IsPassiveSpell",
+        "IsCurrentSpell", "IsSelectedSpell", "GetSpellAutocast",
+        "BOOKTYPE_SPELL", "BOOKTYPE_PET", "MAX_SPELLS", "SpellBookFrame",
+    }
+    for _, key in ipairs(spellbook) do Check("_G", _G, key) end
+
+    -- Action bar related (taint can chain to spellbook)
+    local actionbar = {
+        "UpdatePressAndHoldAction", "ActionButton_UpdateAction",
+        "ActionButton_OnEvent", "MultiActionBar_ShowAllGrids",
+        "MultiActionBar_HideAllGrids",
+    }
+    for _, key in ipairs(actionbar) do Check("_G", _G, key) end
+
+    -- Globals PatchWerk patches may have written
+    local patched = {
+        "NotifyInspect", "TitanPanelButton_UpdateButton",
+        "PawnCacheItem", "PawnUncacheItem", "PawnClearCache",
+        "PawnGetCachedItem", "PawnUpdateTooltip", "PawnIsItemAnUpgrade",
+        "VUHDO_determineDebuff", "VUHDO_updateUnitRange", "VUHDO_tryInspectNext",
+        "C_SummonInfo", "NWB_CurrentLayer", "ProccessQueue",
+        "SLASH_PATCHWERK1", "SLASH_PATCHWERK2",
+    }
+    for _, key in ipairs(patched) do Check("_G", _G, key) end
+
+    -- Enum table entries
+    if type(Enum) == "table" then
+        for key in pairs(Enum) do
+            Check("Enum", Enum, tostring(key))
+        end
+    end
+
+    -- SpellBookFrame properties
+    if SpellBookFrame then
+        for _, key in ipairs({"bookType", "selectedSkillLine", "currentPage", "maxPages"}) do
+            Check("SpellBookFrame", SpellBookFrame, key)
+        end
+    end
+
+    -- SlashCmdList entry
+    if SlashCmdList then
+        Check("SlashCmdList", SlashCmdList, "PATCHWERK")
+    end
+
+    if taintCount == 0 then
+        self:Print("|cff33ff33No taint found in checked globals.|r")
+        self:Print("May be execution-path taint (not value-based).")
+    else
+        self:Print(taintCount .. " tainted (" .. pwCount .. " by PatchWerk).")
+    end
+    self:Print("|cffffcc00--- End Diagnostic ---")
+end
+
+-- Auto-run diagnostic once when PatchWerk is blamed for a blocked action
+do
+    local diagRan = false
+    local diagFrame = CreateFrame("Frame")
+    diagFrame:RegisterEvent("ADDON_ACTION_FORBIDDEN")
+    diagFrame:SetScript("OnEvent", function(_, _, addon)
+        if addon ~= "PatchWerk" and addon ~= "!PatchWerk" then return end
+        if diagRan then return end
+        diagRan = true
+        C_Timer.After(0.5, function()
+            ns:Print("|cffff6666ADDON_ACTION_FORBIDDEN detected.|r Running taint diagnostic...")
+            ns:RunTaintCheck()
+        end)
+    end)
+end

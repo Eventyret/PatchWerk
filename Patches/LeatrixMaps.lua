@@ -43,7 +43,6 @@ ns:RegisterPatch("LeatrixMaps", {
 ------------------------------------------------------------------------
 ns.patches["LeatrixMaps_areaLabelThrottle"] = function()
     if not ns:IsAddonLoaded("Leatrix_Maps") then return end
-    if not LeaMapsLC then return end
 
     -- The label provider is set up during Leatrix Maps initialization.
     -- We need to find the data provider that has setAreaLabelCallback,

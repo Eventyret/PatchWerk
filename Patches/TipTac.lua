@@ -81,14 +81,15 @@ end
 -- crowded areas (cities, raids) this causes constant server queries
 -- that contribute to throttling and lag.
 --
--- Fix: Replace NotifyInspect globally with a version that tracks when
--- each GUID was last inspected.  If the last successful inspect was
--- within 30 seconds, the server query is suppressed.  The library
--- queues NotifyInspect asynchronously via an OnUpdate handler on the
--- next frame, so the suppression must happen at the NotifyInspect
--- call site itself (not synchronously around InspectUnit).
--- A periodic cleanup ticker prevents the GUID lookup table from
--- growing without bound.
+-- Fix: Hook LibFroznFunctions:InspectUnit to suppress re-inspects
+-- within 30 seconds.  When suppressed, the callback is fired directly
+-- so TipTac still refreshes the tooltip with existing data.  A
+-- hooksecurefunc post-hook on NotifyInspect tracks when inspects
+-- actually fire (taint-free, runs after the original).
+--
+-- NOTE: Previous versions replaced _G.NotifyInspect globally, which
+-- caused taint propagation and ADDON_ACTION_FORBIDDEN.  The new
+-- approach only hooks addon methods, never Blizzard globals.
 ------------------------------------------------------------------------
 ns.patches["TipTac_inspectCache"] = function()
     if not LibStub then return end
@@ -104,24 +105,39 @@ ns.patches["TipTac_inspectCache"] = function()
     local inspectTimes = {}
     local EXTENDED_TIMEOUT = 30 -- seconds (up from library's 5)
 
-    -- Replace NotifyInspect at the point where the actual server query fires.
-    -- The library calls NotifyInspect asynchronously from an OnUpdate handler
-    -- on the next frame, so a synchronous flag around InspectUnit does not work.
-    local origNotifyInspect = NotifyInspect
-
-    NotifyInspect = function(unit)
+    -- Track when NotifyInspect actually fires (post-hook, no taint).
+    -- This captures inspects from ALL sources, not just TipTac.
+    hooksecurefunc("NotifyInspect", function(unit)
         local guid = unit and UnitGUID(unit)
-        if guid and inspectTimes[guid] then
-            local elapsed = GetTime() - inspectTimes[guid]
-            if elapsed < EXTENDED_TIMEOUT then
-                return -- suppress server query, cached data is fresh enough
-            end
-        end
-        -- Allow the inspect and record the timestamp
         if guid then
             inspectTimes[guid] = GetTime()
         end
-        return origNotifyInspect(unit)
+    end)
+
+    -- Hook InspectUnit to suppress re-inspects within our extended timeout.
+    -- When suppressed, we fire the callback directly — WoW keeps the last
+    -- inspected player's data in memory, so talent/gear info is still valid.
+    local origInspectUnit = LFF.InspectUnit
+    LFF.InspectUnit = function(self, unitID, callback, removeCallback, bypassTimeout)
+        -- Pass through removal requests and explicit timeout bypasses
+        if removeCallback or bypassTimeout then
+            return origInspectUnit(self, unitID, callback, removeCallback, bypassTimeout)
+        end
+
+        local guid = unitID and UnitGUID(unitID)
+        if guid and inspectTimes[guid] then
+            local elapsed = GetTime() - inspectTimes[guid]
+            if elapsed < EXTENDED_TIMEOUT then
+                -- Recent inspect data is still in WoW's memory.
+                -- Fire callback so TipTac refreshes tooltip with cached data.
+                if callback then
+                    pcall(callback)
+                end
+                return
+            end
+        end
+
+        return origInspectUnit(self, unitID, callback, removeCallback, bypassTimeout)
     end
 
     -- Prune old entries periodically to prevent memory leak

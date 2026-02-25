@@ -65,36 +65,36 @@ ns.patches["Pawn_cacheIndex"] = function()
     -- return data that was valid at cache time (no corruption risk).
     -- PawnClearCache and PawnUncacheItem hooks handle explicit removals.
     local origCache = PawnCacheItem
-    PawnCacheItem = function(CachedItem, ...)
+    rawset(_G, "PawnCacheItem", function(CachedItem, ...)
         origCache(CachedItem, ...)
         if CachedItem and CachedItem.Link then
             cacheIndex[CachedItem.Link] = CachedItem
         end
-    end
+    end)
 
     -- Hook PawnUncacheItem to maintain index
     if PawnUncacheItem then
         local origUncache = PawnUncacheItem
-        PawnUncacheItem = function(CachedItem, ...)
+        rawset(_G, "PawnUncacheItem", function(CachedItem, ...)
             if CachedItem and CachedItem.Link then
                 cacheIndex[CachedItem.Link] = nil
             end
             return origUncache(CachedItem, ...)
-        end
+        end)
     end
 
     -- Hook PawnClearCache if it exists
     if PawnClearCache then
         local origClear = PawnClearCache
-        PawnClearCache = function(...)
+        rawset(_G, "PawnClearCache", function(...)
             wipe(cacheIndex)
             return origClear(...)
-        end
+        end)
     end
 
     -- Replace PawnGetCachedItem with hash lookup for link-based queries
     local origGet = PawnGetCachedItem
-    PawnGetCachedItem = function(ItemLink, ItemName, NumLines)
+    rawset(_G, "PawnGetCachedItem", function(ItemLink, ItemName, NumLines)
         -- Respect debug mode: Pawn disables caching when PawnCommon.Debug is true
         if PawnCommon and PawnCommon.Debug then
             return origGet(ItemLink, ItemName, NumLines)
@@ -106,7 +106,7 @@ ns.patches["Pawn_cacheIndex"] = function()
         end
         -- Fallback to original for NumLines validation or name-only lookups
         return origGet(ItemLink, ItemName, NumLines)
-    end
+    end)
 end
 
 ------------------------------------------------------------------------
@@ -126,7 +126,7 @@ ns.patches["Pawn_tooltipDedup"] = function()
     local lastProcessedLink = {}
 
     local origUpdate = PawnUpdateTooltip
-    PawnUpdateTooltip = function(TooltipName, MethodName, Param1, ...)
+    rawset(_G, "PawnUpdateTooltip", function(TooltipName, MethodName, Param1, ...)
         -- Try to determine the item link early
         local itemLink
         if MethodName == "SetHyperlink" and Param1 then
@@ -145,7 +145,7 @@ ns.patches["Pawn_tooltipDedup"] = function()
         end
         lastProcessedLink[TooltipName] = itemLink
         return origUpdate(TooltipName, MethodName, Param1, ...)
-    end
+    end)
 
     -- Clear on tooltip hide/clear (GameTooltip + shopping comparison tooltips)
     local function HookTooltipClear(tip, name)
@@ -179,7 +179,7 @@ ns.patches["Pawn_upgradeCache"] = function()
     local upgradeCache = {}
 
     local origIsUpgrade = PawnIsItemAnUpgrade
-    PawnIsItemAnUpgrade = function(Item, DoNotRescan)
+    rawset(_G, "PawnIsItemAnUpgrade", function(Item, DoNotRescan)
         if not Item or not Item.Link then
             return origIsUpgrade(Item, DoNotRescan)
         end
@@ -203,7 +203,7 @@ ns.patches["Pawn_upgradeCache"] = function()
         end
 
         return unpack(result)
-    end
+    end)
 
     -- Invalidate cache when equipped items change
     local invalidator = CreateFrame("Frame")

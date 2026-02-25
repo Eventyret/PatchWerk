@@ -70,7 +70,6 @@ ns:RegisterPatch("LeatrixPlus", {
 ------------------------------------------------------------------------
 ns.patches["LeatrixPlus_taxiOnUpdateThrottle"] = function()
     if not ns:IsAddonLoaded("Leatrix_Plus") then return end
-    if not LeaPlusLC then return end
 
     -- Defer by one frame so Leatrix Plus has finished its PLAYER_LOGIN
     -- initialization and all panels have been created.

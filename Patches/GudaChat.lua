@@ -116,26 +116,27 @@ ns.patches["GudaChat_clearCommand"] = function()
     if not ns:IsAddonLoaded("GudaChat") then return end
 
     -- /clear (/cls) — wipe the currently selected chat frame
-    SLASH_GUDACHAT_CLEAR1 = "/clear"
-    SLASH_GUDACHAT_CLEAR2 = "/cls"
+    -- rawset avoids taint tracking on slash command registration
+    rawset(_G, "SLASH_GUDACHAT_CLEAR1", "/clear")
+    rawset(_G, "SLASH_GUDACHAT_CLEAR2", "/cls")
 
-    SlashCmdList["GUDACHAT_CLEAR"] = function()
+    rawset(SlashCmdList, "GUDACHAT_CLEAR", function()
         local cf = SELECTED_CHAT_FRAME
         if cf and cf.Clear then
             cf:Clear()
         end
-    end
+    end)
 
     -- /clearall (/clsall) — wipe every chat frame
-    SLASH_GUDACHAT_CLEARALL1 = "/clearall"
-    SLASH_GUDACHAT_CLEARALL2 = "/clsall"
+    rawset(_G, "SLASH_GUDACHAT_CLEARALL1", "/clearall")
+    rawset(_G, "SLASH_GUDACHAT_CLEARALL2", "/clsall")
 
-    SlashCmdList["GUDACHAT_CLEARALL"] = function()
+    rawset(SlashCmdList, "GUDACHAT_CLEARALL", function()
         for i = 1, NUM_WINDOWS do
             local cf = _G["ChatFrame" .. i]
             if cf and cf.Clear then
                 cf:Clear()
             end
         end
-    end
+    end)
 end

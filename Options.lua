@@ -881,10 +881,11 @@ local function OpenOptionsPanel()
     end
 end
 
-SLASH_PATCHWERK1 = "/patchwerk"
-SLASH_PATCHWERK2 = "/pw"
+-- rawset bypasses _G.__newindex taint tracking for slash command registration
+rawset(_G, "SLASH_PATCHWERK1", "/patchwerk")
+rawset(_G, "SLASH_PATCHWERK2", "/pw")
 
-SlashCmdList["PATCHWERK"] = function(msg)
+rawset(SlashCmdList, "PATCHWERK", function(msg)
     local args = {}
     for word in msg:gmatch("%S+") do
         table.insert(args, word)
@@ -911,6 +912,12 @@ SlashCmdList["PATCHWERK"] = function(msg)
     elseif cmd == "wizard" or cmd == "setup" then
         if ns.ResetWizard then ns:ResetWizard() end
         if ns.ShowWizard then ns:ShowWizard() end
+    elseif cmd == "taintcheck" or cmd == "taint" then
+        if ns.RunTaintCheck then
+            ns:RunTaintCheck()
+        else
+            ns:Print("Taint diagnostic not available.")
+        end
     elseif cmd == "help" then
         ns:Print("Usage:")
         ns:Print("  /pw              Open settings panel")
@@ -920,10 +927,11 @@ SlashCmdList["PATCHWERK"] = function(msg)
         ns:Print("  /pw changelog    Show what's new in this version")
         ns:Print("  /pw outdated     Check if any addons have updated")
         ns:Print("  /pw wizard       Re-run the setup wizard")
+        ns:Print("  /pw taintcheck   Run taint diagnostic (debug)")
     else
         ns:Print("Unknown command: " .. tostring(args[1]) .. ". Type /pw help for usage.")
     end
-end
+end)
 
 ---------------------------------------------------------------------------
 -- Initialization

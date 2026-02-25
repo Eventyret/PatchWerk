@@ -36,37 +36,79 @@ ns:RegisterPatch("OmniCC", {
 })
 
 local GetTime = GetTime
+local GetSpellCooldown = GetSpellCooldown
 
 ------------------------------------------------------------------------
 -- 1. OmniCC_gcdSpellCache
 --
--- OmniCC calls GetSpellCooldown(61304) twice per SetTimer invocation:
--- once in IsGCD() and once in GetGCDTimeRemaining().  When the GCD
--- fires, SetCooldown triggers on 12+ action buttons simultaneously,
--- producing 24+ redundant C API crossings per GCD cycle.  The result
--- is identical within a single frame.
+-- OmniCC calls GetSpellCooldown(61304) via its local IsGCD() function
+-- inside Cooldown:SetTimer().  When the GCD fires, SetCooldown triggers
+-- on 12+ action buttons simultaneously, each calling IsGCD() and
+-- producing 12+ redundant C API crossings per GCD cycle.
 --
--- Fix: Wrap GetSpellCooldown with a per-frame cache for spell ID 61304.
--- All other spell IDs pass through unmodified.
+-- Fix: Replace OmniCC.Cooldown.SetTimer with an optimized version that
+-- inlines the GCD detection with a per-frame cache.  This avoids
+-- replacing _G.GetSpellCooldown, which caused taint propagation to
+-- SpellBookFrame and ADDON_ACTION_FORBIDDEN on CastSpell().
 ------------------------------------------------------------------------
 ns.patches["OmniCC_gcdSpellCache"] = function()
     if not OmniCC then return end
+    if not OmniCC.Cooldown then return end
 
     local GCD_SPELL_ID = 61304
-    local cacheFrame = -1
-    local cacheA, cacheB, cacheC, cacheD
-    local origGetSpellCooldown = GetSpellCooldown
+    local Cooldown = OmniCC.Cooldown
 
-    GetSpellCooldown = function(spellID)
-        if spellID == GCD_SPELL_ID then
-            local now = GetTime()
-            if now ~= cacheFrame then
-                cacheFrame = now
-                cacheA, cacheB, cacheC, cacheD = origGetSpellCooldown(GCD_SPELL_ID)
-            end
-            return cacheA, cacheB, cacheC, cacheD
+    -- Verify required methods exist (guards against OmniCC version changes)
+    if not Cooldown.SetTimer or not Cooldown.TryShowFinishEffect
+       or not Cooldown.GetKind or not Cooldown.GetPriority
+       or not Cooldown.CanShowText or not Cooldown.RequestUpdate then
+        return
+    end
+
+    -- Per-frame GCD value cache
+    local cacheTime = -1
+    local gcdStart, gcdDuration, gcdEnabled, gcdModRate
+
+    -- Replace SetTimer with version that caches GCD lookups per-frame.
+    -- Faithfully reimplements OmniCC's Cooldown:SetTimer (cooldown.lua)
+    -- but replaces the local IsGCD() call with an inlined per-frame cache.
+    Cooldown.SetTimer = function(self, start, duration, modRate)
+        if modRate == nil then
+            modRate = 1
         end
-        return origGetSpellCooldown(spellID)
+
+        -- Exact match early-exit (original line 458)
+        if self._occ_start == start and self._occ_duration == duration and self._occ_modRate == modRate then
+            return
+        end
+
+        -- Show finish effect for previous cooldown state (original line 464)
+        Cooldown.TryShowFinishEffect(self)
+
+        self._occ_start = start
+        self._occ_duration = duration
+        self._occ_modRate = modRate
+
+        -- Inline GCD detection with per-frame cache (replaces IsGCD call)
+        if start > 0 and duration > 0 and modRate > 0 then
+            local now = GetTime()
+            if now ~= cacheTime then
+                cacheTime = now
+                gcdStart, gcdDuration, gcdEnabled, gcdModRate = GetSpellCooldown(GCD_SPELL_ID)
+            end
+            self._occ_gcd = (gcdEnabled and true or false)
+                and start == gcdStart
+                and duration == gcdDuration
+                and modRate == gcdModRate
+        else
+            self._occ_gcd = false
+        end
+
+        self._occ_kind = Cooldown.GetKind(self)
+        self._occ_priority = Cooldown.GetPriority(self)
+        self._occ_show = Cooldown.CanShowText(self)
+
+        Cooldown.RequestUpdate(self)
     end
 end
 

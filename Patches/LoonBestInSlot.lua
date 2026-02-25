@@ -299,14 +299,14 @@ ns.patches["LoonBestInSlot_settingsCompat"] = function()
     -- 3a. Hook the slash command handler
     local origSlash = SlashCmdList["LOONBESTINSLOT"]
     if origSlash then
-        SlashCmdList["LOONBESTINSLOT"] = function(command)
+        rawset(SlashCmdList, "LOONBESTINSLOT", function(command)
             command = (command or ""):lower()
             if command == "settings" then
                 openSettings()
             else
                 origSlash(command)
             end
-        end
+        end)
     end
 
     -- 3b. Hook the LibDataBroker minimap button OnClick

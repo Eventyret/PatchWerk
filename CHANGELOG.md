@@ -2,9 +2,9 @@
 
 | Version | Highlights |
 |---------|-----------|
+| [v1.5.0](#v150--the-one-where-elvui-walked-in-and-the-spellbook-chilled-out) | ElvUI support (24 patches) + spellbook security warning finally fixed for good |
 | [v1.4.2](#v142--the-one-where-the-spellbook-fought-back) | Fixed spellbook Blizzard security warning blocking spell casting |
 | [v1.4.1](#v141--the-one-where-layers-learned-geography) | AutoLayer cross-continent hop detection, auto-retry, and cancel button |
-| [v1.5.0-beta1](#v150-beta1--the-one-where-elvui-walked-into-the-repair-bot) | ElvUI support — 24 patches across nameplates, unit frames, action bars, bags, and TBC compatibility |
 | [v1.4.0](#v140--3-addons-patched-0-loot-frames-seen) | HazeLoot fast auto-loot, HazeCooldowns GCD fix, Plumber TBC compatibility |
 | [v1.3.3](#v133--the-one-where-we-stopped-guessing) | Passive hop detection, configurable toasts, status frame polish |
 | [v1.3.2](#v132--the-one-where-we-actually-checked) | GUID-based hop verification, no more false confirmations |
@@ -21,7 +21,66 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 - **[Finn](https://www.twitch.tv/finnwow31)** — live stream testing and bug reports ([v1.2.1](#v121--the-one-where-questie-learned-to-count))
 - **Jerrystclair** — reported the ESC/Exit Game bug ([v1.2.0](#v120--the-one-where-everything-got-a-little-shinier))
 - **Shivaz** — reported the AutoLayer dungeon invite bug ([v1.3.0](#v130--the-one-where-gudachat-joined-the-party))
-- **Don_Perry** — reported the spellbook security warning ([v1.4.2](#v142--the-one-where-the-spellbook-fought-back))
+- **Don_Perry** — reported the spellbook security warning ([v1.4.2](#v142--the-one-where-the-spellbook-fought-back), [v1.5.0](#v150--the-one-where-elvui-walked-in-and-the-spellbook-chilled-out))
+
+---
+
+## v1.5.0 — "The One Where ElvUI Walked In and the Spellbook Chilled Out"
+
+Two big things in one release: ElvUI support with 24 targeted patches — the biggest single-addon integration yet — and the complete fix for the spellbook security warning that's been haunting us since v1.4.2.
+
+**ElvUI — TBC Classic compatibility fixes:**
+- ElvUI's addon manager skin no longer errors out when it tries to use Retail-only game functions — the skin is now wrapped in crash protection so your addon list always works
+- ElvUI's bag skin can now find the container functions it needs on TBC Classic — missing game functions are bridged to their classic equivalents
+- Loot history window no longer throws errors — TBC Classic doesn't have a loot history system, so ElvUI now gets safe empty results instead of a crash
+- Gem socket window skin no longer errors when opening the socketing UI — the missing socket type lookup is handled gracefully
+- Communities and Guild Finder skin no longer fires into the void — these windows don't exist in TBC Classic, so the skin checks first and skips quietly
+
+**ElvUI — Nameplate performance — your dungeon pulls just got smoother:**
+- Health updates are now batched instead of processing every single damage tick individually — in a big pull with 10+ enemies, this cuts nameplate update work dramatically
+- Mouse highlight checking replaced with a smarter approach that only runs when your mouse target actually changes, instead of constantly polling every visible nameplate
+- Quest objective icons now remember which enemies are quest targets instead of rescanning tooltip text every time a nameplate appears
+- Target indicator now tracks your target once when it changes, instead of re-checking every nameplate on every health update
+
+**ElvUI — Unit frame performance — your raid frames thank you:**
+- Idle unit frames now skip expensive processing when the player shown hasn't changed — in a 40-player raid, this eliminates thousands of redundant checks per second
+- Mouseover, target, and focus glow effects consolidated from 120 separate watchers into a single combined pass
+- Text on raid frame tags (name, health, power) is no longer rewritten when the displayed value hasn't actually changed — skips unnecessary layout recalculations
+- Health bar color settings are now read once per update instead of being looked up 5+ times through nested tables
+
+**ElvUI — Action bars and bags:**
+- Bar visibility during casting is now recalculated 10 times per second instead of 20+ — still feels instant, cuts the work in half
+- Keybind text formatting skips buttons that have no keybind assigned, avoiding thousands of pointless text operations during bar reloads
+- Button greying (desaturation) only recalculates when a cooldown actually starts or finishes, not on every update tick
+- Data bar visual rebuilds are skipped entirely when your settings haven't changed — only the actual XP/rep values update
+- Bag sorting pre-reads all item details once before sorting begins, instead of re-reading them on every single comparison — up to 70% faster sorting
+- Rapid-fire bag events (from vendoring, sorting, moving items) are combined into a single refresh instead of processing each one individually
+- Bag slot item details are remembered between refreshes — opening your bags no longer queries the game for every single slot from scratch
+- Chat URL detection does a quick check first — messages that obviously don't contain links skip all 5 pattern scans entirely
+
+**ElvUI — Quality of life:**
+- Tooltip inspect data now expires after 30 seconds instead of 2 minutes — you'll see gear changes faster when mousing over players
+- Heal prediction bars skip resizing when the health bar dimensions haven't actually changed — fewer wasted layout updates in raids
+- Buff/debuff filter rebuilds are skipped when settings haven't changed — faster profile switching
+
+**Spellbook security warning — finally fixed for good:**
+- Fixed the "AddOn tried to call a protected function" error that popped up when clicking spells in the spellbook. v1.4.2 fixed one cause, but another was hiding in PatchWerk's main addon. The root cause: some performance patches were replacing built-in game functions with faster versions, which Blizzard's security system treats as suspicious — even though they were harmless. When the spellbook tried to use one of those replaced functions, Blizzard blocked the spell cast entirely. All affected patches have been rewritten to work *alongside* the game instead of replacing anything:
+  - **OmniCC cooldown cache** (the culprit): Now speeds up cooldown checks inside OmniCC's own code instead of replacing a game function — same performance improvement, no security warning
+  - **TipTac inspect cache**: Now reduces inspect spam through TipTac's own library instead of replacing a game function
+  - **Bartender4 action bar fix**: Uses a targeted approach that doesn't touch game functions
+  - **AutoLayer**: Cleaned up unnecessary work that ran for every user at login, even without AutoLayer installed
+- Added `/pw taintcheck` diagnostic — if you ever see the security warning again, this shows exactly what's causing it
+
+**Quality of life:**
+- Login chat no longer gets flooded with "Total time played" messages — multiple addons all ask the server for your /played time at startup, each printing two lines. PatchWerk now quietly blocks those messages for 10 seconds after login. Typing /played yourself still works after the window
+- AutoLayer hop confirmation no longer shows the same message twice — a timing issue caused the "Hop confirmed" notification to appear in duplicate. Now you get one clean gold toast
+
+**Housekeeping:**
+- Removed BigWigs Flash Recovery patch — the companion addon now handles what this patch was doing, so BigWigs flash alerts work on their own
+- Removed NovaWorldBuffs Addon Check Fix — same reason, the companion addon already provides what NovaWorldBuffs needs
+- Fixed BigWigs Proximity Text Throttle — turns out this patch was never actually doing anything due to how BigWigs loads its plugins. Rewritten so it actually works now
+- Fixed Leatrix Maps and Leatrix Plus patches — both patches were silently never running due to a startup check that always failed. Now they actually apply their optimizations
+- Updated version compatibility for Details, BigWigs, Leatrix Maps, and Leatrix Plus
 
 ---
 
@@ -53,52 +112,7 @@ Another patch cycle. No realm restarts, no 6-hour downtime. You're welcome.
 - Hop verification no longer times out on fresh login when layer data wasn't ready yet
 
 ---
-*107 patches. 37 addons. Zero enrage timers.*
-
-## v1.5.0-beta1 — "The One Where ElvUI Walked Into the Repair Bot"
-
-Consider this the Emergency Maintenance your ElvUI never got. PatchWerk now supports ElvUI with 24 targeted patches — the biggest single-addon integration yet. This is a **beta release** so we can collect feedback before going stable. If something feels off, please report it!
-
-> **This is a beta.** All 24 patches are enabled by default. If any patch causes issues, you can toggle it off individually with `/pw` and let us know which one. Bug reports, feedback, and "it's smoother now" messages are all welcome — leave a comment on CurseForge, Wago, or open a GitHub issue.
-
-**TBC Classic compatibility fixes:**
-- ElvUI's addon manager skin no longer errors out when it tries to use Retail-only game functions — the skin is now wrapped in crash protection so your addon list always works
-- ElvUI's bag skin can now find the container functions it needs on TBC Classic — missing game functions are bridged to their classic equivalents
-- Loot history window no longer throws errors — TBC Classic doesn't have a loot history system, so ElvUI now gets safe empty results instead of a crash
-- Gem socket window skin no longer errors when opening the socketing UI — the missing socket type lookup is handled gracefully
-- Communities and Guild Finder skin no longer fires into the void — these windows don't exist in TBC Classic, so the skin checks first and skips quietly
-
-**Nameplate performance — your dungeon pulls just got smoother:**
-- Health updates are now batched instead of processing every single damage tick individually — in a big pull with 10+ enemies, this cuts nameplate update work dramatically
-- Mouse highlight checking replaced with a smarter approach that only runs when your mouse target actually changes, instead of constantly polling every visible nameplate
-- Quest objective icons now remember which enemies are quest targets instead of rescanning tooltip text every time a nameplate appears
-- Target indicator now tracks your target once when it changes, instead of re-checking every nameplate on every health update
-
-**Unit frame performance — your raid frames thank you:**
-- Idle unit frames now skip expensive processing when the player shown hasn't changed — in a 40-player raid, this eliminates thousands of redundant checks per second
-- Mouseover, target, and focus glow effects consolidated from 120 separate watchers into a single combined pass
-- Text on raid frame tags (name, health, power) is no longer rewritten when the displayed value hasn't actually changed — skips unnecessary layout recalculations
-- Health bar color settings are now read once per update instead of being looked up 5+ times through nested tables
-
-**Action bar performance:**
-- Bar visibility during casting is now recalculated 10 times per second instead of 20+ — still feels instant, cuts the work in half
-- Keybind text formatting skips buttons that have no keybind assigned, avoiding thousands of pointless text operations during bar reloads
-- Button greying (desaturation) only recalculates when a cooldown actually starts or finishes, not on every update tick
-- Data bar visual rebuilds are skipped entirely when your settings haven't changed — only the actual XP/rep values update
-
-**Bag and chat improvements:**
-- Bag sorting pre-reads all item details once before sorting begins, instead of re-reading them on every single comparison — up to 70% faster sorting
-- Rapid-fire bag events (from vendoring, sorting, moving items) are combined into a single refresh instead of processing each one individually
-- Bag slot item details are remembered between refreshes — opening your bags no longer queries the game for every single slot from scratch
-- Chat URL detection does a quick check first — messages that obviously don't contain links skip all 5 pattern scans entirely
-
-**Quality of life:**
-- Tooltip inspect data now expires after 30 seconds instead of 2 minutes — you'll see gear changes faster when mousing over players
-- Heal prediction bars skip resizing when the health bar dimensions haven't actually changed — fewer wasted layout updates in raids
-- Buff/debuff filter rebuilds are skipped when settings haven't changed — faster profile switching
-
----
-*131 patches. 38 addons. Zero enrage timers. This is a beta — [report issues here](https://github.com/Eventyret/PatchWerk/issues).*
+*131 patches. 38 addons. Zero enrage timers.*
 
 ## v1.4.0 — "3 Addons Patched, 0 Loot Frames Seen"
 

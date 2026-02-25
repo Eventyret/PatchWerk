@@ -11,7 +11,7 @@ local _, ns = ...
 -- Note: deps[1] is always the addon folder name (used by tools)
 ------------------------------------------------------------------------
 ns.registry = {
-    { id = "Details",            label = "Details (Damage Meter)",                  deps = { "Details" },             status = "verified",    targetVersion = "#Details.20260222.14631.170" },
+    { id = "Details",            label = "Details (Damage Meter)",                  deps = { "Details" },             status = "verified",    targetVersion = "#Details.20260223.14634.170" },
     { id = "Plater",             label = "Plater (Nameplates)",                     deps = { "Plater" },              status = "verified",    targetVersion = "Plater-v632-TBC" },
     { id = "Pawn",               label = "Pawn (Item Comparison)",                  deps = { "Pawn" },                status = "verified",    targetVersion = "2.13.0" },
     { id = "TipTac",             label = "TipTac (Tooltips)",                       deps = { "TipTac" },              status = "verified",    targetVersion = "26.02.18" },
@@ -32,14 +32,14 @@ ns.registry = {
     { id = "NovaInstanceTracker", label = "Nova Instance Tracker",                  deps = { "NovaInstanceTracker" }, status = "verified",    targetVersion = "2.18" },
     { id = "AutoLayer",          label = "AutoLayer (Layer Hopping)",               deps = { "AutoLayer_Vanilla" },   status = "verified",    targetVersion = "1.7.7" },
     { id = "AtlasLootClassic",   label = "AtlasLoot Classic (Loot Browser)",        deps = { "AtlasLootClassic" },    status = "verified",    targetVersion = "BCC 2.5.4" },
-    { id = "BigWigs",            label = "BigWigs (Boss Mods)",                     deps = { "BigWigs" },             status = "verified",    targetVersion = "v406.6" },
+    { id = "BigWigs",            label = "BigWigs (Boss Mods)",                     deps = { "BigWigs" },             status = "verified",    targetVersion = "v407.2" },
     { id = "Gargul",             label = "Gargul (Loot Distribution)",              deps = { "Gargul" },              status = "verified",    targetVersion = "7.7.19" },
     { id = "SexyMap",            label = "SexyMap (Minimap)",                       deps = { "SexyMap" },             status = "shim-fixed", targetVersion = "v12.0.2" },
     { id = "MoveAny",            label = "MoveAny (UI Mover)",                     deps = { "MoveAny" },             status = "verified",    targetVersion = "1.8.250" },
     { id = "Attune",             label = "Attune (Attunement Tracker)",             deps = { "Attune" },              status = "verified",    targetVersion = "266" },
     { id = "NovaWorldBuffs",     label = "NovaWorldBuffs (World Buff Timers)",      deps = { "NovaWorldBuffs" },      status = "shim-fixed", targetVersion = "3.30" },
-    { id = "LeatrixMaps",        label = "Leatrix Maps",                            deps = { "Leatrix_Maps" },        status = "verified",    targetVersion = "2.5.07" },
-    { id = "LeatrixPlus",        label = "Leatrix Plus (QOL)",                      deps = { "Leatrix_Plus" },        status = "verified",    targetVersion = "2.5.09" },
+    { id = "LeatrixMaps",        label = "Leatrix Maps",                            deps = { "Leatrix_Maps" },        status = "verified",    targetVersion = "2.5.10" },
+    { id = "LeatrixPlus",        label = "Leatrix Plus (QOL)",                      deps = { "Leatrix_Plus" },        status = "verified",    targetVersion = "2.5.10" },
     { id = "NameplateSCT",       label = "NameplateSCT (Combat Text)",              deps = { "NameplateSCT" },        status = "verified",    targetVersion = "1.52" },
     { id = "QuestXP",            label = "QuestXP (Quest XP Display)",              deps = { "QuestXP" },             status = "verified",    targetVersion = "0.6.2" },
     { id = "RatingBuster",       label = "RatingBuster (Stat Comparison)",          deps = { "RatingBuster" },        status = "verified",    targetVersion = "2.1.5" },

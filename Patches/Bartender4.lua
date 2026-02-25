@@ -149,20 +149,17 @@ end
 ns.patches["Bartender4_pressAndHoldGuard"] = function()
     if not ns:IsAddonLoaded("Bartender4") then return end
 
-    -- Try wrapping the global function first (cleanest fix)
-    if type(UpdatePressAndHoldAction) == "function" then
-        local orig = UpdatePressAndHoldAction
-        UpdatePressAndHoldAction = function(self, ...)
-            if InCombatLockdown() then return end
-            return orig(self, ...)
-        end
-        return
-    end
-
-    -- Fallback: strip OnEvent from Blizzard buttons that Bartender4
+    -- Strip OnEvent from Blizzard multi-bar buttons that Bartender4
     -- already hid by re-parenting to UIHider.  This prevents the
     -- Blizzard ActionButton OnEvent chain from calling UpdateAction
     -- (and thus UpdatePressAndHoldAction/SetAttribute) on them.
+    --
+    -- NOTE: We deliberately do NOT replace the global UpdatePressAndHoldAction
+    -- function.  Replacing Blizzard globals via normal assignment taints
+    -- them in WoW's taint tracking system, which can propagate through
+    -- secure code paths and cause ADDON_ACTION_FORBIDDEN when the player
+    -- clicks spells in the SpellBookFrame.  The button-stripping approach
+    -- targets only the problematic hidden buttons without any global writes.
     local barPrefixes = {
         "MultiBarBottomLeftButton",
         "MultiBarBottomRightButton",

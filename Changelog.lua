@@ -25,6 +25,80 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.5.0",
+        title = "ElvUI + Spellbook Fix",
+        subtitle = "The One Where ElvUI Walked In and the Spellbook Chilled Out",
+        flavor = "Two big things in one release: ElvUI support with 24 patches and the spellbook security warning fixed for good.",
+        sections = {
+            {
+                header = "ElvUI \226\128\148 TBC Classic compatibility:",
+                entries = {
+                    "ElvUI's addon manager skin no longer errors out when it tries to use Retail-only game functions",
+                    "ElvUI's bag skin can now find the container functions it needs on TBC Classic",
+                    "Loot history window no longer throws errors \226\128\148 TBC Classic doesn't have a loot history system",
+                    "Gem socket window skin no longer errors when opening the socketing UI",
+                    "Communities and Guild Finder skin checks whether those windows exist before trying to style them",
+                },
+            },
+            {
+                header = "ElvUI \226\128\148 Your dungeon pulls just got smoother:",
+                entries = {
+                    "Nameplate health updates are batched instead of processing every single damage tick individually",
+                    "Mouse highlight checking only runs when your mouse target actually changes",
+                    "Quest objective icons remember which enemies are quest targets instead of rescanning constantly",
+                    "Target indicator tracks your target once instead of re-checking every nameplate on every health update",
+                },
+            },
+            {
+                header = "ElvUI \226\128\148 Your raid frames thank you:",
+                entries = {
+                    "Idle unit frames skip expensive processing when the player shown hasn't changed",
+                    "Mouseover, target, and focus glow effects consolidated from 120 separate watchers into one pass",
+                    "Raid frame text is no longer rewritten when the displayed value hasn't actually changed",
+                    "Health bar color settings read once per update instead of 5+ repeated lookups",
+                },
+            },
+            {
+                header = "ElvUI \226\128\148 Action bars, bags, and QOL:",
+                entries = {
+                    "Bar visibility recalculated 10 times per second instead of 20+ during casting",
+                    "Keybind text formatting skips buttons with no keybind assigned",
+                    "Bag sorting pre-reads all item details once \226\128\148 up to 70% faster",
+                    "Rapid-fire bag events combined into a single refresh",
+                    "Chat URL detection does a quick check first \226\128\148 messages without links skip all pattern scans",
+                    "Tooltip inspect data expires after 30s instead of 2 minutes",
+                },
+            },
+            {
+                header = "Spellbook security warning \226\128\148 fixed for good:",
+                entries = {
+                    "Fixed the \"AddOn tried to call a protected function\" error when clicking spells in the spellbook",
+                    "OmniCC cooldown cache now works inside OmniCC's own code instead of replacing a game function \226\128\148 this was the culprit",
+                    "TipTac inspect cache now reduces inspect spam through TipTac's own library instead of replacing a game function",
+                    "Bartender4 action bar fix uses a targeted approach that doesn't touch game functions",
+                    "Added /pw taintcheck diagnostic \226\128\148 if you ever see the warning again, this shows exactly what's causing it",
+                },
+            },
+            {
+                header = "Quality of life:",
+                entries = {
+                    "Login chat no longer gets flooded with \"Total time played\" messages \226\128\148 PatchWerk blocks them for 10 seconds after login, then /played works normally",
+                    "AutoLayer hop confirmation no longer shows the same message twice \226\128\148 one clean gold toast instead of a double blue flash",
+                },
+            },
+            {
+                header = "Housekeeping:",
+                entries = {
+                    "Removed BigWigs Flash Recovery \226\128\148 the companion addon now handles this on its own",
+                    "Removed NovaWorldBuffs Addon Check Fix \226\128\148 same reason, companion addon covers it",
+                    "Fixed BigWigs Proximity Text Throttle \226\128\148 turns out it was never actually doing anything. Rewritten so it works now",
+                    "Fixed Leatrix Maps and Leatrix Plus patches \226\128\148 both were silently never running due to a startup check that always failed",
+                    "Updated version compatibility for Details, BigWigs, Leatrix Maps, and Leatrix Plus",
+                },
+            },
+        },
+    },
+    {
         version = "1.4.2",
         title = "Spellbook Fix",
         subtitle = "The One Where the Spellbook Fought Back",
@@ -62,61 +136,6 @@ ns.changelog = {
                     "Hop confirmation no longer falsely reports \"failed\" in NPC-sparse areas \226\128\148 PatchWerk now waits longer before giving up",
                     "Stale invites from other hosts no longer pull you into a new group after a confirmed hop",
                     "Hop verification no longer times out on fresh login",
-                },
-            },
-        },
-    },
-    {
-        version = "1.5.0-beta1",
-        title = "ElvUI Support",
-        subtitle = "The One Where ElvUI Walked Into the Repair Bot",
-        flavor = "Consider this the Emergency Maintenance your ElvUI never got. PatchWerk now supports ElvUI with 24 patches \226\128\148 the biggest single-addon drop yet. This is a beta \226\128\148 if something feels off, toggle it off with /pw and let us know!",
-        sections = {
-            {
-                header = "TBC Classic compatibility fixes:",
-                entries = {
-                    "ElvUI's addon manager skin no longer errors out when it tries to use Retail-only game functions",
-                    "ElvUI's bag skin can now find the container functions it needs on TBC Classic",
-                    "Loot history window no longer throws errors \226\128\148 TBC Classic doesn't have a loot history system",
-                    "Gem socket window skin no longer errors when opening the socketing UI",
-                    "Communities and Guild Finder skin checks whether those windows exist before trying to style them",
-                },
-            },
-            {
-                header = "Your dungeon pulls just got smoother:",
-                entries = {
-                    "Nameplate health updates are batched instead of processing every single damage tick individually",
-                    "Mouse highlight checking only runs when your mouse target actually changes",
-                    "Quest objective icons remember which enemies are quest targets instead of rescanning constantly",
-                    "Target indicator tracks your target once instead of re-checking every nameplate on every health update",
-                },
-            },
-            {
-                header = "Your raid frames thank you:",
-                entries = {
-                    "Idle unit frames skip expensive processing when the player shown hasn't changed",
-                    "Mouseover, target, and focus glow effects consolidated from 120 separate watchers into one pass",
-                    "Raid frame text is no longer rewritten when the displayed value hasn't actually changed",
-                    "Health bar color settings read once per update instead of 5+ repeated lookups",
-                },
-            },
-            {
-                header = "Action bars and bags:",
-                entries = {
-                    "Bar visibility recalculated 10 times per second instead of 20+ during casting \226\128\148 still feels instant",
-                    "Keybind text formatting skips buttons with no keybind assigned",
-                    "Button greying only recalculates when a cooldown actually starts or finishes",
-                    "Bag sorting pre-reads all item details once \226\128\148 up to 70% faster",
-                    "Rapid-fire bag events combined into a single refresh",
-                    "Chat URL detection does a quick check first \226\128\148 messages without links skip all pattern scans",
-                },
-            },
-            {
-                header = "Quality of life:",
-                entries = {
-                    "Tooltip inspect data expires after 30 seconds instead of 2 minutes",
-                    "Heal prediction bars skip resizing when health bar dimensions haven't changed",
-                    "Buff/debuff filter rebuilds skipped when settings are unchanged",
                 },
             },
         },

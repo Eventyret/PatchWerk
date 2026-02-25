@@ -99,7 +99,8 @@ ns.patches["TitanPanel_bagDebounce"] = function()
     local origUpdate = TitanPanelButton_UpdateButton
     local bagTimer = nil
 
-    TitanPanelButton_UpdateButton = function(id, setButtonWidth, ...)
+    -- rawset avoids taint tracking on this addon global replacement
+    rawset(_G, "TitanPanelButton_UpdateButton", function(id, setButtonWidth, ...)
         if id == "Bag" then
             if bagTimer then
                 bagTimer:Cancel()
@@ -113,7 +114,7 @@ ns.patches["TitanPanel_bagDebounce"] = function()
             return
         end
         return origUpdate(id, setButtonWidth, ...)
-    end
+    end)
 end
 
 ------------------------------------------------------------------------
@@ -140,12 +141,13 @@ ns.patches["TitanPanel_performanceThrottle"] = function()
     local currentUpdate = TitanPanelButton_UpdateButton
     local perfLast = 0
 
-    TitanPanelButton_UpdateButton = function(id, ...)
+    -- rawset avoids taint tracking on this addon global replacement
+    rawset(_G, "TitanPanelButton_UpdateButton", function(id, ...)
         if id == "Performance" then
             local now = GetTime()
             if (now - perfLast) < 3 then return end
             perfLast = now
         end
         return currentUpdate(id, ...)
-    end
+    end)
 end

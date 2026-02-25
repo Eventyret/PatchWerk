@@ -57,7 +57,7 @@ ns.patches["VuhDo_debuffDebounce"] = function()
     local cacheResult = {}
     local cacheName = {}
 
-    VUHDO_determineDebuff = function(aUnit, anArg2)
+    rawset(_G, "VUHDO_determineDebuff", function(aUnit, anArg2)
         local now = GetTime()
         local last = lastCallTime[aUnit]
         if last and (now - last) < 0.033 then
@@ -68,7 +68,7 @@ ns.patches["VuhDo_debuffDebounce"] = function()
         cacheResult[aUnit] = result
         cacheName[aUnit] = name
         return result, name
-    end
+    end)
 end
 
 ------------------------------------------------------------------------
@@ -87,7 +87,7 @@ ns.patches["VuhDo_rangeSkipDead"] = function()
     if not VUHDO_RAID then return end
 
     local origUpdateRange = VUHDO_updateUnitRange
-    VUHDO_updateUnitRange = function(aUnit, aMode)
+    rawset(_G, "VUHDO_updateUnitRange", function(aUnit, aMode)
         local info = VUHDO_RAID[aUnit]
         if info then
             if info["dead"] or not info["connected"] then
@@ -95,7 +95,7 @@ ns.patches["VuhDo_rangeSkipDead"] = function()
             end
         end
         return origUpdateRange(aUnit, aMode)
-    end
+    end)
 end
 
 ------------------------------------------------------------------------
@@ -120,12 +120,12 @@ ns.patches["VuhDo_inspectThrottle"] = function()
     local lastInspectTime = 0
     local INSPECT_INTERVAL = 5
 
-    VUHDO_tryInspectNext = function(...)
+    rawset(_G, "VUHDO_tryInspectNext", function(...)
         local now = GetTime()
         if now - lastInspectTime < INSPECT_INTERVAL then
             return
         end
         lastInspectTime = now
         return origTryInspect(...)
-    end
+    end)
 end
