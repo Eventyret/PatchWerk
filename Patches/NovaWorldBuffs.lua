@@ -5,9 +5,12 @@
 -- performance issues and compatibility problems on TBC Anniversary:
 --   1. NovaWorldBuffs_openConfigFix     - Fix Settings.OpenToCategory
 --   2. NovaWorldBuffs_markerThrottle    - Throttle map marker updates
---   3. NovaWorldBuffs_cAddOnsShim       - Polyfill C_AddOns namespace
---   4. NovaWorldBuffs_cSummonInfoShim   - Polyfill C_SummonInfo namespace
---   5. NovaWorldBuffs_pairsByKeysOptimize - Reduce table allocations
+--   3. NovaWorldBuffs_cSummonInfoShim   - Polyfill C_SummonInfo namespace
+--   4. NovaWorldBuffs_pairsByKeysOptimize - Reduce table allocations
+--   5. NovaWorldBuffs_playedTimeFilter  - Suppress /played chat spam on login
+--
+-- NOTE: NovaWorldBuffs_cAddOnsShim was removed in v1.5.0. The !PatchWerk
+-- companion addon provides C_AddOns, making the polyfill redundant.
 ------------------------------------------------------------------------
 
 local _, ns = ...
@@ -44,14 +47,6 @@ ns:RegisterPatch("NovaWorldBuffs", {
     estimate = "FPS improvement when viewing the world map or Felwood minimap",
 })
 ns:RegisterPatch("NovaWorldBuffs", {
-    key = "NovaWorldBuffs_cAddOnsShim",
-    label = "Addon Check Fix",
-    help = "Fixes missing addon-checking features that cause errors on TBC Classic.",
-    detail = "NovaWorldBuffs tries to check whether other addons are installed using a method that only exists in Retail WoW. On TBC Classic Anniversary, this causes errors every time you receive a system message or open the world map. This fix provides working replacements so those checks succeed without errors.",
-    impact = "Compatibility", impactLevel = "High", category = "Compatibility",
-    estimate = "Eliminates Lua errors on system messages and world map opens",
-})
-ns:RegisterPatch("NovaWorldBuffs", {
     key = "NovaWorldBuffs_cSummonInfoShim",
     label = "Summon Auto-Accept Fix",
     help = "Fixes the auto-accept summon feature that breaks on TBC Classic.",
@@ -66,6 +61,14 @@ ns:RegisterPatch("NovaWorldBuffs", {
     detail = "NovaWorldBuffs creates and throws away temporary data every time it sorts its timer lists -- which happens every second. Over time, this builds up memory that has to be cleaned up, causing brief hitches. The fix reuses the same workspace instead of recreating it constantly.",
     impact = "FPS", impactLevel = "Low", category = "Performance",
     estimate = "Reduces memory buildup from timer sorting on layered servers",
+})
+ns:RegisterPatch("NovaWorldBuffs", {
+    key = "NovaWorldBuffs_playedTimeFilter",
+    label = "Played Time Chat Filter",
+    help = "Suppresses /played spam from addons on login and reload.",
+    detail = "Multiple addons (NovaWorldBuffs, NovaInstanceTracker, TitanXP, RXPGuides, etc.) call RequestTimePlayed() on login, each printing two lines of played time to chat. This patch suppresses those messages for 10 seconds after login. After the window, /played works normally.",
+    impact = "QOL", impactLevel = "Low", category = "Tweaks",
+    estimate = "Removes 4-8 lines of chat spam on every login/reload",
 })
 
 local GetTime = GetTime
@@ -187,30 +190,7 @@ ns.patches["NovaWorldBuffs_markerThrottle"] = function()
 end
 
 ------------------------------------------------------------------------
--- 3. NovaWorldBuffs_cAddOnsShim
---
--- NovaWorldBuffs calls C_AddOns.IsAddOnLoaded directly at:
---   line 5047 (CHAT_MSG_SYSTEM handler - fires on every system message)
---   line 7001 (updateWorldbuffMarkersScale - fires on world map open)
--- without the nil guard used elsewhere (line 37).
---
--- On TBC Classic Anniversary, C_AddOns is nil.  The classic globals
--- IsAddOnLoaded and GetAddOnMetadata serve the same purpose.
---
--- Fix: Create the C_AddOns namespace if it does not exist, mapping
--- its functions to the classic global equivalents.
-------------------------------------------------------------------------
-ns.patches["NovaWorldBuffs_cAddOnsShim"] = function()
-    if C_AddOns then return end  -- already exists, nothing to do
-
-    C_AddOns = {
-        IsAddOnLoaded = IsAddOnLoaded,
-        GetAddOnMetadata = GetAddOnMetadata,
-    }
-end
-
-------------------------------------------------------------------------
--- 4. NovaWorldBuffs_cSummonInfoShim
+-- 3. NovaWorldBuffs_cSummonInfoShim
 --
 -- NovaWorldBuffs uses C_SummonInfo at 5 locations for the auto-summon
 -- feature that accepts pending summons after getting Darkmoon Faire
@@ -229,7 +209,8 @@ end
 ns.patches["NovaWorldBuffs_cSummonInfoShim"] = function()
     if C_SummonInfo then return end  -- already exists, nothing to do
 
-    C_SummonInfo = {
+    -- rawset bypasses _G.__newindex taint tracking (C_ namespace pattern)
+    rawset(_G, "C_SummonInfo", {
         ConfirmSummon = function()
             if ConfirmSummon then ConfirmSummon() end
         end,
@@ -241,11 +222,11 @@ ns.patches["NovaWorldBuffs_cSummonInfoShim"] = function()
             end
             return 0
         end,
-    }
+    })
 end
 
 ------------------------------------------------------------------------
--- 5. NovaWorldBuffs_pairsByKeysOptimize
+-- 4. NovaWorldBuffs_pairsByKeysOptimize
 --
 -- NWB:pairsByKeys (NovaWorldBuffs.lua:3865) allocates a new table and
 -- closure on every call.  It is called from:
@@ -287,4 +268,37 @@ ns.patches["NovaWorldBuffs_pairsByKeysOptimize"] = function()
             return sortBuf[i], t[sortBuf[i]]
         end
     end
+end
+
+------------------------------------------------------------------------
+-- 5. NovaWorldBuffs_playedTimeFilter
+--
+-- Multiple addons call RequestTimePlayed() on login/reload
+-- (NovaWorldBuffs, NovaInstanceTracker, TitanXP, RXPGuides, etc.).
+-- Each call prints two lines to chat ("Total time played" + "Time
+-- played this level"), resulting in 4-8 lines of spam every login.
+--
+-- Fix: Temporarily unregister TIME_PLAYED_MSG from all chat frames
+-- for 10 seconds after login.  Addons still receive the event on
+-- their own hidden frames (NWB, NIT, etc.), so data capture is
+-- unaffected.  After the window, /played works normally.
+------------------------------------------------------------------------
+ns.patches["NovaWorldBuffs_playedTimeFilter"] = function()
+    local frames = {}
+    for i = 1, (NUM_CHAT_WINDOWS or 10) do
+        local cf = _G["ChatFrame" .. i]
+        if cf and cf.IsEventRegistered
+                and cf:IsEventRegistered("TIME_PLAYED_MSG") then
+            cf:UnregisterEvent("TIME_PLAYED_MSG")
+            frames[#frames + 1] = cf
+        end
+    end
+
+    if #frames == 0 then return end
+
+    C_Timer.After(10, function()
+        for _, cf in ipairs(frames) do
+            cf:RegisterEvent("TIME_PLAYED_MSG")
+        end
+    end)
 end

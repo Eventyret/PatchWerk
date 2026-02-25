@@ -103,4 +103,7 @@ read_globals = {
     "GetContainerNumSlots",
     "GetContainerItemInfo",
     "GetContainerItemLink",
+    "ConfirmSummon",
+    "StaticPopup_Visible",
+    "NUM_CHAT_WINDOWS",
 }

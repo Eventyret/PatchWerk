@@ -232,19 +232,11 @@ local function ZoneIDFromGUID(guid)
 end
 
 ------------------------------------------------------------------------
--- Mouseover zoneID cache: updated passively via UPDATE_MOUSEOVER_UNIT
--- so we always have a recent zoneID even without explicit targeting.
+-- Mouseover zoneID cache: initialized lazily by InitHopFrames() when
+-- an AutoLayer patch runs. No file-scope side effects.
 ------------------------------------------------------------------------
 local lastMouseoverZoneID = nil
-
-local mouseoverFrame = CreateFrame("Frame")
-mouseoverFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
-mouseoverFrame:SetScript("OnEvent", function()
-    local zid = ZoneIDFromGUID(UnitGUID("mouseover"))
-    if zid then
-        lastMouseoverZoneID = zid
-    end
-end)
+local mouseoverFrame  -- created by InitHopFrames()
 
 ------------------------------------------------------------------------
 -- Helper: Get current layer's zoneID from any available creature GUID.
@@ -334,14 +326,14 @@ local function LeaveHopGroup(reason)
     LeaveParty()
 
     if reason == "confirmed" then
-        -- Layer already verified — NWB cache is correct, don't invalidate
-        UIErrorsFrame:AddMessage("PatchWerk: Hop confirmed", 0.2, 0.8, 1.0, 1.0, GetToastDuration())
+        -- Layer already verified — NWB cache is correct, don't invalidate.
+        -- No toast here: ConfirmHop() already showed the gold notification.
     elseif reason == "cross_continent" then
         -- No phase happened — NWB caches and zone data are still valid.
         -- HandleFailedHop shows its own message, so nothing to display here.
     else
         -- Invalidate NWB's stale layer cache for verifying/timeout
-        NWB_CurrentLayer = 0
+        rawset(_G, "NWB_CurrentLayer", 0)
         if NWB then
             NWB.currentLayer = 0
             if NWB.lastKnownLayerMapID then NWB.lastKnownLayerMapID = 0 end
@@ -356,7 +348,40 @@ local function LeaveHopGroup(reason)
     -- Whisper is handled by ConfirmHop, not here
 end
 
-local retryFrame  -- forward declaration (created below, used by ConfirmHop/FailHop)
+local retryFrame  -- forward declaration (created by InitHopFrames)
+
+------------------------------------------------------------------------
+-- Lazy initialization for frames that only AutoLayer patches need.
+-- Prevents file-scope frame creation and event registration for users
+-- who don't have AutoLayer installed (avoids unnecessary taint vectors).
+------------------------------------------------------------------------
+local hopFramesInit = false
+local function InitHopFrames()
+    if hopFramesInit then return end
+    hopFramesInit = true
+
+    -- Mouseover zoneID cache
+    mouseoverFrame = CreateFrame("Frame")
+    mouseoverFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
+    mouseoverFrame:SetScript("OnEvent", function()
+        local zid = ZoneIDFromGUID(UnitGUID("mouseover"))
+        if zid then lastMouseoverZoneID = zid end
+    end)
+
+    -- Retry frame: fires pending retries on the next keypress.
+    -- SendChatMessage to channels is protected in TBC Classic and
+    -- requires hardware event context. OnKeyDown handlers have it.
+    retryFrame = CreateFrame("Frame", nil, UIParent)
+    retryFrame:EnableKeyboard(true)
+    retryFrame:SetPropagateKeyboardInput(true)
+    retryFrame:Hide()
+    retryFrame:SetScript("OnKeyDown", function(self)
+        self:Hide()
+        if hopState.state ~= "WAITING_INVITE" then return end
+        if not AutoLayer or not AutoLayer.SlashCommand then return end
+        pcall(AutoLayer.SlashCommand, AutoLayer, "req")
+    end)
+end
 
 ------------------------------------------------------------------------
 -- Helper: Confirm a successful hop (toast + whisper + state update)
@@ -405,29 +430,8 @@ local function FailHop(reason)
     UpdateStatusFrame()
 end
 
-------------------------------------------------------------------------
--- Retry frame: fires pending retries on the next keypress.
---
--- SendChatMessage to channels (LookingForGroup etc.) is protected in
--- TBC Classic and requires hardware event context. C_Timer.After
--- callbacks never have it. OnKeyDown handlers DO have it.
---
--- Flow: timer arms the frame (Show) -> next keypress fires retry
--- with hardware event context -> frame disarms (Hide).
--- SetPropagateKeyboardInput(true) ensures the keypress still reaches
--- the game (movement, abilities, etc.).
-------------------------------------------------------------------------
-retryFrame = CreateFrame("Frame", nil, UIParent)
-retryFrame:EnableKeyboard(true)
-retryFrame:SetPropagateKeyboardInput(true)
-retryFrame:Hide()  -- hidden = not capturing input
-
-retryFrame:SetScript("OnKeyDown", function(self)
-    self:Hide()  -- one-shot: disarm immediately
-    if hopState.state ~= "WAITING_INVITE" then return end
-    if not AutoLayer or not AutoLayer.SlashCommand then return end
-    pcall(AutoLayer.SlashCommand, AutoLayer, "req")
-end)
+-- Retry frame and OnKeyDown handler are created by InitHopFrames()
+-- when an AutoLayer patch runs. See the lazy-init function above.
 
 ------------------------------------------------------------------------
 -- Helper: Handle a hop that isn't working.
@@ -762,6 +766,7 @@ end
 local function StartPoller()
     if pollerStarted then return end
     pollerStarted = true
+    InitHopFrames()
 
     -- Initialize last known layer
     local currentLayer = NWB_CurrentLayer
@@ -777,6 +782,7 @@ end
 ------------------------------------------------------------------------
 local function CreateStatusFrame()
     if statusFrame then return statusFrame end
+    InitHopFrames()
 
     local f = CreateFrame("Frame", "PatchWerk_AutoLayerStatus", UIParent)
     f:SetSize(190, 34)
@@ -956,8 +962,8 @@ ns.patches["AutoLayer_keyDownThrottle"] = function()
     local origHandler = f:GetScript("OnKeyDown")
     if not origHandler then return end
 
-    -- Clear the generic "Test" global name
-    _G["Test"] = nil
+    -- Clear the generic "Test" global name (rawset avoids taint tracking)
+    rawset(_G, "Test", nil)
 
     -- Throttle: max once per 0.2 seconds
     local lastCall = 0
@@ -1325,7 +1331,7 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
             elseif hopState.state == "IN_GROUP" and not IsInGroup() then
                 -- Group disbanded before we confirmed — enter VERIFYING.
                 -- Clear NWB's stale cache so it re-detects from fresh NPC targets.
-                NWB_CurrentLayer = 0
+                rawset(_G, "NWB_CurrentLayer", 0)
                 if NWB then
                     NWB.currentLayer = 0
                     if NWB.lastKnownLayerMapID then NWB.lastKnownLayerMapID = 0 end
