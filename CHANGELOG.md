@@ -31,7 +31,8 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 Hotfix incoming. No arena season reset required.
 
 **Bugs that got /kicked:**
-- AutoLayer: After a successful layer hop, the same host could re-invite you through their stale LFG queue — AutoLayer would accept, join, and start a whole new hop cycle for no reason. Now it remembers who just hosted you and instantly leaves if they invite again within 60 seconds. One hop per host, no encore performances.
+- AutoLayer: Fixed false "hop confirmed" when the layer never actually changed. If you were on layer 9 and a host on layer 2 invited you, it would say "thanks for the hop!" and pat itself on the back — while you were still standing on layer 9. The verification now checks the actual layer number before celebrating.
+- AutoLayer: After a real successful hop, the same host could re-invite you through their stale LFG queue and trigger a whole new hop cycle. Now it remembers who just hosted you for 60 seconds and instantly leaves if they try again. One hop per host, no encore performances.
 
 ---
 *100+ patches. 35 addons. Still zero enrage timers.*

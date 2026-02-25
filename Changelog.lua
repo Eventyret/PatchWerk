@@ -33,7 +33,8 @@ ns.changelog = {
             {
                 header = "Bugs that got /kicked:",
                 entries = {
-                    "AutoLayer no longer falls for the same host re-inviting after a successful hop \226\128\148 it remembers who just hosted you for 60 seconds and instantly leaves if they try again",
+                    "Fixed false \"hop confirmed\" when the layer never actually changed \226\128\148 the verification now checks your actual layer number before celebrating",
+                    "After a real successful hop, the same host can no longer re-invite you and trigger a duplicate hop cycle \226\128\148 recent hosts are remembered for 60 seconds",
                 },
             },
         },
