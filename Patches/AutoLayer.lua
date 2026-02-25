@@ -193,6 +193,9 @@ local hopState = {
 local crossContinentHosts = {}
 local CROSS_CONTINENT_EXPIRY = 300  -- 5 minutes
 
+local recentHopHosts = {}
+local RECENT_HOP_EXPIRY = 60  -- 1 minute
+
 local POLL_IDLE = 1.0
 local POLL_ACTIVE = 0.1
 local CONFIRM_DURATION = 3.0
@@ -391,6 +394,10 @@ local function ConfirmHop(layerNum)
     hopState.timestamp = GetTime()
     hopState.hopRetries = 0
     retryFrame:Hide()  -- disarm pending retry
+
+    if hopState.hostName then
+        recentHopHosts[hopState.hostName] = GetTime()
+    end
 
     -- Gold toast notification
     if ns.applied["AutoLayer_layerChangeToast"] then
@@ -1296,6 +1303,18 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
                 if knownEntry and (GetTime() - knownEntry.time) < CROSS_CONTINENT_EXPIRY then
                     if not IsInRaid() and not IsInInstance() then
                         LeaveHopGroup("cross_continent")
+                    end
+                    hopState.state = "IDLE"
+                    UpdateStatusFrame()
+                    return
+                end
+
+                -- Recently hopped via this host? Instant leave to block
+                -- duplicate cycles from stale LFG re-invites.
+                local recentTime = hostName and recentHopHosts[hostName]
+                if recentTime and (GetTime() - recentTime) < RECENT_HOP_EXPIRY then
+                    if not IsInRaid() and not IsInInstance() then
+                        LeaveParty()
                     end
                     hopState.state = "IDLE"
                     UpdateStatusFrame()
