@@ -2,6 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
+| [v1.5.2](#v152--the-one-where-the-bags-opened-again) | ElvUI bags fixed (B key works again) + AutoLayer declines known-bad hosts at the door |
 | [v1.5.1](#v151--the-one-where-the-bouncer-remembered-faces) | AutoLayer no longer falls for the same host re-inviting after a successful hop |
 | [v1.5.0](#v150--the-one-where-elvui-walked-in-and-the-spellbook-chilled-out) | ElvUI support (24 patches) + spellbook security warning finally fixed for good |
 | [v1.4.2](#v142--the-one-where-the-spellbook-fought-back) | Fixed spellbook Blizzard security warning blocking spell casting |
@@ -23,6 +24,20 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 - **Jerrystclair** — reported the ESC/Exit Game bug ([v1.2.0](#v120--the-one-where-everything-got-a-little-shinier))
 - **Shivaz** — reported the AutoLayer dungeon invite bug ([v1.3.0](#v130--the-one-where-gudachat-joined-the-party))
 - **Don_Perry** — reported the spellbook security warning ([v1.4.2](#v142--the-one-where-the-spellbook-fought-back), [v1.5.0](#v150--the-one-where-elvui-walked-in-and-the-spellbook-chilled-out))
+- **Yitra_Beloff** — reported the ElvUI bag keybinding bug ([v1.5.2](#v152--the-one-where-the-bags-opened-again))
+
+---
+
+## v1.5.2 — "The One Where the Bags Opened Again"
+
+No realm restart required. We fixed it while you were farming Primal Mana.
+
+**Squashed like Razorgore's eggs:**
+- ElvUI: Pressing B to open your bags stopped working when the "Bag Slot Info Speedup" patch was enabled. The speedup was broken from the start — it looked up item details but never actually used them, and could crash the bag frame on first open. Replaced with crash protection so one bad slot can never block your bags from opening. (Thanks **Yitra_Beloff** for the report!)
+- AutoLayer: Cross-continent and recently-hopped hosts are now declined at the door instead of accepted and then immediately kicked. No more "Dungeon Difficulty set to Normal" spam from stale re-invites.
+
+---
+*100+ patches. 35 addons. Zero enrage timers.*
 
 ---
 

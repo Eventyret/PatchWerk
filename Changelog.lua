@@ -25,6 +25,21 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.5.2",
+        title = "Bag Fix + Invite Decline",
+        subtitle = "The One Where the Bags Opened Again",
+        flavor = "No realm restart required. We fixed it while you were farming Primal Mana.",
+        sections = {
+            {
+                header = "Squashed like Razorgore's eggs:",
+                entries = {
+                    "ElvUI: Pressing B to open your bags stopped working when the bag speedup patch was enabled \226\128\148 the speedup was broken from the start and could crash the bag frame on first open. Replaced with crash protection so one bad slot can never block your bags. (Thanks Yitra_Beloff!)",
+                    "AutoLayer: Cross-continent and recently-hopped hosts are now declined at the door instead of accepted and then immediately kicked \226\128\148 no more \"Dungeon Difficulty\" spam from stale re-invites",
+                },
+            },
+        },
+    },
+    {
         version = "1.5.1",
         title = "Hop Host Hotfix",
         subtitle = "The One Where the Bouncer Remembered Faces",
