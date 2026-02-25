@@ -30,7 +30,8 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 Hotfix incoming. No arena season reset required.
 
 **Bugs that got /kicked:**
-- Fixed a Blizzard security warning that blocked spell casting from the spellbook — clicking a spell in the spellbook would fail with "AddOn tried to call a protected function." The companion addon's compatibility layer was accidentally interfering with the spellbook's secure click path. Removed the offending entry; all addons that relied on it already have their own fallbacks
+- Fixed a Blizzard security warning that blocked spell casting from the spellbook — clicking a spell in the spellbook would fail with "AddOn tried to call a protected function." The companion addon's compatibility layer was accidentally interfering with the spellbook's secure click path
+- Hardened all compatibility layer entries against similar issues — the companion addon now writes all of its entries using a technique that avoids interfering with Blizzard's security checks entirely. This prevents the same class of error from appearing in any other protected action (not just spell casting)
 
 ---
 
