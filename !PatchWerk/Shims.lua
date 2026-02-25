@@ -6,6 +6,15 @@
 --
 -- Every shim is guarded so this file is safe to load on any WoW client version.
 -- No Ace3 or library dependencies. No event handlers. File-scope code only.
+--
+-- IMPORTANT: All global writes use rawset() to bypass _G's __newindex
+-- metamethod. This prevents WoW's taint tracking from flagging our shims
+-- as addon-owned, which would cause ADDON_ACTION_FORBIDDEN when Blizzard
+-- secure code (e.g. SpellBookFrame → CastSpell) reads these globals.
+-- Similarly, writes to Blizzard tables (Enum, metatables) use rawset()
+-- to avoid tainting individual keys.
+
+local rawset = rawset
 
 ------------------------------------------------------------------------
 -- 1. RunNextFrame
@@ -13,7 +22,7 @@
 ------------------------------------------------------------------------
 
 if not RunNextFrame then
-    RunNextFrame = function(fn) C_Timer.After(0, fn) end
+    rawset(_G, "RunNextFrame", function(fn) C_Timer.After(0, fn) end)
 end
 
 ------------------------------------------------------------------------
@@ -23,7 +32,7 @@ end
 ------------------------------------------------------------------------
 
 if not C_AddOns then
-    C_AddOns = {
+    rawset(_G, "C_AddOns", {
         GetAddOnMetadata            = GetAddOnMetadata,
         IsAddOnLoaded               = IsAddOnLoaded,
         GetAddOnInfo                = GetAddOnInfo,
@@ -34,15 +43,15 @@ if not C_AddOns then
         IsAddOnLoadOnDemand         = IsAddOnLoadOnDemand,
         GetAddOnDependencies        = GetAddOnDependencies,
         GetAddOnOptionalDependencies = GetAddOnOptionalDependencies,
-    }
+    })
 end
 
 -- Reverse shims: create globals from C_AddOns for addons that use the old API
 if C_AddOns then
-    if not IsAddOnLoaded then IsAddOnLoaded = C_AddOns.IsAddOnLoaded end
-    if not GetAddOnMetadata then GetAddOnMetadata = C_AddOns.GetAddOnMetadata end
-    if not GetAddOnInfo then GetAddOnInfo = C_AddOns.GetAddOnInfo end
-    if not GetNumAddOns then GetNumAddOns = C_AddOns.GetNumAddOns end
+    if not IsAddOnLoaded then rawset(_G, "IsAddOnLoaded", C_AddOns.IsAddOnLoaded) end
+    if not GetAddOnMetadata then rawset(_G, "GetAddOnMetadata", C_AddOns.GetAddOnMetadata) end
+    if not GetAddOnInfo then rawset(_G, "GetAddOnInfo", C_AddOns.GetAddOnInfo) end
+    if not GetNumAddOns then rawset(_G, "GetNumAddOns", C_AddOns.GetNumAddOns) end
 end
 
 ------------------------------------------------------------------------
@@ -51,11 +60,11 @@ end
 ------------------------------------------------------------------------
 
 if not C_CVar then
-    C_CVar = {
+    rawset(_G, "C_CVar", {
         GetCVar     = GetCVar,
         GetCVarBool = GetCVarBool,
         SetCVar     = SetCVar,
-    }
+    })
 end
 
 ------------------------------------------------------------------------
@@ -72,14 +81,15 @@ if not C_Spell then
     local _IsUsableSpell    = IsUsableSpell
     local _GetSpellDesc     = GetSpellDescription
 
-    C_Spell = {}
+    local tbl = {}
+    rawset(_G, "C_Spell", tbl)
 
-    function C_Spell.GetSpellName(spellID)
+    function tbl.GetSpellName(spellID)
         return (_GetSpellInfo(spellID))
     end
 
     -- Returns a named table instead of positional values
-    function C_Spell.GetSpellInfo(spellID)
+    function tbl.GetSpellInfo(spellID)
         local name, rank, icon, castTime, minRange, maxRange, id = _GetSpellInfo(spellID)
         if not name then return nil end
         return {
@@ -94,27 +104,27 @@ if not C_Spell then
     end
 
     -- Returns icon twice; callers use both select(1,...) and select(2,...)
-    function C_Spell.GetSpellTexture(spellID)
+    function tbl.GetSpellTexture(spellID)
         local _, _, icon = _GetSpellInfo(spellID)
         return icon, icon
     end
 
-    function C_Spell.DoesSpellExist(spellID)
+    function tbl.DoesSpellExist(spellID)
         return _GetSpellInfo(spellID) ~= nil
     end
 
     -- Rank is the 2nd return of GetSpellInfo in TBC
-    function C_Spell.GetSpellSubtext(spellID)
+    function tbl.GetSpellSubtext(spellID)
         local _, rank = _GetSpellInfo(spellID)
         return rank
     end
 
-    function C_Spell.GetSpellDescription(spellID)
+    function tbl.GetSpellDescription(spellID)
         return _GetSpellDesc(spellID)
     end
 
     -- Returns a named table instead of positional values
-    function C_Spell.GetSpellCooldown(spellID)
+    function tbl.GetSpellCooldown(spellID)
         local start, duration, enabled = _GetSpellCooldown(spellID)
         if not start then return nil end
         return {
@@ -126,7 +136,7 @@ if not C_Spell then
     end
 
     -- Returns a named table instead of positional values
-    function C_Spell.GetSpellCharges(spellID)
+    function tbl.GetSpellCharges(spellID)
         local charges, maxCharges, start, duration, rate = _GetSpellCharges(spellID)
         if not charges then return nil end
         return {
@@ -138,24 +148,24 @@ if not C_Spell then
         }
     end
 
-    function C_Spell.GetSpellLink(spellID)
+    function tbl.GetSpellLink(spellID)
         return _GetSpellLink(spellID)
     end
 
-    function C_Spell.IsSpellUsable(spellID)
+    function tbl.IsSpellUsable(spellID)
         return _IsUsableSpell(spellID)
     end
 
     -- No-op: retail uses this to request async spell data loading
-    function C_Spell.RequestLoadSpellData() end
+    function tbl.RequestLoadSpellData() end
 
-    function C_Spell.GetSpellCooldownDuration(spellID)
+    function tbl.GetSpellCooldownDuration(spellID)
         local _, duration = _GetSpellCooldown(spellID)
         return duration or 0
     end
 
     -- In TBC Classic spell data is always available synchronously
-    function C_Spell.IsSpellDataCached(spellID)
+    function tbl.IsSpellDataCached(spellID)
         return _GetSpellInfo(spellID) ~= nil
     end
 end
@@ -171,7 +181,7 @@ if not C_Item then
     local _GetItemInfoInstant   = GetItemInfoInstant
     local _GetItemIcon          = GetItemIcon
 
-    C_Item = {
+    local tbl = {
         -- Direct aliases of TBC globals
         GetItemInfo          = _GetItemInfo,
         GetItemInfoInstant   = _GetItemInfoInstant,
@@ -185,40 +195,41 @@ if not C_Item then
         GetItemQualityColor  = GetItemQualityColor,
         GetItemCooldown      = GetItemCooldown,
     }
+    rawset(_G, "C_Item", tbl)
 
     -- Custom shims using different TBC global names or return positions
-    function C_Item.GetItemIconByID(itemID)
+    function tbl.GetItemIconByID(itemID)
         return _GetItemIcon(itemID)
     end
 
-    function C_Item.GetItemQualityByID(itemID)
+    function tbl.GetItemQualityByID(itemID)
         return select(3, _GetItemInfo(itemID))
     end
 
-    function C_Item.GetItemMaxStackSizeByID(itemID)
+    function tbl.GetItemMaxStackSizeByID(itemID)
         return select(8, _GetItemInfo(itemID))
     end
 
-    function C_Item.DoesItemExistByID(itemID)
+    function tbl.DoesItemExistByID(itemID)
         return _GetItemInfo(itemID) ~= nil
     end
 
     -- No-op: retail uses this to request async item data loading
-    function C_Item.RequestLoadItemDataByID() end
+    function tbl.RequestLoadItemDataByID() end
 
     -- In TBC Classic item data is always available synchronously
-    function C_Item.IsItemDataCachedByID(itemID)
+    function tbl.IsItemDataCachedByID(itemID)
         return _GetItemInfo(itemID) ~= nil
     end
 
     -- ItemLocation-based stubs (no TBC equivalent)
-    function C_Item.DoesItemExist()         return false end
-    function C_Item.IsLocked()              return false end
-    function C_Item.GetItemID()             return 0 end
-    function C_Item.GetItemLink()           return nil end
-    function C_Item.GetItemIcon()           return nil end
-    function C_Item.IsItemBindToAccountUntilEquip() return false end
-    function C_Item.IsItemKeystoneByID()    return false end
+    function tbl.DoesItemExist()         return false end
+    function tbl.IsLocked()              return false end
+    function tbl.GetItemID()             return 0 end
+    function tbl.GetItemLink()           return nil end
+    function tbl.GetItemIcon()           return nil end
+    function tbl.IsItemBindToAccountUntilEquip() return false end
+    function tbl.IsItemKeystoneByID()    return false end
 end
 
 ------------------------------------------------------------------------
@@ -230,7 +241,7 @@ end
 if not C_Container then
     local _GetContainerItemInfo = GetContainerItemInfo
 
-    C_Container = {
+    local tbl = {
         -- Direct aliases
         GetContainerNumSlots     = GetContainerNumSlots,
         GetContainerItemLink     = GetContainerItemLink,
@@ -241,9 +252,10 @@ if not C_Container then
         ContainerIDToInventoryID = ContainerIDToInventoryID,
         GetItemCooldown          = GetItemCooldown,
     }
+    rawset(_G, "C_Container", tbl)
 
     -- TBC returns positional values; retail returns a named table
-    function C_Container.GetContainerItemInfo(bag, slot)
+    function tbl.GetContainerItemInfo(bag, slot)
         local texture, count, locked, quality, readable, lootable, link, isFiltered, noValue, itemID = _GetContainerItemInfo(bag, slot)
         if not texture then return nil end
         return {
@@ -261,10 +273,10 @@ if not C_Container then
     end
 
     -- Stubs for retail-only sorting APIs
-    function C_Container.GetSortBagsRightToLeft()    return false end
-    function C_Container.SetSortBagsRightToLeft()    end
-    function C_Container.GetInsertItemsLeftToRight()  return false end
-    function C_Container.SetInsertItemsLeftToRight()  end
+    function tbl.GetSortBagsRightToLeft()    return false end
+    function tbl.SetSortBagsRightToLeft()    end
+    function tbl.GetInsertItemsLeftToRight()  return false end
+    function tbl.SetInsertItemsLeftToRight()  end
 end
 
 ------------------------------------------------------------------------
@@ -276,9 +288,10 @@ end
 if not C_UnitAuras then
     local _UnitAura = UnitAura
 
-    C_UnitAuras = {}
+    local tbl = {}
+    rawset(_G, "C_UnitAuras", tbl)
 
-    function C_UnitAuras.GetAuraDataByIndex(unit, index, filter)
+    function tbl.GetAuraDataByIndex(unit, index, filter)
         local name, icon, count, debuffType, duration, expirationTime,
               source, isStealable, nameplateShowAll, spellId, canApplyAura,
               isBossDebuff, castByPlayer, _, timeMod = _UnitAura(unit, index, filter)
@@ -301,24 +314,24 @@ if not C_UnitAuras then
         }
     end
 
-    function C_UnitAuras.GetBuffDataByIndex(unit, index)
-        return C_UnitAuras.GetAuraDataByIndex(unit, index, "HELPFUL")
+    function tbl.GetBuffDataByIndex(unit, index)
+        return tbl.GetAuraDataByIndex(unit, index, "HELPFUL")
     end
 
-    function C_UnitAuras.GetDebuffDataByIndex(unit, index)
-        return C_UnitAuras.GetAuraDataByIndex(unit, index, "HARMFUL")
+    function tbl.GetDebuffDataByIndex(unit, index)
+        return tbl.GetAuraDataByIndex(unit, index, "HARMFUL")
     end
 
-    function C_UnitAuras.GetAuraDataBySpellName(unit, spellName, filter)
+    function tbl.GetAuraDataBySpellName(unit, spellName, filter)
         for i = 1, 40 do
-            local data = C_UnitAuras.GetAuraDataByIndex(unit, i, filter)
+            local data = tbl.GetAuraDataByIndex(unit, i, filter)
             if not data then return nil end
             if data.name == spellName then return data end
         end
         return nil
     end
 
-    function C_UnitAuras.IsAuraFilteredOutByInstanceID()
+    function tbl.IsAuraFilteredOutByInstanceID()
         return false
     end
 end
@@ -330,9 +343,10 @@ end
 ------------------------------------------------------------------------
 
 if not C_CurrencyInfo then
-    C_CurrencyInfo = {}
+    local tbl = {}
+    rawset(_G, "C_CurrencyInfo", tbl)
 
-    function C_CurrencyInfo.GetCurrencyInfo()
+    function tbl.GetCurrencyInfo()
         return {
             name                    = "",
             quantity                = 0,
@@ -343,7 +357,7 @@ if not C_CurrencyInfo then
         }
     end
 
-    function C_CurrencyInfo.GetCurrencyLink()
+    function tbl.GetCurrencyLink()
         return nil
     end
 end
@@ -355,15 +369,16 @@ end
 ------------------------------------------------------------------------
 
 if not C_PlayerInteractionManager then
-    C_PlayerInteractionManager = {}
+    local tbl = {}
+    rawset(_G, "C_PlayerInteractionManager", tbl)
 
-    function C_PlayerInteractionManager.IsInteractingWithNpcOfType()
+    function tbl.IsInteractingWithNpcOfType()
         return false
     end
 
-    function C_PlayerInteractionManager.ClearInteraction() end
+    function tbl.ClearInteraction() end
 
-    function C_PlayerInteractionManager.GetCurrentInteractionType()
+    function tbl.GetCurrentInteractionType()
         return nil
     end
 end
@@ -374,11 +389,12 @@ end
 ------------------------------------------------------------------------
 
 if not C_DeathInfo then
-    C_DeathInfo = {}
+    local tbl = {}
+    rawset(_G, "C_DeathInfo", tbl)
 
-    function C_DeathInfo.GetCorpseMapPosition()      return nil end
-    function C_DeathInfo.GetDeathReleasePosition()    return nil end
-    function C_DeathInfo.GetSelfResurrectOptions()    return {} end
+    function tbl.GetCorpseMapPosition()      return nil end
+    function tbl.GetDeathReleasePosition()    return nil end
+    function tbl.GetSelfResurrectOptions()    return {} end
 end
 
 ------------------------------------------------------------------------
@@ -387,9 +403,10 @@ end
 ------------------------------------------------------------------------
 
 if not C_BattleNet then
-    C_BattleNet = {}
+    local tbl = {}
+    rawset(_G, "C_BattleNet", tbl)
 
-    function C_BattleNet.GetCurrentRegion()
+    function tbl.GetCurrentRegion()
         if GetCurrentRegion then
             return GetCurrentRegion()
         end
@@ -403,12 +420,13 @@ end
 ------------------------------------------------------------------------
 
 if not C_ToyBox then
-    C_ToyBox = {}
+    local tbl = {}
+    rawset(_G, "C_ToyBox", tbl)
 
-    function C_ToyBox.GetToyInfo()      return nil end
-    function C_ToyBox.IsToyUsable()     return false end
-    function C_ToyBox.GetNumTotalDisplayedToys() return 0 end
-    function C_ToyBox.GetNumLearnedDisplayedToys() return 0 end
+    function tbl.GetToyInfo()      return nil end
+    function tbl.IsToyUsable()     return false end
+    function tbl.GetNumTotalDisplayedToys() return 0 end
+    function tbl.GetNumLearnedDisplayedToys() return 0 end
 end
 
 ------------------------------------------------------------------------
@@ -417,12 +435,13 @@ end
 ------------------------------------------------------------------------
 
 if not C_MountJournal then
-    C_MountJournal = {}
+    local tbl = {}
+    rawset(_G, "C_MountJournal", tbl)
 
-    function C_MountJournal.GetMountInfoByID()      return nil end
-    function C_MountJournal.GetMountInfoExtraByID()  return nil end
-    function C_MountJournal.GetNumMounts()           return 0 end
-    function C_MountJournal.GetNumDisplayedMounts()  return 0 end
+    function tbl.GetMountInfoByID()      return nil end
+    function tbl.GetMountInfoExtraByID()  return nil end
+    function tbl.GetNumMounts()           return 0 end
+    function tbl.GetNumDisplayedMounts()  return 0 end
 end
 
 ------------------------------------------------------------------------
@@ -431,40 +450,41 @@ end
 ------------------------------------------------------------------------
 
 if not C_System then
-    C_System = {
+    rawset(_G, "C_System", {
         GetFrameStack = function() return {} end,
-    }
+    })
 end
 
 if not C_EventUtils then
-    C_EventUtils = {
+    rawset(_G, "C_EventUtils", {
         IsEventValid = function() return true end,
-    }
+    })
 end
 
 if not C_SpecializationInfo then
-    C_SpecializationInfo = {
+    rawset(_G, "C_SpecializationInfo", {
         GetPvpTalentSlotInfo = function() return nil end,
-    }
+    })
 end
 
 if not C_Seasons then
-    C_Seasons = {
+    rawset(_G, "C_Seasons", {
         HasActiveSeason = function() return false end,
         GetActiveSeason = function() return 0 end,
-    }
+    })
 end
 
 ------------------------------------------------------------------------
 -- 15. Enum tables
 -- Retail exposes many constants through the global Enum table.
 -- These values must match retail exactly as addons compare against them.
+-- All writes use rawset() to avoid tainting the Blizzard-owned Enum table.
 ------------------------------------------------------------------------
 
-if not Enum then Enum = {} end
+if not Enum then rawset(_G, "Enum", {}) end
 
 if not Enum.ItemClass then
-    Enum.ItemClass = {
+    rawset(Enum, "ItemClass", {
         Consumable    = 0,
         Container     = 1,
         Weapon        = 2,
@@ -482,11 +502,11 @@ if not Enum.ItemClass then
         Glyph         = 16,
         Battlepet     = 17,
         Profession    = 19,
-    }
+    })
 end
 
 if not Enum.ItemArmorSubclass then
-    Enum.ItemArmorSubclass = {
+    rawset(Enum, "ItemArmorSubclass", {
         Generic  = 0,
         Cloth    = 1,
         Leather  = 2,
@@ -499,11 +519,11 @@ if not Enum.ItemArmorSubclass then
         Totem    = 9,
         Sigil    = 10,
         Relic    = 11,
-    }
+    })
 end
 
 if not Enum.ItemWeaponSubclass then
-    Enum.ItemWeaponSubclass = {
+    rawset(Enum, "ItemWeaponSubclass", {
         Axe1H        = 0,
         Axe2H        = 1,
         Bows         = 2,
@@ -522,22 +542,22 @@ if not Enum.ItemWeaponSubclass then
         Crossbow     = 18,
         Wand         = 19,
         Fishingpole  = 20,
-    }
+    })
 end
 
 if not Enum.ItemMiscellaneousSubclass then
-    Enum.ItemMiscellaneousSubclass = {
+    rawset(Enum, "ItemMiscellaneousSubclass", {
         Junk          = 0,
         Reagent       = 1,
         CompanionPet  = 2,
         Holiday       = 3,
         Other         = 4,
         Mount         = 5,
-    }
+    })
 end
 
 if not Enum.ItemQuality then
-    Enum.ItemQuality = {
+    rawset(Enum, "ItemQuality", {
         Poor      = 0,
         Common    = 1,
         Standard  = 1,
@@ -549,21 +569,21 @@ if not Enum.ItemQuality then
         Artifact  = 6,
         Heirloom  = 7,
         WoWToken  = 8,
-    }
+    })
 end
 
 if not Enum.ItemBind then
-    Enum.ItemBind = {
+    rawset(Enum, "ItemBind", {
         None      = 0,
         OnAcquire = 1,
         OnEquip   = 2,
         OnUse     = 3,
         Quest     = 4,
-    }
+    })
 end
 
 if not Enum.BagIndex then
-    Enum.BagIndex = {
+    rawset(Enum, "BagIndex", {
         Backpack     = 0,
         Bag_1        = 1,
         Bag_2        = 2,
@@ -579,11 +599,11 @@ if not Enum.BagIndex then
         BankBag_7    = 11,
         Reagentbank  = -3,
         Keyring      = -2,
-    }
+    })
 end
 
 if not Enum.PowerType then
-    Enum.PowerType = {
+    rawset(Enum, "PowerType", {
         Mana          = 0,
         Rage          = 1,
         Focus         = 2,
@@ -604,11 +624,11 @@ if not Enum.PowerType then
         Essence       = 19,
         Happiness     = 4,
         Balance       = 20,
-    }
+    })
 end
 
 if not Enum.PlayerInteractionType then
-    Enum.PlayerInteractionType = {
+    rawset(Enum, "PlayerInteractionType", {
         None                    = 0,
         TradePartner            = 1,
         Banker                  = 2,
@@ -626,13 +646,13 @@ if not Enum.PlayerInteractionType then
         ProfessionsCustomerOrder = 23,
         ItemUpgrade             = 24,
         AccountBanker           = 25,
-    }
+    })
 end
 
 if not Enum.VoiceTtsDestination then
-    Enum.VoiceTtsDestination = {
+    rawset(Enum, "VoiceTtsDestination", {
         LocalPlayback = 0,
-    }
+    })
 end
 
 -- NOTE: Enum.SpellBookSpellBank intentionally NOT shimmed.
@@ -643,7 +663,7 @@ end
 -- this enum already guard with fallbacks (e.g., "... or 'player'").
 
 if not Enum.BagSlotFlags then
-    Enum.BagSlotFlags = {
+    rawset(Enum, "BagSlotFlags", {
         DisableAutoSort      = 1,
         ExcludeJunkSell      = 2,
         ExpansionCurrent     = 4,
@@ -653,11 +673,11 @@ if not Enum.BagSlotFlags then
         ClassProfessionGoods  = 64,
         ClassReagents         = 128,
         ClassJunk             = 256,
-    }
+    })
 end
 
 if not Enum.SeasonID then
-    Enum.SeasonID = {
+    rawset(Enum, "SeasonID", {
         NoSeason          = 0,
         SeasonOfMastery   = 1,
         SeasonOfDiscovery = 2,
@@ -665,11 +685,11 @@ if not Enum.SeasonID then
         FreshHardcore     = 4,
         Fresh             = 5,
         Placeholder       = 99,
-    }
+    })
 end
 
 if not Enum.UIMapType then
-    Enum.UIMapType = {
+    rawset(Enum, "UIMapType", {
         Cosmic    = 0,
         World     = 1,
         Continent = 2,
@@ -677,7 +697,7 @@ if not Enum.UIMapType then
         Dungeon   = 4,
         Micro     = 5,
         Orphan    = 6,
-    }
+    })
 end
 
 ------------------------------------------------------------------------
@@ -686,6 +706,8 @@ end
 -- solid-color texture. TBC Classic does NOT have this method.
 -- We patch the shared Texture metatable so ALL textures gain the method.
 -- Uses WHITE8x8 + SetVertexColor as the safe TBC workaround.
+-- Uses rawset() on the metatable __index to avoid tainting the shared
+-- Blizzard metatable that secure frames (including SpellBookFrame) use.
 ------------------------------------------------------------------------
 
 do
@@ -694,10 +716,10 @@ do
     local mt  = getmetatable(tmpTexture)
     local idx = mt and mt.__index
     if idx and not idx.SetColorTexture then
-        idx.SetColorTexture = function(self, r, g, b, a)
+        rawset(idx, "SetColorTexture", function(self, r, g, b, a)
             self:SetTexture("Interface\\Buttons\\WHITE8x8")
             self:SetVertexColor(r, g, b, a or 1)
-        end
+        end)
     end
 end
 
@@ -722,9 +744,10 @@ if not EventRegistry then
         end
     end)
 
-    EventRegistry = {}
+    local tbl = {}
+    rawset(_G, "EventRegistry", tbl)
 
-    function EventRegistry:RegisterFrameEventAndCallback(event, callback, owner)
+    function tbl:RegisterFrameEventAndCallback(event, callback, owner)
         nextHandle = nextHandle + 1
         local handle = nextHandle
         if not frameCallbacks[event] then
@@ -735,11 +758,11 @@ if not EventRegistry then
         return handle
     end
 
-    function EventRegistry:RegisterFrameEventAndCallbackWithHandle(event, callback)
+    function tbl:RegisterFrameEventAndCallbackWithHandle(event, callback)
         return self:RegisterFrameEventAndCallback(event, callback, nil)
     end
 
-    function EventRegistry:UnregisterFrameEvent(event, handle)
+    function tbl:UnregisterFrameEvent(event, handle)
         local cbs = frameCallbacks[event]
         if not cbs then return end
         cbs[handle] = nil
@@ -749,25 +772,25 @@ if not EventRegistry then
         end
     end
 
-    function EventRegistry:UnregisterFrameEventAndCallback(event, handle)
+    function tbl:UnregisterFrameEventAndCallback(event, handle)
         self:UnregisterFrameEvent(event, handle)
     end
 
-    function EventRegistry:RegisterCallback(eventName, callback, owner)
+    function tbl:RegisterCallback(eventName, callback, owner)
         if not customCallbacks[eventName] then
             customCallbacks[eventName] = {}
         end
         customCallbacks[eventName][owner or callback] = callback
     end
 
-    function EventRegistry:UnregisterCallback(eventName, owner)
+    function tbl:UnregisterCallback(eventName, owner)
         local cbs = customCallbacks[eventName]
         if cbs then
             cbs[owner] = nil
         end
     end
 
-    function EventRegistry:TriggerEvent(eventName, ...)
+    function tbl:TriggerEvent(eventName, ...)
         local cbs = customCallbacks[eventName]
         if not cbs then return end
         for owner, callback in pairs(cbs) do
@@ -783,7 +806,7 @@ end
 ------------------------------------------------------------------------
 
 if not MenuResponse then
-    MenuResponse = { Close = 1, Refresh = 2 }
+    rawset(_G, "MenuResponse", { Close = 1, Refresh = 2 })
 end
 
 if not MenuUtil then
@@ -916,19 +939,20 @@ if not MenuUtil then
         return desc
     end
 
-    MenuUtil = {}
+    local tbl = {}
+    rawset(_G, "MenuUtil", tbl)
 
-    function MenuUtil.CreateContextMenu(anchor, generatorFn, ...)
+    function tbl.CreateContextMenu(anchor, generatorFn, ...)
         local rootDesc = CreateRootDescription()
         generatorFn(anchor, rootDesc, ...)
         EasyMenu(rootDesc:_GetItems(), menuFrame, anchor or "cursor", 0, 0, "MENU")
     end
 
-    function MenuUtil.CreateRootMenuDescription()
+    function tbl.CreateRootMenuDescription()
         return CreateRootDescription()
     end
 
-    function MenuUtil.CreateRadioMenu(anchor, isSelectedFn, setSelectedFn, ...)
+    function tbl.CreateRadioMenu(anchor, isSelectedFn, setSelectedFn, ...)
         local items = {}
         local args = { ... }
         for i = 1, #args, 2 do
@@ -943,7 +967,7 @@ if not MenuUtil then
         EasyMenu(items, menuFrame, anchor or "cursor", 0, 0, "MENU")
     end
 
-    function MenuUtil.CreateCheckboxContextMenu(anchor, isSelectedFn, onClickFn, ...)
+    function tbl.CreateCheckboxContextMenu(anchor, isSelectedFn, onClickFn, ...)
         local items = {}
         local args = { ... }
         for i = 1, #args do
@@ -960,26 +984,26 @@ if not MenuUtil then
         EasyMenu(items, menuFrame, anchor or "cursor", 0, 0, "MENU")
     end
 
-    function MenuUtil.ShowTooltip(button, tooltipFn)
+    function tbl.ShowTooltip(button, tooltipFn)
         GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
         tooltipFn(GameTooltip)
         GameTooltip:Show()
     end
 
-    function MenuUtil.HideTooltip()
+    function tbl.HideTooltip()
         GameTooltip:Hide()
     end
 
-    function MenuUtil.HookTooltipScripts(frame, tooltipFn)
+    function tbl.HookTooltipScripts(frame, tooltipFn)
         frame:HookScript("OnEnter", function(self)
-            MenuUtil.ShowTooltip(self, tooltipFn)
+            tbl.ShowTooltip(self, tooltipFn)
         end)
         frame:HookScript("OnLeave", function()
             GameTooltip:Hide()
         end)
     end
 
-    function MenuUtil.GetElementText(desc)
+    function tbl.GetElementText(desc)
         return desc and desc.text
     end
 end
@@ -990,9 +1014,10 @@ end
 ------------------------------------------------------------------------
 
 if not Settings then
-    Settings = {}
+    local tbl = {}
+    rawset(_G, "Settings", tbl)
 
-    function Settings.OpenToCategory(categoryIDOrFrame)
+    function tbl.OpenToCategory(categoryIDOrFrame)
         if InterfaceOptionsFrame_OpenToCategory then
             -- Intentional double-call: Blizzard workaround for the panel
             -- not opening correctly on the first call.
@@ -1001,14 +1026,14 @@ if not Settings then
         end
     end
 
-    function Settings.RegisterCanvasLayoutCategory(frame, name)
+    function tbl.RegisterCanvasLayoutCategory(frame, name)
         frame.name = name
         local cat = { ID = name, _frame = frame }
         function cat:GetID() return self.ID end
         return cat
     end
 
-    function Settings.RegisterCanvasLayoutSubcategory(parentCat, frame, name)
+    function tbl.RegisterCanvasLayoutSubcategory(parentCat, frame, name)
         frame.name   = name
         frame.parent = parentCat.ID
         local cat = { ID = name, _frame = frame }
@@ -1016,13 +1041,13 @@ if not Settings then
         return cat
     end
 
-    function Settings.RegisterAddOnCategory(cat)
+    function tbl.RegisterAddOnCategory(cat)
         if cat and cat._frame and InterfaceOptions_AddCategory then
             InterfaceOptions_AddCategory(cat._frame)
         end
     end
 
-    function Settings.GetCategory(id)
+    function tbl.GetCategory(id)
         return {
             ID = id,
             GetID = function(self) return self.ID end,
