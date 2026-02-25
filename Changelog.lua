@@ -25,6 +25,20 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.5.1",
+        title = "Hop Host Hotfix",
+        subtitle = "The One Where the Bouncer Remembered Faces",
+        flavor = "Hotfix incoming. No arena season reset required.",
+        sections = {
+            {
+                header = "Bugs that got /kicked:",
+                entries = {
+                    "AutoLayer no longer falls for the same host re-inviting after a successful hop \226\128\148 it remembers who just hosted you for 60 seconds and instantly leaves if they try again",
+                },
+            },
+        },
+    },
+    {
         version = "1.5.0",
         title = "ElvUI + Spellbook Fix",
         subtitle = "The One Where ElvUI Walked In and the Spellbook Chilled Out",

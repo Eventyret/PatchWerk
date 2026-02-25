@@ -2,6 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
+| [v1.5.1](#v151--the-one-where-the-bouncer-remembered-faces) | AutoLayer no longer falls for the same host re-inviting after a successful hop |
 | [v1.5.0](#v150--the-one-where-elvui-walked-in-and-the-spellbook-chilled-out) | ElvUI support (24 patches) + spellbook security warning finally fixed for good |
 | [v1.4.2](#v142--the-one-where-the-spellbook-fought-back) | Fixed spellbook Blizzard security warning blocking spell casting |
 | [v1.4.1](#v141--the-one-where-layers-learned-geography) | AutoLayer cross-continent hop detection, auto-retry, and cancel button |
@@ -22,6 +23,18 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 - **Jerrystclair** — reported the ESC/Exit Game bug ([v1.2.0](#v120--the-one-where-everything-got-a-little-shinier))
 - **Shivaz** — reported the AutoLayer dungeon invite bug ([v1.3.0](#v130--the-one-where-gudachat-joined-the-party))
 - **Don_Perry** — reported the spellbook security warning ([v1.4.2](#v142--the-one-where-the-spellbook-fought-back), [v1.5.0](#v150--the-one-where-elvui-walked-in-and-the-spellbook-chilled-out))
+
+---
+
+## v1.5.1 — "The One Where the Bouncer Remembered Faces"
+
+Hotfix incoming. No arena season reset required.
+
+**Bugs that got /kicked:**
+- AutoLayer: After a successful layer hop, the same host could re-invite you through their stale LFG queue — AutoLayer would accept, join, and start a whole new hop cycle for no reason. Now it remembers who just hosted you and instantly leaves if they invite again within 60 seconds. One hop per host, no encore performances.
+
+---
+*100+ patches. 35 addons. Still zero enrage timers.*
 
 ---
 
