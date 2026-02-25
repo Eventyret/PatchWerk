@@ -1277,6 +1277,24 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
             -- Guard: can't accept an invite while already in a group
             if IsInGroup() then return end
 
+            -- Decline invites from known-bad hosts before AutoLayer_Vanilla
+            -- calls AcceptGroup() — no join, no leave, no dungeon difficulty spam.
+            local inviterName = ...
+            if inviterName then
+                local ccEntry = crossContinentHosts[inviterName]
+                if ccEntry and (GetTime() - ccEntry.time) < CROSS_CONTINENT_EXPIRY then
+                    DeclineGroup()
+                    StaticPopup_Hide("PARTY_INVITE")
+                    return
+                end
+                local recentTime = recentHopHosts[inviterName]
+                if recentTime and (GetTime() - recentTime) < RECENT_HOP_EXPIRY then
+                    DeclineGroup()
+                    StaticPopup_Hide("PARTY_INVITE")
+                    return
+                end
+            end
+
             if hopState.state == "IDLE" or hopState.state == "NO_RESPONSE" then
                 -- External invite while idle or after a failed attempt — track so auto-leave works
                 local currentLayer = NWB_CurrentLayer
