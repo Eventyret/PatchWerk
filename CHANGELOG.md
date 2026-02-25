@@ -2,6 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
+| [v1.4.2](#v142--the-one-where-the-spellbook-fought-back) | Fixed spellbook Blizzard security warning blocking spell casting |
 | [v1.4.1](#v141--the-one-where-layers-learned-geography) | AutoLayer cross-continent hop detection, auto-retry, and cancel button |
 | [v1.5.0-beta1](#v150-beta1--the-one-where-elvui-walked-into-the-repair-bot) | ElvUI support — 24 patches across nameplates, unit frames, action bars, bags, and TBC compatibility |
 | [v1.4.0](#v140--3-addons-patched-0-loot-frames-seen) | HazeLoot fast auto-loot, HazeCooldowns GCD fix, Plumber TBC compatibility |
@@ -20,6 +21,16 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 - **[Finn](https://www.twitch.tv/finnwow31)** — live stream testing and bug reports ([v1.2.1](#v121--the-one-where-questie-learned-to-count))
 - **Jerrystclair** — reported the ESC/Exit Game bug ([v1.2.0](#v120--the-one-where-everything-got-a-little-shinier))
 - **Shivaz** — reported the AutoLayer dungeon invite bug ([v1.3.0](#v130--the-one-where-gudachat-joined-the-party))
+- **Don_Perry** — reported the spellbook security warning ([v1.4.2](#v142--the-one-where-the-spellbook-fought-back))
+
+---
+
+## v1.4.2 — "The One Where the Spellbook Fought Back"
+
+Hotfix incoming. No arena season reset required.
+
+**Bugs that got /kicked:**
+- Fixed a Blizzard security warning that blocked spell casting from the spellbook — clicking a spell in the spellbook would fail with "AddOn tried to call a protected function." The companion addon's compatibility layer was accidentally interfering with the spellbook's secure click path. Removed the offending entry; all addons that relied on it already have their own fallbacks
 
 ---
 

@@ -25,6 +25,20 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.4.2",
+        title = "Spellbook Fix",
+        subtitle = "The One Where the Spellbook Fought Back",
+        flavor = "Hotfix incoming. No arena season reset required.",
+        sections = {
+            {
+                header = "Bugs that got /kicked:",
+                entries = {
+                    "Fixed a Blizzard security warning that blocked spell casting from the spellbook \226\128\148 clicking a spell would fail with \"AddOn tried to call a protected function.\" The companion addon's compatibility layer was accidentally interfering with the spellbook's secure click path",
+                },
+            },
+        },
+    },
+    {
         version = "1.4.1",
         title = "Cross-Continent Hops",
         subtitle = "The One Where Layers Learned Geography",
