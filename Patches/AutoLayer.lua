@@ -626,16 +626,22 @@ local function PollLayer()
         -- snapshot the NEW layer's zoneID (the phase is near-instant), making
         -- detection impossible. Instead, after 3s in group the phase has
         -- certainly completed — confirm based on the group join itself.
+        -- Exception: if we have a layer number and it hasn't changed, don't
+        -- confirm — the layer evidence proves the hop didn't work.
         if not layerConfirmed and not hopState.fromZoneID and elapsed > 3.0 then
-            layerConfirmed = true
+            local layerUnchanged = hopState.fromLayer and hopState.fromLayer > 0
+                and currentNum and currentNum > 0
+                and currentNum == hopState.fromLayer
+            if not layerUnchanged then
+                layerConfirmed = true
+            end
         end
 
         -- Method 4: Nothing changed after 10s — hop isn't working.
-        -- If we have BOTH baselines (zoneID + layer) and neither has changed,
+        -- If the layer number is unchanged (with or without GUID baseline),
         -- the hop failed (cross-continent, same layer, or other reason).
         -- Leave and auto-retry instead of sitting for 120s.
         if not layerConfirmed and elapsed > 10
-           and hopState.fromZoneID and zoneID and zoneID == hopState.fromZoneID
            and hopState.fromLayer and hopState.fromLayer > 0
            and currentNum and currentNum > 0 and currentNum == hopState.fromLayer then
             HandleFailedHop()
@@ -646,8 +652,15 @@ local function PollLayer()
         -- confirmed (Methods 1-3) or failed (Method 4), we're likely in
         -- an NPC-sparse area where no fresh creature data is available.
         -- Trust the hop rather than sitting idle for 120s.
+        -- Exception: if we have a layer number and it hasn't changed, don't
+        -- confirm — the layer evidence proves the hop didn't work.
         if not layerConfirmed and elapsed > 15 then
-            layerConfirmed = true
+            local layerUnchanged = hopState.fromLayer and hopState.fromLayer > 0
+                and currentNum and currentNum > 0
+                and currentNum == hopState.fromLayer
+            if not layerUnchanged then
+                layerConfirmed = true
+            end
         end
 
         -- Actively poke NWB to re-detect from current target/mouseover.
@@ -688,7 +701,11 @@ local function PollLayer()
             ConfirmHop(currentNum)
         -- No GUID baseline: confirm after 2s (same reasoning as IN_GROUP Method 3).
         -- The player went through the full invite/group/disband hop cycle.
-        elseif not hopState.fromZoneID and elapsed > 2 then
+        -- Exception: if the layer number hasn't changed, don't confirm.
+        elseif not hopState.fromZoneID and elapsed > 2
+               and not (hopState.fromLayer and hopState.fromLayer > 0
+                        and currentNum and currentNum > 0
+                        and currentNum == hopState.fromLayer) then
             ConfirmHop(currentNum and currentNum > 0 and currentNum or nil)
         elseif elapsed > 5 and currentNum and currentNum > 0 and hopState.fromLayer
                and hopState.fromLayer > 0 and currentNum == hopState.fromLayer then
