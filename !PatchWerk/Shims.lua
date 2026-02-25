@@ -635,12 +635,12 @@ if not Enum.VoiceTtsDestination then
     }
 end
 
-if not Enum.SpellBookSpellBank then
-    Enum.SpellBookSpellBank = {
-        Player = 0,
-        Pet    = 1,
-    }
-end
+-- NOTE: Enum.SpellBookSpellBank intentionally NOT shimmed.
+-- Writing to Enum.SpellBookSpellBank taints the global Enum table key,
+-- and Blizzard's SpellBookFrame reads it in a secure execution path.
+-- This caused ADDON_ACTION_FORBIDDEN on CastSpell() in the spellbook.
+-- TBC Classic uses string-based "spell"/"pet" APIs; addons that need
+-- this enum already guard with fallbacks (e.g., "... or 'player'").
 
 if not Enum.BagSlotFlags then
     Enum.BagSlotFlags = {
