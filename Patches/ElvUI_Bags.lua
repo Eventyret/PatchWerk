@@ -36,11 +36,11 @@ ns:RegisterPatch("ElvUI", {
     estimate = "~smoother when moving items quickly",
 })
 ns:RegisterPatch("ElvUI", {
-    key = "ElvUI_bagSlotInfoCache", label = "Bag Slot Info Speedup",
-    help = "Remembers item details between bag refreshes instead of re-reading every slot from scratch.",
-    detail = "Every time your bags refresh, ElvUI asks the game for item details on every single slot -- name, quality, type, level, and more. With 140+ slots that's 280+ lookups just to open your bags. The fix remembers item details by item link and reuses them when the same item appears again, only clearing the stored results when bag contents actually change.",
-    impact = "Memory", impactLevel = "Medium", category = "Performance",
-    estimate = "~faster bag opening",
+    key = "ElvUI_bagSlotInfoCache", label = "Bag Update Safety",
+    help = "Prevents a single bad slot from blocking your entire bag frame.",
+    detail = "ElvUI updates every bag slot when you open your bags or move items. If any single slot update hits an error, the entire bag open sequence fails and your B keybinding stops working until you reload. The fix wraps each slot update in crash protection so one bad slot can't take down the whole bag frame.",
+    impact = "FPS", impactLevel = "Low", category = "fixes",
+    estimate = "~fixes B key",
 })
 ns:RegisterPatch("ElvUI", {
     key = "ElvUI_chatUrlEarlyExit", label = "Chat URL Shortcut",
@@ -198,13 +198,16 @@ end
 ------------------------------------------------------------------------
 -- 3. ElvUI_bagSlotInfoCache
 --
--- Bags.lua:696-699 — UpdateSlot() calls GetItemInfo() + GetItemSpell()
--- for every single bag slot on open/update.  With 140+ slots, that's
--- 280+ API calls every time your bags refresh.
+-- Bags.lua:669+ — UpdateSlot() processes every bag slot on open/update.
+-- If any single slot errors, the entire OpenBags() call fails before
+-- BagFrame:Show() runs, permanently blocking the B keybinding.
 --
--- Fix: Remember item info by item link.  When the same item is seen
--- again, return the stored result instead of asking the game API again.
--- Clear the stored data when bag contents change.
+-- Fix: Wrap each UpdateSlot call in pcall so one bad slot cannot
+-- take down the whole bag frame.
+--
+-- Note: An earlier version attempted to cache GetItemInfo results,
+-- but ElvUI captures C_Item.GetItemInfo as a file-scope local at
+-- load time — the cache was never consulted.  Removed in v1.5.2.
 ------------------------------------------------------------------------
 ns.patches["ElvUI_bagSlotInfoCache"] = function()
     if not ElvUI then return end
@@ -214,38 +217,11 @@ ns.patches["ElvUI_bagSlotInfoCache"] = function()
 
     if not B.UpdateSlot then return end
 
-    local slotInfoLookup = {}
-    local lookupCount = 0
-    local MAX_ENTRIES = 300
-
-    -- Clear stored data when bag contents change
-    local invalidator = CreateFrame("Frame")
-    invalidator:RegisterEvent("BAG_UPDATE_DELAYED")
-    invalidator:SetScript("OnEvent", function()
-        if lookupCount > 0 then
-            wipe(slotInfoLookup)
-            lookupCount = 0
-        end
-    end)
-
-    local origGetItemInfo = GetItemInfo
     local origUpdateSlot = B.UpdateSlot
 
     B.UpdateSlot = function(self, frame, bagID, slotID)
-        -- Before the slot update, pre-read item info for this slot
-        local itemLink = GetContainerItemLink(bagID, slotID)
-        if itemLink and not slotInfoLookup[itemLink] then
-            local info = { origGetItemInfo(itemLink) }
-            if info[1] then
-                slotInfoLookup[itemLink] = info
-                lookupCount = lookupCount + 1
-                if lookupCount > MAX_ENTRIES then
-                    wipe(slotInfoLookup)
-                    lookupCount = 0
-                end
-            end
-        end
-        return origUpdateSlot(self, frame, bagID, slotID)
+        local ok, err = pcall(origUpdateSlot, self, frame, bagID, slotID)
+        -- A single slot failure must not prevent bags from opening.
     end
 end
 
