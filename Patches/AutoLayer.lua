@@ -1428,6 +1428,17 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
                     end
                 end
 
+                -- Clear NWB layer caches so stale pre-hop data doesn't
+                -- block detection. NWB will re-detect from fresh NPC
+                -- interactions (target, mouseover, nameplates).
+                rawset(_G, "NWB_CurrentLayer", 0)
+                if NWB then
+                    NWB.currentLayer = 0
+                    if NWB.lastKnownLayerMapID then NWB.lastKnownLayerMapID = 0 end
+                    if NWB.lastKnownLayerMapZoneID then NWB.lastKnownLayerMapZoneID = 0 end
+                    if NWB.lastKnownLayerID then NWB.lastKnownLayerID = 0 end
+                end
+
                 -- Known cross-continent host? Instant leave — no whisper spam,
                 -- no retry wasted. They already got the message last time.
                 local hostName = hopState.hostName
