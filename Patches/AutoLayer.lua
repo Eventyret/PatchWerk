@@ -522,13 +522,13 @@ UpdateStatusFrame = function()
         if layerKnown then
             infoStr = "|cff33ff33On|r  |cff555555·|r  Layer " .. currentLayer
         else
-            infoStr = "|cff33ff33On|r"
+            infoStr = "|cff33ff33On|r  |cff555555·|r  |cff888888Detecting...|r"
         end
     else
         if layerKnown then
             infoStr = "|cffff3333Off|r  |cff555555·|r  Layer " .. currentLayer
         else
-            infoStr = "|cffff3333Off|r"
+            infoStr = "|cffff3333Off|r  |cff555555·|r  |cff888888Detecting...|r"
         end
     end
     statusFrame.infoText:SetText(infoStr)
@@ -563,6 +563,8 @@ UpdateStatusFrame = function()
             end
         elseif hopState.state == "NO_RESPONSE" then
             hint = "|cff888888Right-click to try again|r"
+        elseif hopState.state == "IDLE" and not layerKnown then
+            hint = "|cff888888Target an NPC to detect your layer|r"
         end
 
         statusFrame.hintText:SetText(hint or "")
@@ -663,34 +665,11 @@ local function PollLayer()
         -- Periodically poke NWB to re-detect from nearby NPCs.
         -- NWB scans on its own events, but this nudge speeds up detection
         -- by feeding it target, mouseover, or visible nameplates.
-        if not layerConfirmed and elapsed > 3 and NWB and NWB.setCurrentLayerText then
+        if not layerConfirmed and elapsed > 3 then
             local now = GetTime()
             if (now - hopState._lastNWBPoke) > 3 then
                 hopState._lastNWBPoke = now
-                local poked = false
-                if UnitExists("target") then
-                    pcall(NWB.setCurrentLayerText, NWB, "target")
-                    poked = true
-                end
-                if not poked and UnitExists("mouseover") then
-                    pcall(NWB.setCurrentLayerText, NWB, "mouseover")
-                    poked = true
-                end
-                -- Scan visible nameplates — nearby NPCs the player hasn't targeted
-                if not poked then
-                    for i = 1, 40 do
-                        if UnitExists("nameplate" .. i) then
-                            local guid = UnitGUID("nameplate" .. i)
-                            if guid then
-                                local unitType = strsplit("-", guid)
-                                if unitType == "Creature" then
-                                    pcall(NWB.setCurrentLayerText, NWB, "nameplate" .. i)
-                                    break
-                                end
-                            end
-                        end
-                    end
-                end
+                PokeNWBForLayer(true)
             end
         end
 
@@ -781,6 +760,36 @@ end
 ------------------------------------------------------------------------
 -- Helper: Start the shared poller (idempotent)
 ------------------------------------------------------------------------
+local function PokeNWBForLayer(force)
+    if not NWB or not NWB.setCurrentLayerText then return end
+    -- Skip if already detected (unless forced, e.g. during a hop)
+    if not force then
+        local cur = NWB_CurrentLayer and tonumber(NWB_CurrentLayer)
+        if cur and cur > 0 then return end
+    end
+
+    if UnitExists("target") then
+        pcall(NWB.setCurrentLayerText, NWB, "target")
+        return
+    end
+    if UnitExists("mouseover") then
+        pcall(NWB.setCurrentLayerText, NWB, "mouseover")
+        return
+    end
+    for i = 1, 40 do
+        if UnitExists("nameplate" .. i) then
+            local guid = UnitGUID("nameplate" .. i)
+            if guid then
+                local unitType = strsplit("-", guid)
+                if unitType == "Creature" then
+                    pcall(NWB.setCurrentLayerText, NWB, "nameplate" .. i)
+                    return
+                end
+            end
+        end
+    end
+end
+
 local function StartPoller()
     if pollerStarted then return end
     pollerStarted = true
@@ -791,6 +800,13 @@ local function StartPoller()
     if currentLayer and tonumber(currentLayer) and tonumber(currentLayer) > 0 then
         hopState.lastKnownLayer = tonumber(currentLayer)
     end
+
+    -- Poke NWB to detect layer from nearby NPCs on login.
+    -- Delay 5s to let the world fully load (nameplates, NPC data).
+    -- Retry at 10s and 20s in case the first poke was too early.
+    C_Timer.After(5, PokeNWBForLayer)
+    C_Timer.After(10, PokeNWBForLayer)
+    C_Timer.After(20, PokeNWBForLayer)
 
     C_Timer.After(POLL_IDLE, PollLayer)
 end
@@ -907,6 +923,13 @@ local function CreateStatusFrame()
                 if not AutoLayer.SlashCommand then return end
                 local now = GetTime()
                 if (now - hopState.lastRequestTime) < 3.0 then return end
+                -- Block when layer is unknown — we need a baseline to verify the hop
+                local curLayer = NWB_CurrentLayer and tonumber(NWB_CurrentLayer)
+                if not curLayer or curLayer <= 0 then
+                    UIErrorsFrame:AddMessage("PatchWerk: Target an NPC first to detect your layer", 1.0, 0.6, 0.0, 1.0, 5)
+                    PokeNWBForLayer()
+                    return
+                end
                 -- Always send via SlashCommand — AutoLayer handles unknown
                 -- layers internally. Never fall back to HopGUI on right-click.
                 hopState.lastRequestTime = now
