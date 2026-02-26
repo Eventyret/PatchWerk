@@ -45,6 +45,7 @@ Consider this the Emergency Maintenance your AddOns folder never got.
 **Squashed like Razorgore's eggs:**
 - Pawn: Upgrade arrows and stat values on item tooltips no longer vanish after 15-30 minutes. The "Duplicate Tooltip Guard" patch was too aggressive — once it saw an item, it blocked Pawn from re-adding its text even when the tooltip was rebuilt by the game. Now it only skips genuine duplicates within the same instant. (Thanks **TarybleTexan** for the report!)
 - Pawn: Changing your stat scales or weights now immediately updates upgrade results on tooltips. Previously, the "Upgrade Result Cache" would keep showing old values until you reloaded your UI.
+- AutoLayer: Hops that actually succeeded could be reported as failed — or hang forever in "Hopping..." — because the layer detection was still reading stale data from before the hop. Now the old layer info is cleared the moment you join the hop group, so targeting or walking near any NPC immediately detects your new layer.
 - Cross-continent detection is more reliable — the old two-step check sometimes raced with group data and falsely flagged hops as cross-continent. Now it waits for complete data before deciding
 - Removed the old "Verifying..." intermediate state that could leave you in limbo after the host left the group — hops now either confirm or fail cleanly
 - Status frame no longer shows cryptic "L3" — it spells out "Layer 3" like a normal person

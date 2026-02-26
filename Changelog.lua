@@ -46,6 +46,7 @@ ns.changelog = {
                 entries = {
                     "Pawn: Upgrade arrows and stat values on item tooltips no longer vanish after 15\226\128\14830 minutes \226\128\148 the duplicate tooltip guard was too aggressive and blocked Pawn from refreshing its text. (Thanks TarybleTexan!)",
                     "Pawn: Changing your stat scales or weights now immediately updates upgrade results on tooltips \226\128\148 no more stale values until /reload",
+                    "AutoLayer: Hops that actually succeeded could be reported as failed \226\128\148 or hang forever \226\128\148 because layer detection was still reading stale data from before the hop. Now clears old info when you join the group so targeting any NPC detects your new layer.",
                     "Cross-continent detection is more reliable \226\128\148 the old check sometimes falsely flagged hops as cross-continent",
                     "Removed the old \"Verifying...\" state that could leave you in limbo \226\128\148 hops now confirm or fail cleanly",
                     "Status frame spells out \"Layer 3\" instead of cryptic \"L3\"",
