@@ -161,7 +161,7 @@ ns:RegisterPatch("AutoLayer", {
 })
 
 ns:RegisterDefault("AutoLayer_hopWhisperEnabled", true)
-ns:RegisterDefault("AutoLayer_hopWhisperMessage", "[PatchWerk] Hopped! Fresh layer, fresh mobs. Thanks for the lift!")
+ns:RegisterDefault("AutoLayer_hopWhisperMessage", "[PatchWerk] Phased! Fresh mobs, fresh nodes. Thanks for the ride!")
 ns:RegisterDefault("AutoLayer_toastDuration", 8)
 ns:RegisterDefault("AutoLayer_statusFrame_point", nil)
 
@@ -468,7 +468,8 @@ local function ConfirmHop(layerNum)
     retryFrame:Hide()  -- disarm pending retry
 
     if hopState.hostName then
-        recentHopHosts[hopState.hostName] = GetTime()
+        local normalizedHost = strsplit("-", hopState.hostName)
+        recentHopHosts[normalizedHost] = GetTime()
     end
 
     -- Gold toast notification + local chat message
@@ -496,7 +497,7 @@ local function ConfirmHop(layerNum)
 
     -- Thank-you whisper to the hop host
     if hopState.hostName and ns:GetOption("AutoLayer_hopWhisperEnabled") then
-        local whisper = ns:GetOption("AutoLayer_hopWhisperMessage") or "[PatchWerk] Hopped! Fresh layer, fresh mobs. Thanks for the lift!"
+        local whisper = ns:GetOption("AutoLayer_hopWhisperMessage") or "[PatchWerk] Phased! Fresh mobs, fresh nodes. Thanks for the ride!"
         pcall(SendChatMessage, whisper, "WHISPER", nil, hopState.hostName)
     end
 
@@ -636,12 +637,31 @@ UpdateStatusFrame = function()
         end
         infoStr = infoStr .. FormatCountdown(hopState.deadline)
     elseif hopState.state == "CONFIRMED" then
-        if hopState.fromLayer and currentNum and currentNum > 0 and currentNum ~= hopState.fromLayer then
-            infoStr = "|cff33ff33Hopped! Layer " .. hopState.fromLayer .. " -> " .. currentNum .. "|r"
-        elseif currentNum and currentNum > 0 then
-            infoStr = "|cff33ff33Hopped to Layer " .. currentNum .. "!|r"
+        local elapsed = GetTime() - hopState.timestamp
+        if elapsed < 3 then
+            -- Show hop success briefly (CONFIRMED state stays for full duration)
+            if hopState.fromLayer and currentNum and currentNum > 0 and currentNum ~= hopState.fromLayer then
+                infoStr = "|cff33ff33Hopped! Layer " .. hopState.fromLayer .. " -> " .. currentNum .. "|r"
+            elseif currentNum and currentNum > 0 then
+                infoStr = "|cff33ff33Hopped to Layer " .. currentNum .. "!|r"
+            else
+                infoStr = "|cff33ff33Hop complete!|r"
+            end
         else
-            infoStr = "|cff33ff33Hop complete!|r"
+            -- After 3s, show idle layer info (CONFIRMED state still protects)
+            if enabled then
+                if layerKnown then
+                    infoStr = "|cff33ff33On|r  |cff555555·|r  Layer " .. currentLayer
+                else
+                    infoStr = "|cff33ff33On|r  |cff555555·|r  |cff888888Detecting layer...|r"
+                end
+            else
+                if layerKnown then
+                    infoStr = "|cffff3333Off|r  |cff555555·|r  Layer " .. currentLayer
+                else
+                    infoStr = "|cffff3333Off|r  |cff555555·|r  |cff888888Detecting layer...|r"
+                end
+            end
         end
     elseif enabled then
         if layerKnown then
@@ -873,6 +893,7 @@ local function PollLayer()
             end
             -- Skip the rest of this poll cycle — the next cycle will
             -- handle CONFIRMED state timeouts and the safety net below.
+            C_Timer.After(POLL_ACTIVE, PollLayer)
             return
         end
     end
@@ -1439,11 +1460,20 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
         rawset(_G, "AcceptGroup", function(...)
             -- Intercept during any active hop state where we might need
             -- to decline (CC hosts, recent hosts, stale re-invites).
-            -- IDLE is the only state where AcceptGroup can go through
-            -- immediately — all others need the 1-frame delay so our
+            -- During IDLE with no recent hops, AcceptGroup goes through
+            -- immediately.  Otherwise, delay by 1 frame so our
             -- PARTY_INVITE_REQUEST handler can cancel if needed.
             if hopState.state == "IDLE" then
-                return origAcceptGroup(...)
+                -- Prune expired entries so the table empties after cooldown
+                local now = GetTime()
+                for host, t in pairs(recentHopHosts) do
+                    if (now - t) >= RECENT_HOP_EXPIRY then
+                        recentHopHosts[host] = nil
+                    end
+                end
+                if not next(recentHopHosts) then
+                    return origAcceptGroup(...)
+                end
             end
             -- Delay by 1 frame so our handler can cancel
             _acceptGen = _acceptGen + 1
@@ -1583,7 +1613,7 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
                         local myCont = myInstID and INSTANCE_CONTINENTS[myInstID]
                         local myLocation = (myCont == "OUTLAND") and "Outland" or "Azeroth"
                         pcall(SendChatMessage,
-                            "[PatchWerk] I'm in " .. myLocation .. " \226\128\148 layers don't cross the Dark Portal! Thanks anyway.",
+                            "[PatchWerk] I'm in " .. myLocation .. " \226\128\148 the Dark Portal blocks phasing! Thanks anyway.",
                             "WHISPER", nil, inviterName)
                     end
                     return
@@ -1592,6 +1622,17 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
                 if recentTime and (GetTime() - recentTime) < RECENT_HOP_EXPIRY then
                     DeclineOrLeave()
                     return
+                end
+
+                -- Safety net: during CONFIRMED state, block any AutoLayer
+                -- re-invite even if the host name didn't match above (e.g.,
+                -- realm suffix mismatch or host name not captured).
+                if hopState.state == "CONFIRMED" then
+                    local whisperEntry = autoLayerWhispers[normalizedInviter]
+                    if whisperEntry and (GetTime() - whisperEntry.time) < RECENT_HOP_EXPIRY then
+                        DeclineOrLeave()
+                        return
+                    end
                 end
             end
 
@@ -1636,15 +1677,16 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
             -- clearing NWB_CurrentLayer which is still valid.
             if hopState.state == "IDLE" and IsInGroup() and not IsInInstance() then
                 local hostName = GetPartyMemberName()
-                if hostName then
-                    local ccEntry = crossContinentHosts[hostName]
+                local normalizedHost = hostName and strsplit("-", hostName)
+                if normalizedHost then
+                    local ccEntry = crossContinentHosts[normalizedHost]
                     if ccEntry and (GetTime() - ccEntry.time) < CROSS_CONTINENT_EXPIRY then
                         LeaveParty()
                         -- Re-poke NWB in case the brief group join cleared layer data
                         C_Timer.After(1, PokeNWBForLayer)
                         return
                     end
-                    local recentTime = recentHopHosts[hostName]
+                    local recentTime = recentHopHosts[normalizedHost]
                     if recentTime and (GetTime() - recentTime) < RECENT_HOP_EXPIRY then
                         LeaveParty()
                         C_Timer.After(1, PokeNWBForLayer)
@@ -1689,17 +1731,18 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
                 -- Known cross-continent host? Instant leave — no whisper spam,
                 -- no retry wasted. They already got the message last time.
                 local hostName = hopState.hostName
-                local knownEntry = hostName and crossContinentHosts[hostName]
+                local normalizedHost = hostName and strsplit("-", hostName)
+                local knownEntry = normalizedHost and crossContinentHosts[normalizedHost]
                 if knownEntry and (GetTime() - knownEntry.time) < CROSS_CONTINENT_EXPIRY then
                     if not IsInInstance() then
                         LeaveHopGroup("cross_continent")
                     end
                     -- Notify the user
-                    local lastNotify = declinedNotifyTimes[hostName]
+                    local lastNotify = declinedNotifyTimes[normalizedHost]
                     if not lastNotify or (GetTime() - lastNotify) > DECLINED_NOTIFY_CD then
-                        declinedNotifyTimes[hostName] = GetTime()
+                        declinedNotifyTimes[normalizedHost] = GetTime()
                         UIErrorsFrame:AddMessage(
-                            "PatchWerk: " .. hostName .. " is in " .. tostring(knownEntry.continent) .. " \226\128\148 decline to keep searching",
+                            "PatchWerk: " .. (hostName or normalizedHost) .. " is in " .. tostring(knownEntry.continent) .. " \226\128\148 decline to keep searching",
                             1.0, 0.6, 0.0, 1.0, 5)
                     end
                     hopState.state = "IDLE"
@@ -1709,7 +1752,7 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
 
                 -- Recently hopped via this host? Instant leave to block
                 -- duplicate cycles from stale LFG re-invites.
-                local recentTime = hostName and recentHopHosts[hostName]
+                local recentTime = normalizedHost and recentHopHosts[normalizedHost]
                 if recentTime and (GetTime() - recentTime) < RECENT_HOP_EXPIRY then
                     if not IsInInstance() then
                         LeaveParty()
@@ -1725,15 +1768,16 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
                 local function HandleCrossContinentDetection(otherContinent)
                     -- Remember this host so repeat invites are instant-skipped
                     if hopState.hostName then
-                        crossContinentHosts[hopState.hostName] = {
+                        local normalizedCCHost = strsplit("-", hopState.hostName)
+                        crossContinentHosts[normalizedCCHost] = {
                             time = GetTime(),
                             continent = otherContinent or "unknown",
                         }
                         -- otherContinent is the HOST's continent; tell them where WE are
                         local myContinent = (otherContinent == "Azeroth") and "Outland" or "Azeroth"
                         local whisper = otherContinent
-                            and "[PatchWerk] I'm in " .. myContinent .. " \226\128\148 layers don't cross the Dark Portal! Thanks anyway."
-                            or "[PatchWerk] Layers don't cross the Dark Portal! Thanks anyway."
+                            and "[PatchWerk] I'm in " .. myContinent .. " \226\128\148 the Dark Portal blocks phasing! Thanks anyway."
+                            or "[PatchWerk] The Dark Portal blocks phasing! Thanks anyway."
                         pcall(SendChatMessage, whisper, "WHISPER", nil, hopState.hostName)
                     end
 

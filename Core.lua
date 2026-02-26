@@ -95,16 +95,25 @@ loader:SetScript("OnEvent", function(self, event, addon)
     end
 
     -- Migrate stale defaults that changed between versions
+    -- v1.6+: avoid "layer" in whispers — AutoLayer hosts match *layer*
+    -- as a trigger word and re-invite immediately.
+    local NEW_WHISPER = "[PatchWerk] Phased! Fresh mobs, fresh nodes. Thanks for the ride!"
     local MIGRATIONS = {
         { key = "AutoLayer_hopWhisperMessage",
           old = "[PatchWerk] Thanks for the hop!",
-          new = "[PatchWerk] Hopped! Fresh layer, fresh mobs. Thanks for the lift!" },
+          new = NEW_WHISPER },
         { key = "AutoLayer_hopWhisperMessage",
           old = "[Patchwerk] Thanks for the hop!",
-          new = "[PatchWerk] Hopped! Fresh layer, fresh mobs. Thanks for the lift!" },
+          new = NEW_WHISPER },
         { key = "AutoLayer_hopWhisperMessage",
           old = "[PatchWerk] Hopped! Smoother than a Paladin bubble-hearth. Cheers!",
-          new = "[PatchWerk] Hopped! Fresh layer, fresh mobs. Thanks for the lift!" },
+          new = NEW_WHISPER },
+        { key = "AutoLayer_hopWhisperMessage",
+          old = "[PatchWerk] Hopped! Fresh layer, fresh mobs. Thanks for the lift!",
+          new = NEW_WHISPER },
+        { key = "AutoLayer_hopWhisperMessage",
+          old = "[PatchWerk] Hop complete — thanks for the lift!",
+          new = NEW_WHISPER },
     }
     for _, m in ipairs(MIGRATIONS) do
         if PatchWerkDB[m.key] == m.old then

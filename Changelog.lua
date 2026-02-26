@@ -25,6 +25,25 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.5.4",
+        title = "Re-invite Fix",
+        subtitle = "The One Where the Host Stopped Calling Back",
+        flavor = "No realm restart required. We fixed it while you were farming Primal Mana.",
+        sections = {
+            {
+                header = "Squashed like Razorgore's eggs:",
+                entries = {
+                    "AutoLayer: After a successful hop, the host would immediately re-invite you \226\128\148 turns out PatchWerk's thank-you whisper contained a trigger word that the host's addon read as a brand new hop request. Reworded so hosts stop calling back",
+                    "AutoLayer: The status popup stayed stuck on \"Hopped!\" for 8 seconds after a hop, forcing you to manually cancel. Now shows the success for 3 seconds then returns to your current display",
+                    "AutoLayer: After confirming a hop, the addon could get permanently stuck in the group \226\128\148 the background checker stopped running, so it never retried leaving. Now keeps checking until you're actually out",
+                    "AutoLayer: Re-invites from the same host were sometimes accepted then immediately left, instead of being silently declined. Name matching now works correctly regardless of realm suffixes",
+                    "AutoLayer: The On/Off indicator always showed \"On\" after a hop, even when AutoLayer was disabled",
+                    "Bagnon/BagBrother: Fixed a crash on login caused by a missing TBC Classic bag function (Thanks Shivaz!)",
+                },
+            },
+        },
+    },
+    {
         version = "1.5.3",
         title = "Smarter Hop Detection",
         subtitle = "The One Where AutoLayer Learned to Listen",

@@ -2,6 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
+| [v1.5.4](#v154--the-one-where-the-host-stopped-calling-back) | AutoLayer stops re-invites for good, popup resets after hop, Bagnon crash fix |
 | [v1.5.3](#v153--the-one-where-autolayer-learned-to-listen) | AutoLayer whisper-aware hops, cross-continent raid detection, popup fix + Pawn tooltip fix |
 | [v1.5.2](#v152--the-one-where-the-bags-opened-again) | ElvUI bags fixed (B key works again) + AutoLayer declines known-bad hosts at the door |
 | [v1.5.1](#v151--the-one-where-the-bouncer-remembered-faces) | AutoLayer no longer falls for the same host re-inviting after a successful hop |
@@ -23,10 +24,24 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 
 - **[Finn](https://www.twitch.tv/finnwow31)** — live stream testing and bug reports ([v1.2.1](#v121--the-one-where-questie-learned-to-count))
 - **Jerrystclair** — reported the ESC/Exit Game bug ([v1.2.0](#v120--the-one-where-everything-got-a-little-shinier))
-- **Shivaz** — reported the AutoLayer dungeon invite bug ([v1.3.0](#v130--the-one-where-gudachat-joined-the-party))
+- **Shivaz** — reported the AutoLayer dungeon invite bug ([v1.3.0](#v130--the-one-where-gudachat-joined-the-party)), Bagnon crash report ([v1.5.4](#v154--the-one-where-the-host-stopped-calling-back))
 - **Don_Perry** — reported the spellbook security warning ([v1.4.2](#v142--the-one-where-the-spellbook-fought-back), [v1.5.0](#v150--the-one-where-elvui-walked-in-and-the-spellbook-chilled-out))
 - **Yitra_Beloff** — reported the ElvUI bag keybinding bug ([v1.5.2](#v152--the-one-where-the-bags-opened-again))
 - **TarybleTexan** — reported the Pawn tooltip disappearing bug ([v1.5.3](#v153--the-one-where-autolayer-learned-to-listen))
+
+---
+
+## v1.5.4 — "The One Where the Host Stopped Calling Back"
+
+No realm restart required. We fixed it while you were farming Primal Mana.
+
+**Squashed like Razorgore's eggs:**
+- AutoLayer: After a successful hop, the host would immediately re-invite you — turns out PatchWerk's thank-you whisper contained the word "layer", which the host's addon read as a brand new hop request. The whisper has been reworded so hosts stop calling back
+- AutoLayer: The status popup would stay stuck on "Hopped!" for 8 seconds after a successful hop, forcing you to manually cancel it. Now shows the success message for 3 seconds then quietly returns to your current layer display
+- AutoLayer: After confirming a hop, the addon could get permanently stuck in the group — the background checker stopped running after confirmation, so it never retried leaving. Now keeps checking until you're actually out
+- AutoLayer: Re-invites from the same host were sometimes accepted then immediately left, instead of being silently declined at the door. Name matching now works correctly regardless of realm suffixes
+- AutoLayer: The On/Off indicator in the status frame always showed "On" after a hop, even when AutoLayer was disabled
+- Bagnon/BagBrother: Fixed a crash on login caused by BagBrother trying to modify a bag function that doesn't exist in TBC Classic (Thanks Shivaz!)
 
 ---
 

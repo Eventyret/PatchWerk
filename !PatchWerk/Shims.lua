@@ -280,6 +280,19 @@ if not C_Container then
 end
 
 ------------------------------------------------------------------------
+-- 6b. ContainerFrame1.UpdateCurrencyFrames guard
+-- BagBrother/Bagnon checks `if ContainerFrame1.UpdateCurrencyFrames then`
+-- and assumes it's a function. In TBC Classic Anniversary it may exist as
+-- a non-function value (XML mixin attribute), causing hooksecurefunc() to
+-- error. Clear it so BagBrother takes its safe fallback path.
+------------------------------------------------------------------------
+
+if ContainerFrame1 and ContainerFrame1.UpdateCurrencyFrames
+   and type(ContainerFrame1.UpdateCurrencyFrames) ~= "function" then
+    ContainerFrame1.UpdateCurrencyFrames = nil
+end
+
+------------------------------------------------------------------------
 -- 7. C_UnitAuras
 -- Retail restructured UnitAura into C_UnitAuras with table returns.
 -- TBC uses the positional-return UnitAura global.
