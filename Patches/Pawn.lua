@@ -221,4 +221,24 @@ ns.patches["Pawn_upgradeCache"] = function()
             wipe(upgradeCache)
         end
     end)
+
+    -- Invalidate when Pawn recalculates (scale changes, stat edits, etc.)
+    -- PawnResetTooltips is called by PawnSetStatValue, PawnSetScaleNormalizationFactor,
+    -- PawnSetUpgradeTracking, and other paths that change how upgrades are evaluated.
+    if PawnResetTooltips then
+        local origReset = PawnResetTooltips
+        rawset(_G, "PawnResetTooltips", function(...)
+            wipe(upgradeCache)
+            return origReset(...)
+        end)
+    end
+
+    -- Also clear when Pawn does a full cache wipe (e.g. debug toggle)
+    if PawnClearCache then
+        local origClear = PawnClearCache
+        rawset(_G, "PawnClearCache", function(...)
+            wipe(upgradeCache)
+            return origClear(...)
+        end)
+    end
 end
