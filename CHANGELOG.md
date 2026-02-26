@@ -2,7 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
-| [v1.5.3](#v153--the-one-where-autolayer-learned-to-listen) | AutoLayer whisper-aware hops + Pawn tooltip fix (upgrade arrows no longer vanish) |
+| [v1.5.3](#v153--the-one-where-autolayer-learned-to-listen) | AutoLayer whisper-aware hops, cross-continent raid detection, popup fix + Pawn tooltip fix |
 | [v1.5.2](#v152--the-one-where-the-bags-opened-again) | ElvUI bags fixed (B key works again) + AutoLayer declines known-bad hosts at the door |
 | [v1.5.1](#v151--the-one-where-the-bouncer-remembered-faces) | AutoLayer no longer falls for the same host re-inviting after a successful hop |
 | [v1.5.0](#v150--the-one-where-elvui-walked-in-and-the-spellbook-chilled-out) | ElvUI support (24 patches) + spellbook security warning finally fixed for good |
@@ -41,12 +41,18 @@ Consider this the Emergency Maintenance your AddOns folder never got.
 - Layer confirmation is clearer: you'll see "Layer 2 -> 3" with exact numbers, or "Hopped to Layer 3!" when the target is known
 - PatchWerk now scans nearby enemies to help detect your new layer faster — stand near any creatures and detection kicks in without needing to manually target or mouseover
 - After 5 seconds, the status frame reminds you to stay near NPCs for faster detection — helpful if you're hopping in an empty field
+- Cross-continent hosts now get a whisper explaining why you declined: "I'm in Outland — layers don't cross the Dark Portal!" — so they know it's not personal
+- Updated the hop thank-you whisper to "Fresh layer, fresh mobs. Thanks for the lift!" — less cringe, more gratitude
 
 **Squashed like Razorgore's eggs:**
 - Pawn: Upgrade arrows and stat values on item tooltips no longer vanish after 15-30 minutes. The "Duplicate Tooltip Guard" patch was too aggressive — once it saw an item, it blocked Pawn from re-adding its text even when the tooltip was rebuilt by the game. Now it only skips genuine duplicates within the same instant. (Thanks **TarybleTexan** for the report!)
 - Pawn: Changing your stat scales or weights now immediately updates upgrade results on tooltips. Previously, the "Upgrade Result Cache" would keep showing old values until you reloaded your UI.
-- AutoLayer: Hops that actually succeeded could be reported as failed — or hang forever in "Hopping..." — because the layer detection was still reading stale data from before the hop. Now the old layer info is cleared the moment you join the hop group, so targeting or walking near any NPC immediately detects your new layer.
+- AutoLayer: Hops that actually succeeded could be reported as failed — or hang forever in "Hopping..." — because the layer detection was still reading stale data from before the hop. Now the old layer info is cleared the moment you join the hop group, so targeting or walking near any NPC immediately detects your new layer
+- AutoLayer: Cross-continent detection now works when the host converts the group to a raid (common with AutoLayer hosts in cities). Previously, hosts in Orgrimmar's Hall of Legends or similar indoor locations weren't detected because raid members use "raid1" instead of "party1"
+- AutoLayer: Cross-continent hosts that keep re-inviting no longer leave a stuck popup with broken buttons. The decline now goes through the popup's own button handler instead of calling DeclineGroup() from addon code, which was tainting the popup system
+- AutoLayer: After confirming a hop, re-invites from the same or different hosts during the confirmation window are now silently declined — no more brief join/leave cycles or the status frame getting "stuck"
 - Cross-continent detection is more reliable — the old two-step check sometimes raced with group data and falsely flagged hops as cross-continent. Now it waits for complete data before deciding
+- AutoLayer can now leave groups that were converted to raids in the open world — previously IsInRaid() blocked LeaveParty() even though the raid was just AutoLayer's way of handling multiple hoppers
 - Removed the old "Verifying..." intermediate state that could leave you in limbo after the host left the group — hops now either confirm or fail cleanly
 - Status frame no longer shows cryptic "L3" — it spells out "Layer 3" like a normal person
 

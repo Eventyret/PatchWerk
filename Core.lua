@@ -98,7 +98,13 @@ loader:SetScript("OnEvent", function(self, event, addon)
     local MIGRATIONS = {
         { key = "AutoLayer_hopWhisperMessage",
           old = "[PatchWerk] Thanks for the hop!",
-          new = "[PatchWerk] Hopped! Smoother than a Paladin bubble-hearth. Cheers!" },
+          new = "[PatchWerk] Hopped! Fresh layer, fresh mobs. Thanks for the lift!" },
+        { key = "AutoLayer_hopWhisperMessage",
+          old = "[Patchwerk] Thanks for the hop!",
+          new = "[PatchWerk] Hopped! Fresh layer, fresh mobs. Thanks for the lift!" },
+        { key = "AutoLayer_hopWhisperMessage",
+          old = "[PatchWerk] Hopped! Smoother than a Paladin bubble-hearth. Cheers!",
+          new = "[PatchWerk] Hopped! Fresh layer, fresh mobs. Thanks for the lift!" },
     }
     for _, m in ipairs(MIGRATIONS) do
         if PatchWerkDB[m.key] == m.old then
