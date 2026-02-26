@@ -503,7 +503,7 @@ UpdateStatusFrame = function()
         infoStr = "|cffffcc00Searching...|r" .. FormatCountdown(hopState.deadline)
     elseif hopState.state == "IN_GROUP" then
         if hopState.targetLayer then
-            infoStr = "|cffff9933Hopping to L" .. hopState.targetLayer .. "...|r"
+            infoStr = "|cffff9933Hopping to Layer " .. hopState.targetLayer .. "...|r"
         else
             infoStr = "|cffff9933Hopping...|r"
         end
@@ -514,7 +514,7 @@ UpdateStatusFrame = function()
         if hopState.fromLayer and currentNum and currentNum > 0 and currentNum ~= hopState.fromLayer then
             infoStr = "|cff33ff33Layer " .. hopState.fromLayer .. " -> " .. currentNum .. "|r"
         elseif hopState.targetLayer then
-            infoStr = "|cff33ff33Hopped to L" .. hopState.targetLayer .. "!|r"
+            infoStr = "|cff33ff33Hopped to Layer " .. hopState.targetLayer .. "!|r"
         else
             infoStr = "|cff33ff33Hop complete!|r"
         end
