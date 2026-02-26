@@ -25,6 +25,33 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.5.3",
+        title = "Smarter Hop Detection",
+        subtitle = "The One Where AutoLayer Learned to Listen",
+        flavor = "Consider this the Emergency Maintenance your AddOns folder never got.",
+        sections = {
+            {
+                header = "What got buffed:",
+                entries = {
+                    "AutoLayer now reads the host's whisper to know exactly which layer you're heading to \226\128\148 the status frame shows \"Hopping to Layer 3...\" instead of just \"Hopping...\"",
+                    "If you get invited to a layer you're already on, it instantly leaves and retries instead of waiting 10+ seconds",
+                    "Countdown timers in the status frame show how long you've been waiting \226\128\148 no more guessing",
+                    "Layer confirmation shows exact numbers: \"Layer 2 -> 3\" or \"Hopped to Layer 3!\"",
+                    "Scans nearby enemies to detect your new layer faster \226\128\148 no need to manually target NPCs",
+                    "After 5 seconds, reminds you to stay near NPCs for faster detection",
+                },
+            },
+            {
+                header = "Squashed like Razorgore's eggs:",
+                entries = {
+                    "Cross-continent detection is more reliable \226\128\148 the old check sometimes falsely flagged hops as cross-continent",
+                    "Removed the old \"Verifying...\" state that could leave you in limbo \226\128\148 hops now confirm or fail cleanly",
+                    "Status frame spells out \"Layer 3\" instead of cryptic \"L3\"",
+                },
+            },
+        },
+    },
+    {
         version = "1.5.2",
         title = "Bag Fix + Invite Decline",
         subtitle = "The One Where the Bags Opened Again",

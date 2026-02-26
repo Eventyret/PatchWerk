@@ -2,6 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
+| [v1.5.3](#v153--the-one-where-autolayer-learned-to-listen) | AutoLayer reads the host's whisper to know your target layer — faster hops, smarter retries, clearer feedback |
 | [v1.5.2](#v152--the-one-where-the-bags-opened-again) | ElvUI bags fixed (B key works again) + AutoLayer declines known-bad hosts at the door |
 | [v1.5.1](#v151--the-one-where-the-bouncer-remembered-faces) | AutoLayer no longer falls for the same host re-inviting after a successful hop |
 | [v1.5.0](#v150--the-one-where-elvui-walked-in-and-the-spellbook-chilled-out) | ElvUI support (24 patches) + spellbook security warning finally fixed for good |
@@ -25,6 +26,28 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 - **Shivaz** — reported the AutoLayer dungeon invite bug ([v1.3.0](#v130--the-one-where-gudachat-joined-the-party))
 - **Don_Perry** — reported the spellbook security warning ([v1.4.2](#v142--the-one-where-the-spellbook-fought-back), [v1.5.0](#v150--the-one-where-elvui-walked-in-and-the-spellbook-chilled-out))
 - **Yitra_Beloff** — reported the ElvUI bag keybinding bug ([v1.5.2](#v152--the-one-where-the-bags-opened-again))
+
+---
+
+## v1.5.3 — "The One Where AutoLayer Learned to Listen"
+
+Consider this the Emergency Maintenance your AddOns folder never got.
+
+**What got buffed:**
+- AutoLayer now reads the host's whisper to know exactly which layer you're heading to — the status frame shows "Hopping to Layer 3..." instead of a vague "Hopping..." so you always know what's happening
+- If you get invited to a layer you're already on, AutoLayer instantly leaves and retries instead of sitting in the group for 10+ seconds figuring it out
+- Countdown timers in the status frame show how long you've been waiting — no more guessing whether things are still working
+- Layer confirmation is clearer: you'll see "Layer 2 -> 3" with exact numbers, or "Hopped to Layer 3!" when the target is known
+- PatchWerk now scans nearby enemies to help detect your new layer faster — stand near any creatures and detection kicks in without needing to manually target or mouseover
+- After 5 seconds, the status frame reminds you to stay near NPCs for faster detection — helpful if you're hopping in an empty field
+
+**Squashed like Razorgore's eggs:**
+- Cross-continent detection is more reliable — the old two-step check sometimes raced with group data and falsely flagged hops as cross-continent. Now it waits for complete data before deciding
+- Removed the old "Verifying..." intermediate state that could leave you in limbo after the host left the group — hops now either confirm or fail cleanly
+- Status frame no longer shows cryptic "L3" — it spells out "Layer 3" like a normal person
+
+---
+*100+ patches. 35 addons. Zero enrage timers.*
 
 ---
 
