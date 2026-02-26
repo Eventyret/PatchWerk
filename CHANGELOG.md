@@ -24,7 +24,7 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 
 - **[Finn](https://www.twitch.tv/finnwow31)** — live stream testing and bug reports ([v1.2.1](#v121--the-one-where-questie-learned-to-count))
 - **Jerrystclair** — reported the ESC/Exit Game bug ([v1.2.0](#v120--the-one-where-everything-got-a-little-shinier))
-- **Shivaz** — reported the AutoLayer dungeon invite bug ([v1.3.0](#v130--the-one-where-gudachat-joined-the-party)), Bagnon crash report ([v1.5.4](#v154--the-one-where-the-host-stopped-calling-back))
+- **Shivaz** — reported the AutoLayer dungeon invite bug ([v1.3.0](#v130--the-one-where-gudachat-joined-the-party)), suggested the Bagnon crash fix ([v1.5.4](#v154--the-one-where-the-host-stopped-calling-back))
 - **Don_Perry** — reported the spellbook security warning ([v1.4.2](#v142--the-one-where-the-spellbook-fought-back), [v1.5.0](#v150--the-one-where-elvui-walked-in-and-the-spellbook-chilled-out))
 - **Yitra_Beloff** — reported the ElvUI bag keybinding bug ([v1.5.2](#v152--the-one-where-the-bags-opened-again))
 - **TarybleTexan** — reported the Pawn tooltip disappearing bug ([v1.5.3](#v153--the-one-where-autolayer-learned-to-listen))
