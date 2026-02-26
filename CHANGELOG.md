@@ -2,7 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
-| [v1.5.3](#v153--the-one-where-autolayer-learned-to-listen) | AutoLayer reads the host's whisper to know your target layer — faster hops, smarter retries, clearer feedback |
+| [v1.5.3](#v153--the-one-where-autolayer-learned-to-listen) | AutoLayer whisper-aware hops + Pawn tooltip fix (upgrade arrows no longer vanish) |
 | [v1.5.2](#v152--the-one-where-the-bags-opened-again) | ElvUI bags fixed (B key works again) + AutoLayer declines known-bad hosts at the door |
 | [v1.5.1](#v151--the-one-where-the-bouncer-remembered-faces) | AutoLayer no longer falls for the same host re-inviting after a successful hop |
 | [v1.5.0](#v150--the-one-where-elvui-walked-in-and-the-spellbook-chilled-out) | ElvUI support (24 patches) + spellbook security warning finally fixed for good |
@@ -26,6 +26,7 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 - **Shivaz** — reported the AutoLayer dungeon invite bug ([v1.3.0](#v130--the-one-where-gudachat-joined-the-party))
 - **Don_Perry** — reported the spellbook security warning ([v1.4.2](#v142--the-one-where-the-spellbook-fought-back), [v1.5.0](#v150--the-one-where-elvui-walked-in-and-the-spellbook-chilled-out))
 - **Yitra_Beloff** — reported the ElvUI bag keybinding bug ([v1.5.2](#v152--the-one-where-the-bags-opened-again))
+- **TarybleTexan** — reported the Pawn tooltip disappearing bug ([v1.5.3](#v153--the-one-where-autolayer-learned-to-listen))
 
 ---
 
@@ -42,6 +43,7 @@ Consider this the Emergency Maintenance your AddOns folder never got.
 - After 5 seconds, the status frame reminds you to stay near NPCs for faster detection — helpful if you're hopping in an empty field
 
 **Squashed like Razorgore's eggs:**
+- Pawn: Upgrade arrows and stat values on item tooltips no longer vanish after 15-30 minutes. The "Duplicate Tooltip Guard" patch was too aggressive — once it saw an item, it blocked Pawn from re-adding its text even when the tooltip was rebuilt by the game. Now it only skips genuine duplicates within the same instant. (Thanks **TarybleTexan** for the report!)
 - Cross-continent detection is more reliable — the old two-step check sometimes raced with group data and falsely flagged hops as cross-continent. Now it waits for complete data before deciding
 - Removed the old "Verifying..." intermediate state that could leave you in limbo after the host left the group — hops now either confirm or fail cleanly
 - Status frame no longer shows cryptic "L3" — it spells out "Layer 3" like a normal person
