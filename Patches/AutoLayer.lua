@@ -30,6 +30,7 @@ local tonumber = tonumber
 local pcall = pcall
 local math_sin = math.sin
 local math_abs = math.abs
+local math_floor = math.floor
 local UnitName = UnitName
 local UnitGUID = UnitGUID
 local UnitExists = UnitExists
@@ -174,17 +175,18 @@ local pollerStarted = false
 local UpdateStatusFrame  -- forward declaration (called by ConfirmHop/FailHop before definition)
 
 local hopState = {
-    state = "IDLE",         -- IDLE, WAITING_INVITE, IN_GROUP, VERIFYING, CONFIRMED, NO_RESPONSE
+    state = "IDLE",         -- IDLE, WAITING_INVITE, IN_GROUP, CONFIRMED, NO_RESPONSE
     source = nil,           -- "OUTBOUND" (from SendLayerRequest) or "INBOUND" (from PARTY_INVITE_REQUEST)
     fromLayer = nil,
-    fromZoneID = nil,       -- zoneID from target GUID before hop
+    targetLayer = nil,      -- parsed from [AutoLayer] whisper "layer {N}"
     hostName = nil,         -- captured when entering IN_GROUP (before group disbands)
-    verifyStart = 0,        -- when VERIFYING state started
-    lastNWBPoke = nil,      -- throttle for NWB re-detection nudges
+    deadline = nil,         -- GetTime()+N for countdown display
+    _nwbCleared = false,    -- ensures NWB caches cleared exactly once on group disband
+    _lastNWBPoke = 0,       -- throttle for periodic NWB re-detection nudges
     timestamp = 0,
     lastKnownLayer = nil,
     lastRequestTime = 0,    -- cooldown: when the last hop request was sent
-    hopRetries = 0,             -- failed hop retry counter
+    hopRetries = 0,         -- failed hop retry counter
 }
 
 -- Hosts confirmed cross-continent: { ["Name"] = { time = timestamp, continent = "Azeroth" } }.
@@ -196,12 +198,32 @@ local CROSS_CONTINENT_EXPIRY = 300  -- 5 minutes
 local recentHopHosts = {}
 local RECENT_HOP_EXPIRY = 60  -- 1 minute
 
+-- Blanket cross-continent block: once we detect a single cross-continent
+-- host, decline ALL new AutoLayer invites pre-emptively while the player
+-- remains on the same continent. Prevents the join->detect->leave spam
+-- when dozens of Azeroth hosts re-invite an Outland player.
+local crossContinentBlock = nil   -- { expiry = GetTime()+N, continent = "OUTLAND"|"AZEROTH" }
+local declinedWhisperTimes = {}   -- { ["Name"] = GetTime() } rate-limit whispers
+local DECLINED_WHISPER_CD = 120   -- seconds between whispers to the same declined host
+
+-- Track when we last broadcast a hop request so we can distinguish
+-- AutoLayer invite responses from manual party invites.  Any invite
+-- arriving within this window of our broadcast is almost certainly
+-- an AutoLayer host responding, not a friend/guild invite.
+local lastHopBroadcastTime = 0
+local HOP_BROADCAST_WINDOW = 60  -- seconds
+
+-- Track incoming [AutoLayer] whispers: { ["Name"] = { time, layer } }.
+-- Used to extract the target layer for same-layer skip logic.
+local autoLayerWhispers = {}
+
 local POLL_IDLE = 1.0
 local POLL_ACTIVE = 0.1
 local CONFIRM_DURATION = 3.0
 local WAITING_TIMEOUT = 20.0
 local MAX_HOP_RETRIES = 3
 local HOP_RETRY_DELAY = 3.0
+local IN_GROUP_TIMEOUT = 120.0
 
 local function GetToastDuration()
     return ns:GetOption("AutoLayer_toastDuration") or 8
@@ -218,54 +240,6 @@ local function GetPartyMemberName()
         if name and name ~= myName then
             return name
         end
-    end
-    return nil
-end
-
-------------------------------------------------------------------------
--- Helper: Extract zoneID from a creature GUID (nil if not a creature)
-------------------------------------------------------------------------
-local function ZoneIDFromGUID(guid)
-    if not guid then return nil end
-    local unitType, _, _, _, zoneID = strsplit("-", guid)
-    if unitType == "Creature" then
-        return tonumber(zoneID)
-    end
-    return nil
-end
-
-------------------------------------------------------------------------
--- Mouseover zoneID cache: initialized lazily by InitHopFrames() when
--- an AutoLayer patch runs. No file-scope side effects.
-------------------------------------------------------------------------
-local lastMouseoverZoneID = nil
-local mouseoverFrame  -- created by InitHopFrames()
-
-------------------------------------------------------------------------
--- Helper: Get current layer's zoneID from any available creature GUID.
--- Priority: target > mouseover > nameplates > NWB.lastKnownLayerID
-------------------------------------------------------------------------
-local function GetCurrentZoneID()
-    -- 1. Current target (most reliable — player explicitly chose this)
-    local zid = ZoneIDFromGUID(UnitGUID("target"))
-    if zid then return zid end
-
-    -- 2. Current mouseover (live — cursor is on a creature right now)
-    zid = ZoneIDFromGUID(UnitGUID("mouseover"))
-    if zid then return zid end
-
-    -- 3. Cached mouseover (last creature the cursor passed over)
-    if lastMouseoverZoneID then return lastMouseoverZoneID end
-
-    -- 4. Nameplate scan (nearby visible creatures, no targeting needed)
-    for i = 1, 40 do
-        zid = ZoneIDFromGUID(UnitGUID("nameplate" .. i))
-        if zid then return zid end
-    end
-
-    -- 5. NWB fallback (persists after switching targets away from NPCs)
-    if NWB and NWB.lastKnownLayerID and NWB.lastKnownLayerID ~= 0 then
-        return tonumber(NWB.lastKnownLayerID)
     end
     return nil
 end
@@ -343,7 +317,6 @@ local function LeaveHopGroup(reason)
             if NWB.lastKnownLayerMapZoneID then NWB.lastKnownLayerMapZoneID = 0 end
             if NWB.lastKnownLayerID then NWB.lastKnownLayerID = 0 end
         end
-        lastMouseoverZoneID = nil
         if reason == "timeout" then
             UIErrorsFrame:AddMessage("PatchWerk: Left group \226\128\148 hop timed out", 0.2, 0.8, 1.0, 1.0, GetToastDuration())
         end
@@ -363,14 +336,6 @@ local function InitHopFrames()
     if hopFramesInit then return end
     hopFramesInit = true
 
-    -- Mouseover zoneID cache
-    mouseoverFrame = CreateFrame("Frame")
-    mouseoverFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
-    mouseoverFrame:SetScript("OnEvent", function()
-        local zid = ZoneIDFromGUID(UnitGUID("mouseover"))
-        if zid then lastMouseoverZoneID = zid end
-    end)
-
     -- Retry frame: fires pending retries on the next keypress.
     -- SendChatMessage to channels is protected in TBC Classic and
     -- requires hardware event context. OnKeyDown handlers have it.
@@ -382,6 +347,7 @@ local function InitHopFrames()
         self:Hide()
         if hopState.state ~= "WAITING_INVITE" then return end
         if not AutoLayer or not AutoLayer.SlashCommand then return end
+        lastHopBroadcastTime = GetTime()
         pcall(AutoLayer.SlashCommand, AutoLayer, "req")
     end)
 end
@@ -393,6 +359,9 @@ local function ConfirmHop(layerNum)
     hopState.state = "CONFIRMED"
     hopState.timestamp = GetTime()
     hopState.hopRetries = 0
+    hopState.targetLayer = nil
+    hopState.deadline = GetTime() + CONFIRM_DURATION
+    hopState._nwbCleared = false
     retryFrame:Hide()  -- disarm pending retry
 
     if hopState.hostName then
@@ -429,10 +398,10 @@ local function FailHop(reason)
     hopState.state = "IDLE"
     hopState.source = nil
     hopState.fromLayer = nil
-    hopState.fromZoneID = nil
+    hopState.targetLayer = nil
     hopState.hostName = nil
-    hopState.verifyStart = 0
-    hopState.lastNWBPoke = nil
+    hopState.deadline = nil
+    hopState._nwbCleared = false
     hopState.hopRetries = 0
     UpdateStatusFrame()
 end
@@ -454,6 +423,16 @@ end
 ------------------------------------------------------------------------
 HandleFailedHop = function(reason)
     LeaveHopGroup(reason and "cross_continent" or "timeout")
+
+    -- Cross-continent with blanket block active: no point retrying — every
+    -- available host is on the wrong continent.  Fail immediately with a
+    -- clear message instead of broadcasting more "req" messages to chat.
+    if reason and crossContinentBlock and GetTime() < crossContinentBlock.expiry then
+        local myCont = crossContinentBlock.continent
+        local myLocation = (myCont == "OUTLAND") and "Outland" or "Azeroth"
+        FailHop("Can't hop \226\128\148 hosts are in " .. reason .. " (you're in " .. myLocation .. ")")
+        return
+    end
 
     if hopState.hopRetries < MAX_HOP_RETRIES then
         hopState.hopRetries = hopState.hopRetries + 1
@@ -495,6 +474,18 @@ end
 ------------------------------------------------------------------------
 -- Helper: Update the status frame display
 ------------------------------------------------------------------------
+local function FormatCountdown(deadline)
+    if not deadline then return "" end
+    local remaining = deadline - GetTime()
+    if remaining < 0 then return "" end
+    local minutes = math_floor(remaining / 60)
+    local seconds = math_floor(remaining % 60)
+    if minutes > 0 then
+        return " (" .. minutes .. ":" .. string.format("%02d", seconds) .. ")"
+    end
+    return " (0:" .. string.format("%02d", seconds) .. ")"
+end
+
 UpdateStatusFrame = function()
     if not statusFrame or not statusFrame:IsShown() then return end
     if not AutoLayer or not AutoLayer.db then return end
@@ -507,19 +498,26 @@ UpdateStatusFrame = function()
     local infoStr
 
     if hopState.state == "NO_RESPONSE" then
-        infoStr = "|cffff3333No response|r"
+        infoStr = "|cffff3333No response|r" .. FormatCountdown(hopState.deadline)
     elseif hopState.state == "WAITING_INVITE" then
-        infoStr = "|cffffcc00Searching...|r"
+        infoStr = "|cffffcc00Searching...|r" .. FormatCountdown(hopState.deadline)
     elseif hopState.state == "IN_GROUP" then
-        infoStr = "|cffff9933Hopping...|r"
-    elseif hopState.state == "VERIFYING" then
-        infoStr = "|cffffcc00Verifying...|r"
+        if hopState.targetLayer then
+            infoStr = "|cffff9933Hopping to L" .. hopState.targetLayer .. "...|r"
+        else
+            infoStr = "|cffff9933Hopping...|r"
+        end
+        -- Show elapsed time instead of countdown for IN_GROUP
+        local elapsed = math_floor(GetTime() - hopState.timestamp)
+        infoStr = infoStr .. " |cff888888(" .. elapsed .. "s)|r"
     elseif hopState.state == "CONFIRMED" then
-        -- Don't show NWB layer number here — it's stale after phasing.
-        -- NWB restores the old layer from its backup cache, so it still
-        -- shows the PRE-hop layer. Show a generic success message instead.
-        -- NWB will re-detect the correct layer when the player targets an NPC.
-        infoStr = "|cff33ff33Hop complete!|r"
+        if hopState.fromLayer and currentNum and currentNum > 0 and currentNum ~= hopState.fromLayer then
+            infoStr = "|cff33ff33Layer " .. hopState.fromLayer .. " -> " .. currentNum .. "|r"
+        elseif hopState.targetLayer then
+            infoStr = "|cff33ff33Hopped to L" .. hopState.targetLayer .. "!|r"
+        else
+            infoStr = "|cff33ff33Hop complete!|r"
+        end
     elseif enabled then
         if layerKnown then
             infoStr = "|cff33ff33On|r  |cff555555·|r  Layer " .. currentLayer
@@ -547,9 +545,22 @@ UpdateStatusFrame = function()
         elseif hopState.state == "WAITING_INVITE" then
             hint = "|cff888888Waiting for an invite...|r"
         elseif hopState.state == "IN_GROUP" then
-            hint = "|cff888888Stay near NPCs to confirm layer|r"
-        elseif hopState.state == "VERIFYING" then
-            hint = "|cff888888Hover over any NPC to confirm|r"
+            local elapsed = math_floor(GetTime() - hopState.timestamp)
+            if elapsed < 5 then
+                -- Early: phase is still settling, NPC hint not useful yet
+                if hopState.targetLayer then
+                    hint = "|cff888888Waiting for layer " .. hopState.targetLayer .. "...|r"
+                else
+                    hint = "|cff888888Detecting layer change...|r"
+                end
+            else
+                -- After 5s: NWB needs an NPC to confirm (we also scan nameplates)
+                if hopState.targetLayer then
+                    hint = "|cff888888Stay near NPCs for layer " .. hopState.targetLayer .. " (" .. elapsed .. "s)|r"
+                else
+                    hint = "|cff888888Stay near NPCs to confirm (" .. elapsed .. "s)|r"
+                end
+            end
         elseif hopState.state == "NO_RESPONSE" then
             hint = "|cff888888Right-click to try again|r"
         end
@@ -576,9 +587,9 @@ local function PollLayer()
     local lastNum = hopState.lastKnownLayer
 
     -- Detect layer change (NWB confirmed a new layer number)
-    -- During a hop, NWB changes are verified by GUID zoneID comparison
-    -- in the IN_GROUP/VERIFYING handlers below. Toast only fires for
-    -- non-hop layer changes (e.g. organically moving between layers).
+    -- During a hop, NWB changes are verified by the IN_GROUP handler
+    -- below. Toast only fires for non-hop layer changes (e.g.
+    -- organically moving between layers).
     local layerChanged = false
     if currentNum and currentNum > 0 then
         if lastNum and lastNum > 0 and currentNum ~= lastNum then
@@ -589,8 +600,8 @@ local function PollLayer()
     end
     if layerChanged then
         -- During an active hop, suppress the generic toast — confirmation
-        -- is handled by the GUID-based IN_GROUP/VERIFYING checks below.
-        local midHop = (hopState.state == "IN_GROUP" or hopState.state == "WAITING_INVITE" or hopState.state == "VERIFYING")
+        -- is handled by the IN_GROUP verification below.
+        local midHop = (hopState.state == "IN_GROUP" or hopState.state == "WAITING_INVITE")
 
         -- Layer change toast (patch 7)
         if ns.applied["AutoLayer_layerChangeToast"] and not midHop then
@@ -602,78 +613,95 @@ local function PollLayer()
 
     end
 
-    -- IN_GROUP: verify hop via GUID zoneID or NWB layer number.
-    -- NWB reads YOUR target only (not party members'), so both methods
-    -- are trustworthy. Either one changing = you phased to a new layer.
+    -- IN_GROUP: simplified verification using targetLayer from whisper.
+    -- NWB_CurrentLayer persists after group disband and updates when
+    -- the player targets an NPC. No VERIFYING state needed.
     if ns.applied["AutoLayer_hopTransitionTracker"] and hopState.state == "IN_GROUP" then
-        local zoneID = GetCurrentZoneID()
         local elapsed = GetTime() - hopState.timestamp
 
+        -- Clear NWB caches exactly once after group disband so NWB
+        -- re-detects from fresh NPC interaction instead of restoring
+        -- stale data. We stay IN_GROUP and let PollLayer handle the rest.
+        if not IsInGroup() and not hopState._nwbCleared then
+            hopState._nwbCleared = true
+            rawset(_G, "NWB_CurrentLayer", 0)
+            if NWB then
+                NWB.currentLayer = 0
+                if NWB.lastKnownLayerMapID then NWB.lastKnownLayerMapID = 0 end
+                if NWB.lastKnownLayerMapZoneID then NWB.lastKnownLayerMapZoneID = 0 end
+                if NWB.lastKnownLayerID then NWB.lastKnownLayerID = 0 end
+            end
+        end
+
+        -- Re-read after potential cache clear
+        currentNum = NWB_CurrentLayer and tonumber(NWB_CurrentLayer)
+
         local layerConfirmed = false
-        -- Method 1: GUID zoneID comparison (requires pre-hop baseline)
-        if zoneID and hopState.fromZoneID and zoneID ~= hopState.fromZoneID then
-            layerConfirmed = true
-        end
-        -- Method 2: NWB layer number comparison (requires pre-hop baseline)
-        if currentNum and currentNum > 0 and hopState.fromLayer
-           and hopState.fromLayer > 0 and currentNum ~= hopState.fromLayer then
-            layerConfirmed = true
-        end
-        -- Method 3: No GUID baseline — trust the hop after a grace period.
-        -- When no creature was available at hop start (common on fresh login
-        -- or zones without visible nameplates), we have no "before" zoneID
-        -- to compare against. A late baseline capture would incorrectly
-        -- snapshot the NEW layer's zoneID (the phase is near-instant), making
-        -- detection impossible. Instead, after 3s in group the phase has
-        -- certainly completed — confirm based on the group join itself.
-        -- Exception: if we have a layer number and it hasn't changed, don't
-        -- confirm — the layer evidence proves the hop didn't work.
-        if not layerConfirmed and not hopState.fromZoneID and elapsed > 3.0 then
-            local layerUnchanged = hopState.fromLayer and hopState.fromLayer > 0
-                and currentNum and currentNum > 0
-                and currentNum == hopState.fromLayer
-            if not layerUnchanged then
+
+        if hopState.targetLayer then
+            -- Primary path: we know the target layer from the whisper
+            if currentNum and currentNum > 0 and currentNum == hopState.targetLayer then
+                layerConfirmed = true
+            elseif currentNum and currentNum > 0 and currentNum == hopState.fromLayer and elapsed > 10 then
+                -- Still on the same layer after 10s — hop failed
+                HandleFailedHop()
+            end
+        else
+            -- Fallback path: no targetLayer (whisper missing/unparseable)
+            if currentNum and currentNum > 0 and hopState.fromLayer
+               and hopState.fromLayer > 0 and currentNum ~= hopState.fromLayer then
+                layerConfirmed = true
+            elseif currentNum and currentNum > 0 and hopState.fromLayer
+                   and hopState.fromLayer > 0 and currentNum == hopState.fromLayer and elapsed > 10 then
+                HandleFailedHop()
+            elseif not hopState.fromLayer and elapsed > 15 then
+                -- No baseline at all — trust after 15s
                 layerConfirmed = true
             end
         end
 
-        -- Method 4: Nothing changed after 10s — hop isn't working.
-        -- If the layer number is unchanged (with or without GUID baseline),
-        -- the hop failed (cross-continent, same layer, or other reason).
-        -- Leave and auto-retry instead of sitting for 120s.
-        if not layerConfirmed and elapsed > 10
-           and hopState.fromLayer and hopState.fromLayer > 0
-           and currentNum and currentNum > 0 and currentNum == hopState.fromLayer then
-            HandleFailedHop()
-        end
-
-        -- Method 5: Grace period — trust the hop after 15s.
-        -- Phase happens instantly on group join. If after 15s we haven't
-        -- confirmed (Methods 1-3) or failed (Method 4), we're likely in
-        -- an NPC-sparse area where no fresh creature data is available.
-        -- Trust the hop rather than sitting idle for 120s.
-        -- Exception: if we have a layer number and it hasn't changed, don't
-        -- confirm — the layer evidence proves the hop didn't work.
-        if not layerConfirmed and elapsed > 15 then
-            local layerUnchanged = hopState.fromLayer and hopState.fromLayer > 0
-                and currentNum and currentNum > 0
-                and currentNum == hopState.fromLayer
-            if not layerUnchanged then
-                layerConfirmed = true
-            end
-        end
-
-        -- Actively poke NWB to re-detect from current target/mouseover.
-        -- This speeds up Method 2 (layer number change) by making NWB
-        -- scan the creature GUID instead of waiting for passive detection.
-        if not layerConfirmed and elapsed > 1.5 and NWB and NWB.setCurrentLayerText then
-            if not hopState.lastNWBPoke or (GetTime() - hopState.lastNWBPoke) > 2 then
-                hopState.lastNWBPoke = GetTime()
+        -- Periodically poke NWB to re-detect from nearby NPCs.
+        -- NWB scans on its own events, but this nudge speeds up detection
+        -- by feeding it target, mouseover, or visible nameplates.
+        if not layerConfirmed and elapsed > 3 and NWB and NWB.setCurrentLayerText then
+            local now = GetTime()
+            if (now - hopState._lastNWBPoke) > 3 then
+                hopState._lastNWBPoke = now
+                local poked = false
                 if UnitExists("target") then
                     pcall(NWB.setCurrentLayerText, NWB, "target")
-                elseif UnitExists("mouseover") then
-                    pcall(NWB.setCurrentLayerText, NWB, "mouseover")
+                    poked = true
                 end
+                if not poked and UnitExists("mouseover") then
+                    pcall(NWB.setCurrentLayerText, NWB, "mouseover")
+                    poked = true
+                end
+                -- Scan visible nameplates — nearby NPCs the player hasn't targeted
+                if not poked then
+                    for i = 1, 40 do
+                        if UnitExists("nameplate" .. i) then
+                            local guid = UnitGUID("nameplate" .. i)
+                            if guid then
+                                local unitType = strsplit("-", guid)
+                                if unitType == "Creature" then
+                                    pcall(NWB.setCurrentLayerText, NWB, "nameplate" .. i)
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        -- Safety timeout
+        if not layerConfirmed and elapsed > IN_GROUP_TIMEOUT then
+            if not IsInGroup() then
+                -- Group disbanded and timed out — trust the hop
+                layerConfirmed = true
+            else
+                LeaveHopGroup("timeout")
+                FailHop("Hop timed out \226\128\148 target an NPC to check your layer")
             end
         end
 
@@ -683,40 +711,6 @@ local function PollLayer()
             -- Leave immediately — phase is already confirmed
             if IsInGroup() and not IsInRaid() and not IsInInstance() then
                 LeaveHopGroup("confirmed")
-            end
-        end
-    end
-
-    -- VERIFYING: group disbanded before we confirmed — poll GUID + NWB.
-    -- NWB cache was cleared on group disband, so require 2s minimum
-    -- before trusting NWB (avoids stale cache restore race conditions).
-    if ns.applied["AutoLayer_hopTransitionTracker"] and hopState.state == "VERIFYING" then
-        local elapsed = GetTime() - hopState.verifyStart
-        local zoneID = GetCurrentZoneID()
-
-        if zoneID and hopState.fromZoneID and zoneID ~= hopState.fromZoneID then
-            ConfirmHop(currentNum and currentNum > 0 and currentNum or nil)
-        elseif elapsed > 2 and currentNum and currentNum > 0 and hopState.fromLayer
-               and hopState.fromLayer > 0 and currentNum ~= hopState.fromLayer then
-            ConfirmHop(currentNum)
-        -- No GUID baseline: confirm after 2s (same reasoning as IN_GROUP Method 3).
-        -- The player went through the full invite/group/disband hop cycle.
-        -- Exception: if the layer number hasn't changed, don't confirm.
-        elseif not hopState.fromZoneID and elapsed > 2
-               and not (hopState.fromLayer and hopState.fromLayer > 0
-                        and currentNum and currentNum > 0
-                        and currentNum == hopState.fromLayer) then
-            ConfirmHop(currentNum and currentNum > 0 and currentNum or nil)
-        elseif elapsed > 5 and currentNum and currentNum > 0 and hopState.fromLayer
-               and hopState.fromLayer > 0 and currentNum == hopState.fromLayer then
-            FailHop("Layer unchanged \226\128\148 hop may not have worked")
-        elseif elapsed > 30 then
-            FailHop("Hop not confirmed \226\128\148 target an NPC to check your layer")
-        elseif elapsed > 1.5 and NWB and NWB.setCurrentLayerText
-               and UnitExists("target") then
-            if not hopState.lastNWBPoke or (GetTime() - hopState.lastNWBPoke) > 3 then
-                hopState.lastNWBPoke = GetTime()
-                pcall(NWB.setCurrentLayerText, NWB, "target")
             end
         end
     end
@@ -739,16 +733,16 @@ local function PollLayer()
         hopState.state = "IDLE"
         hopState.source = nil
         hopState.fromLayer = nil
-        hopState.fromZoneID = nil
+        hopState.targetLayer = nil
         hopState.hostName = nil
-        hopState.verifyStart = 0
-        hopState.lastNWBPoke = nil
+        hopState.deadline = nil
+        hopState._nwbCleared = false
         hopState.hopRetries = 0
     end
     -- IN_GROUP safety net: 120s without any proof — leave and reset.
     -- This is the last resort; Method 4 (10s "nothing changed") handles
     -- most failures faster. This catches edge cases with no baselines.
-    if hopState.state == "IN_GROUP" and (now - hopState.timestamp) > 120.0 then
+    if hopState.state == "IN_GROUP" and (now - hopState.timestamp) > IN_GROUP_TIMEOUT then
         LeaveHopGroup("timeout")
         FailHop("Hop timed out \226\128\148 target an NPC to check your layer")
     end
@@ -768,10 +762,10 @@ local function PollLayer()
         hopState.state = "IDLE"
         hopState.source = nil
         hopState.fromLayer = nil
-        hopState.fromZoneID = nil
+        hopState.targetLayer = nil
         hopState.hostName = nil
-        hopState.verifyStart = 0
-        hopState.lastNWBPoke = nil
+        hopState.deadline = nil
+        hopState._nwbCleared = false
         hopState.hopRetries = 0
     end
 
@@ -779,8 +773,8 @@ local function PollLayer()
     UpdateStatusFrame()
 
     -- Schedule next poll (faster during active hop)
-    local interval = (hopState.state == "IN_GROUP" or hopState.state == "WAITING_INVITE"
-        or hopState.state == "VERIFYING") and POLL_ACTIVE or POLL_IDLE
+    local interval = (hopState.state == "IN_GROUP" or hopState.state == "WAITING_INVITE")
+        and POLL_ACTIVE or POLL_IDLE
     C_Timer.After(interval, PollLayer)
 end
 
@@ -887,10 +881,10 @@ local function CreateStatusFrame()
                     hopState.state = "IDLE"
                     hopState.source = nil
                     hopState.fromLayer = nil
-                    hopState.fromZoneID = nil
+                    hopState.targetLayer = nil
                     hopState.hostName = nil
-                    hopState.verifyStart = 0
-                    hopState.lastNWBPoke = nil
+                    hopState.deadline = nil
+                    hopState._nwbCleared = false
                     hopState.hopRetries = 0
                     UIErrorsFrame:AddMessage("PatchWerk: Hop cancelled", 1.0, 0.6, 0.0, 1.0, GetToastDuration())
                     UpdateStatusFrame()
@@ -908,7 +902,7 @@ local function CreateStatusFrame()
             else
                 -- Right-click: quick hop to any other layer
                 -- Block when mid-hop, on cooldown, or inside an instance
-                if hopState.state == "IN_GROUP" or hopState.state == "CONFIRMED" or hopState.state == "VERIFYING" then return end
+                if hopState.state == "IN_GROUP" or hopState.state == "CONFIRMED" then return end
                 if IsInInstance() then return end
                 if not AutoLayer.SlashCommand then return end
                 local now = GetTime()
@@ -953,14 +947,23 @@ local function CreateStatusFrame()
 
     -- Pulsing animation for IN_GROUP state
     local pulseTime = 0
+    local countdownThrottle = 0
     f:SetScript("OnUpdate", function(self, elapsed)
-        if hopState.state == "IN_GROUP" or hopState.state == "VERIFYING" then
+        if hopState.state == "IN_GROUP" then
             pulseTime = pulseTime + elapsed
             local alpha = 0.6 + 0.4 * math_sin(pulseTime * 3)
             self.infoText:SetAlpha(alpha)
         else
             pulseTime = 0
             self.infoText:SetAlpha(1)
+        end
+        -- Refresh countdown display every second
+        countdownThrottle = countdownThrottle + elapsed
+        if countdownThrottle >= 1.0 then
+            countdownThrottle = 0
+            if hopState.state ~= "IDLE" then
+                UpdateStatusFrame()
+            end
         end
     end)
 
@@ -1233,20 +1236,18 @@ end
 ------------------------------------------------------------------------
 -- 8. AutoLayer_hopTransitionTracker
 --
--- Tracks the full hop lifecycle with GUID-based verification:
+-- Tracks the full hop lifecycle with target-layer verification:
 --   IDLE -> WAITING_INVITE (after SendLayerRequest or PARTY_INVITE_REQUEST)
 --   WAITING_INVITE -> IN_GROUP (after GROUP_ROSTER_UPDATE + IsInGroup)
---   IN_GROUP -> CONFIRMED (when GUID zoneID or NWB layer changes)
---   IN_GROUP -> VERIFYING (group disbanded before confirmation)
---   VERIFYING -> CONFIRMED (GUID/NWB confirms layer changed)
---   VERIFYING -> IDLE (same layer after 5s, or 30s timeout)
+--   IN_GROUP -> CONFIRMED (NWB detects target layer or layer change)
+--   IN_GROUP -> IDLE (hop failed after timeout)
 --   CONFIRMED -> IDLE (after 3 seconds)
 --
--- Verification uses creature GUID zoneIDs (same NPC on different
--- layers has different zoneIDs) and NWB layer numbers. When no
--- baseline was available at hop start (fresh login, no nearby
--- nameplates), confirms after a grace period in group. Stays in
--- group until proof of hop, never trusts UNIT_PHASE alone.
+-- AutoLayer hosts whisper the target layer number ("[AutoLayer]
+-- Inviting you to layer {N}..."). When available, verification
+-- checks "did we arrive at layer N?" instead of generic change
+-- detection. NWB caches are cleared once on group disband so NWB
+-- re-detects from fresh NPC interaction.
 ------------------------------------------------------------------------
 ns.patches["AutoLayer_hopTransitionTracker"] = function()
     if not ns:IsAddonLoaded("AutoLayer_Vanilla") then return end
@@ -1256,14 +1257,60 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
     -- Allow from IDLE, WAITING_INVITE (retry), or NO_RESPONSE (retry after failure)
     -- Block only when IN_GROUP or CONFIRMED (already mid-hop)
     hooksecurefunc(AutoLayer, "SendLayerRequest", function()
-        if hopState.state == "IN_GROUP" or hopState.state == "CONFIRMED" or hopState.state == "VERIFYING" then return end
+        if hopState.state == "IN_GROUP" or hopState.state == "CONFIRMED" then return end
+        lastHopBroadcastTime = GetTime()
         local currentLayer = NWB_CurrentLayer
         hopState.state = "WAITING_INVITE"
         hopState.source = "OUTBOUND"
         hopState.fromLayer = currentLayer and tonumber(currentLayer) or nil
-        hopState.fromZoneID = GetCurrentZoneID()
+        hopState.targetLayer = nil
+        hopState.deadline = GetTime() + WAITING_TIMEOUT
+        hopState._nwbCleared = false
         hopState.timestamp = GetTime()
         UpdateStatusFrame()
+    end)
+
+    -- Track [AutoLayer] whispers to:
+    -- 1. Identify AutoLayer hosts (vs manual friend invites)
+    -- 2. Extract target layer number for same-layer skip logic
+    -- Format: "[AutoLayer] Inviting you to layer {N}..."
+    local whisperFrame = CreateFrame("Frame")
+    whisperFrame:RegisterEvent("CHAT_MSG_WHISPER")
+    whisperFrame:SetScript("OnEvent", function(_, _, message, sender)
+        if message and sender and message:find("^%[AutoLayer%]") then
+            -- Strip realm suffix if present (e.g. "Name-Realm" -> "Name")
+            local name = strsplit("-", sender)
+            if name then
+                -- Try to parse target layer from the whisper
+                local layerStr = message:match("layer (%d+)")
+                local parsedLayer = layerStr and tonumber(layerStr) or nil
+                autoLayerWhispers[name] = {
+                    time = GetTime(),
+                    layer = parsedLayer,
+                }
+                -- Write target layer to hopState during active hops
+                if parsedLayer and (hopState.state == "WAITING_INVITE" or hopState.state == "IN_GROUP") then
+                    -- Same-layer early exit: host is on our current layer
+                    if hopState.fromLayer and parsedLayer == hopState.fromLayer then
+                        if IsInGroup() and not IsInRaid() and not IsInInstance() then
+                            LeaveParty()
+                        end
+                        hopState.state = "WAITING_INVITE"
+                        hopState.timestamp = GetTime()
+                        hopState.deadline = GetTime() + WAITING_TIMEOUT
+                        -- Arm retry on next keypress
+                        C_Timer.After(HOP_RETRY_DELAY, function()
+                            if hopState.state ~= "WAITING_INVITE" then return end
+                            retryFrame:Show()
+                        end)
+                        UIErrorsFrame:AddMessage("PatchWerk: Same layer \226\128\148 retrying...", 1.0, 0.6, 0.0, 1.0, GetToastDuration())
+                    else
+                        hopState.targetLayer = parsedLayer
+                    end
+                    UpdateStatusFrame()
+                end
+            end
+        end
     end)
 
     -- Detect incoming invites and group changes during a hop
@@ -1293,6 +1340,51 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
                     StaticPopup_Hide("PARTY_INVITE")
                     return
                 end
+
+                -- Smart cross-continent block: only decline invites that are
+                -- likely AutoLayer responses.  Manual party invites from
+                -- friends/guild/dungeon groups are allowed through.
+                --
+                -- Identification signals (any = AutoLayer invite):
+                --  1) We broadcast a hop request recently (hosts responding)
+                --  2) We're mid-hop (WAITING_INVITE state)
+                --  3) Inviter already sent us an [AutoLayer] whisper
+                --     (whisper arrives AFTER invite, so this catches
+                --      repeat invites from the same host, not first)
+                if crossContinentBlock and GetTime() < crossContinentBlock.expiry then
+                    local _, _, _, myInstID = UnitPosition("player")
+                    local myCont = myInstID and INSTANCE_CONTINENTS[myInstID]
+                    if myCont and myCont == crossContinentBlock.continent then
+                        local recentBroadcast = (GetTime() - lastHopBroadcastTime) < HOP_BROADCAST_WINDOW
+                        local isMidHop = hopState.state == "WAITING_INVITE"
+                        local whisperEntry = autoLayerWhispers[inviterName]
+                        local hasAutoLayerWhisper = whisperEntry
+                            and (GetTime() - whisperEntry.time) < HOP_BROADCAST_WINDOW
+
+                        if recentBroadcast or isMidHop or hasAutoLayerWhisper then
+                            -- AutoLayer invite — decline it
+                            DeclineGroup()
+                            StaticPopup_Hide("PARTY_INVITE")
+                            -- Refresh expiry while invites keep coming
+                            crossContinentBlock.expiry = GetTime() + CROSS_CONTINENT_EXPIRY
+                            -- Rate-limited whisper so the host knows why
+                            local lastWhisper = declinedWhisperTimes[inviterName]
+                            if not lastWhisper or (GetTime() - lastWhisper) > DECLINED_WHISPER_CD then
+                                declinedWhisperTimes[inviterName] = GetTime()
+                                local myLocation = (myCont == "OUTLAND") and "Outland" or "Azeroth"
+                                pcall(SendChatMessage,
+                                    "[PatchWerk] I'm in " .. myLocation .. " \226\128\148 layers don't cross the Dark Portal! Thanks anyway.",
+                                    "WHISPER", nil, inviterName)
+                            end
+                            return
+                        end
+                        -- No recent broadcast, not mid-hop, no AutoLayer whisper
+                        -- — this is likely a manual invite. Allow it through.
+                    else
+                        -- Continent changed (player took the portal) — disable block
+                        crossContinentBlock = nil
+                    end
+                end
             end
 
             if hopState.state == "IDLE" or hopState.state == "NO_RESPONSE" then
@@ -1301,7 +1393,9 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
                 hopState.state = "WAITING_INVITE"
                 hopState.source = "INBOUND"
                 hopState.fromLayer = currentLayer and tonumber(currentLayer) or nil
-                hopState.fromZoneID = GetCurrentZoneID()
+                hopState.targetLayer = nil
+                hopState.deadline = GetTime() + WAITING_TIMEOUT
+                hopState._nwbCleared = false
                 hopState.timestamp = GetTime()
                 UpdateStatusFrame()
             end
@@ -1310,7 +1404,7 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
         elseif event == "GROUP_ROSTER_UPDATE" then
             -- Guard: if we already confirmed a hop, leave any new group
             -- that AutoLayer accepted (stale LFG responses from other hosts).
-            if (hopState.state == "CONFIRMED" or hopState.state == "VERIFYING") and IsInGroup() then
+            if hopState.state == "CONFIRMED" and IsInGroup() then
                 if not IsInRaid() and not IsInInstance() then
                     LeaveParty()
                 end
@@ -1323,13 +1417,16 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
                 hopState.state = "IN_GROUP"
                 hopState.timestamp = GetTime()
                 hopState.hostName = GetPartyMemberName()
+                hopState.deadline = GetTime() + IN_GROUP_TIMEOUT
+                hopState._nwbCleared = false
 
-                -- Clear stale layer caches — fromZoneID was already captured
-                -- at hop start, and the phase is about to (or has just) happened.
-                -- Without this, GetCurrentZoneID() returns the pre-hop zoneID
-                -- from cached sources, matching fromZoneID and blocking detection.
-                lastMouseoverZoneID = nil
-                if NWB and NWB.lastKnownLayerID then NWB.lastKnownLayerID = 0 end
+                -- Extract targetLayer from whisper if available
+                if not hopState.targetLayer and hopState.hostName then
+                    local whisperEntry = autoLayerWhispers[hopState.hostName]
+                    if whisperEntry and whisperEntry.layer and (GetTime() - whisperEntry.time) < 30 then
+                        hopState.targetLayer = whisperEntry.layer
+                    end
+                end
 
                 -- Known cross-continent host? Instant leave — no whisper spam,
                 -- no retry wasted. They already got the message last time.
@@ -1356,49 +1453,49 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
                     return
                 end
 
-                -- Cross-continent check via UnitPosition (instant, not protected).
-                -- Delayed 1s to let party data propagate after roster update.
-                C_Timer.After(1.0, function()
+                -- Single cross-continent check at 3.5s.
+                -- By 3.5s, party data has fully propagated — no false positives
+                -- from nil returns during the initial propagation window.
+                local function HandleCrossContinentDetection(otherContinent)
+                    -- Remember this host so repeat invites are instant-skipped
+                    if hopState.hostName then
+                        crossContinentHosts[hopState.hostName] = {
+                            time = GetTime(),
+                            continent = otherContinent or "unknown",
+                        }
+                        -- otherContinent is the HOST's continent; tell them where WE are
+                        local myContinent = (otherContinent == "Azeroth") and "Outland" or "Azeroth"
+                        local whisper = otherContinent
+                            and "[PatchWerk] I'm in " .. myContinent .. " \226\128\148 layers don't cross the Dark Portal! Thanks anyway."
+                            or "[PatchWerk] Layers don't cross the Dark Portal! Thanks anyway."
+                        pcall(SendChatMessage, whisper, "WHISPER", nil, hopState.hostName)
+                    end
+
+                    -- Activate blanket block: ALL future AutoLayer invites
+                    -- from the other continent get declined at invite time,
+                    -- no join->detect->leave cycle needed.
+                    local _, _, _, myInstID = UnitPosition("player")
+                    local myCont = myInstID and INSTANCE_CONTINENTS[myInstID]
+                    if myCont then
+                        crossContinentBlock = {
+                            expiry = GetTime() + CROSS_CONTINENT_EXPIRY,
+                            continent = myCont,
+                        }
+                    end
+
+                    HandleFailedHop(otherContinent)
+                end
+
+                C_Timer.After(3.5, function()
                     if hopState.state ~= "IN_GROUP" then return end
                     local isCross, otherContinent = IsCrossContinentHop()
                     if isCross then
-                        -- Remember this host so repeat invites are instant-skipped
-                        if hopState.hostName then
-                            crossContinentHosts[hopState.hostName] = {
-                                time = GetTime(),
-                                continent = otherContinent or "unknown",
-                            }
-                            -- otherContinent is the HOST's continent; tell them where WE are
-                            local myContinent = (otherContinent == "Azeroth") and "Outland" or "Azeroth"
-                            local whisper = otherContinent
-                                and "[PatchWerk] I'm in " .. myContinent .. " — layers don't cross the Dark Portal! Thanks anyway."
-                                or "[PatchWerk] Layers don't cross the Dark Portal! Thanks anyway."
-                            pcall(SendChatMessage, whisper, "WHISPER", nil, hopState.hostName)
-                        end
-                        HandleFailedHop(otherContinent)
-                        return
+                        HandleCrossContinentDetection(otherContinent)
                     end
                 end)
 
                 UpdateStatusFrame()
 
-            elseif hopState.state == "IN_GROUP" and not IsInGroup() then
-                -- Group disbanded before we confirmed — enter VERIFYING.
-                -- Clear NWB's stale cache so it re-detects from fresh NPC targets.
-                rawset(_G, "NWB_CurrentLayer", 0)
-                if NWB then
-                    NWB.currentLayer = 0
-                    if NWB.lastKnownLayerMapID then NWB.lastKnownLayerMapID = 0 end
-                    if NWB.lastKnownLayerMapZoneID then NWB.lastKnownLayerMapZoneID = 0 end
-                    if NWB.lastKnownLayerID then NWB.lastKnownLayerID = 0 end
-                end
-                -- Also clear our mouseover cache — it's from the old layer
-                lastMouseoverZoneID = nil
-                hopState.state = "VERIFYING"
-                hopState.verifyStart = GetTime()
-                hopState.lastNWBPoke = nil
-                UIErrorsFrame:AddMessage("PatchWerk: Verifying hop...", 0.2, 0.8, 1.0, 1.0, GetToastDuration())
-                UpdateStatusFrame()
             end
         end
     end)
@@ -1469,7 +1566,6 @@ ns.patches["AutoLayer_enhancedTooltip"] = function()
             local stateInfo = {
                 WAITING_INVITE = { color = "|cffffcc00", label = "Searching for a layer..." },
                 IN_GROUP = { color = "|cffff9933", label = "Switching layers..." },
-                VERIFYING = { color = "|cffffcc00", label = "Verifying hop..." },
                 CONFIRMED = { color = "|cff33ff33", label = "Layer changed!" },
                 NO_RESPONSE = { color = "|cffff3333", label = "No response \226\128\148 try again" },
             }
