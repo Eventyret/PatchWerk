@@ -181,7 +181,6 @@ local hopState = {
     targetLayer = nil,      -- parsed from [AutoLayer] whisper "layer {N}"
     hostName = nil,         -- captured when entering IN_GROUP (before group disbands)
     deadline = nil,         -- GetTime()+N for countdown display
-    _nwbCleared = false,    -- ensures NWB caches cleared exactly once on group disband
     _lastNWBPoke = 0,       -- throttle for periodic NWB re-detection nudges
     timestamp = 0,
     lastKnownLayer = nil,
@@ -361,7 +360,7 @@ local function ConfirmHop(layerNum)
     hopState.hopRetries = 0
     hopState.targetLayer = nil
     hopState.deadline = GetTime() + CONFIRM_DURATION
-    hopState._nwbCleared = false
+
     retryFrame:Hide()  -- disarm pending retry
 
     if hopState.hostName then
@@ -401,7 +400,7 @@ local function FailHop(reason)
     hopState.targetLayer = nil
     hopState.hostName = nil
     hopState.deadline = nil
-    hopState._nwbCleared = false
+
     hopState.hopRetries = 0
     UpdateStatusFrame()
 end
@@ -615,34 +614,33 @@ local function PollLayer()
 
     end
 
-    -- IN_GROUP: simplified verification using targetLayer from whisper.
-    -- NWB_CurrentLayer persists after group disband and updates when
-    -- the player targets an NPC. No VERIFYING state needed.
+    -- IN_GROUP: verify using targetLayer from whisper + NWB detection.
+    -- Check both NWB_CurrentLayer (global) and NWB.currentLayer (internal)
+    -- because NWB's recalcMinimapLayerFrame() can overwrite the global.
     if ns.applied["AutoLayer_hopTransitionTracker"] and hopState.state == "IN_GROUP" then
         local elapsed = GetTime() - hopState.timestamp
 
-        -- Clear NWB caches exactly once after group disband so NWB
-        -- re-detects from fresh NPC interaction instead of restoring
-        -- stale data. We stay IN_GROUP and let PollLayer handle the rest.
-        if not IsInGroup() and not hopState._nwbCleared then
-            hopState._nwbCleared = true
-            rawset(_G, "NWB_CurrentLayer", 0)
-            if NWB then
-                NWB.currentLayer = 0
-                if NWB.lastKnownLayerMapID then NWB.lastKnownLayerMapID = 0 end
-                if NWB.lastKnownLayerMapZoneID then NWB.lastKnownLayerMapZoneID = 0 end
-                if NWB.lastKnownLayerID then NWB.lastKnownLayerID = 0 end
+        -- Read layer from both NWB sources — the global can be stale
+        -- if NWB's recalc overwrites it, so also check the internal field.
+        local nwbGlobal = NWB_CurrentLayer and tonumber(NWB_CurrentLayer)
+        local nwbInternal = NWB and NWB.currentLayer and tonumber(NWB.currentLayer)
+        -- Use whichever reports the newer layer (prefer non-zero, non-fromLayer)
+        currentNum = nil
+        if nwbGlobal and nwbGlobal > 0 then currentNum = nwbGlobal end
+        if nwbInternal and nwbInternal > 0 then
+            if not currentNum or (currentNum == hopState.fromLayer and nwbInternal ~= hopState.fromLayer) then
+                currentNum = nwbInternal
             end
         end
-
-        -- Re-read after potential cache clear
-        currentNum = NWB_CurrentLayer and tonumber(NWB_CurrentLayer)
 
         local layerConfirmed = false
 
         if hopState.targetLayer then
             -- Primary path: we know the target layer from the whisper
             if currentNum and currentNum > 0 and currentNum == hopState.targetLayer then
+                layerConfirmed = true
+            elseif currentNum and currentNum > 0 and currentNum ~= hopState.fromLayer then
+                -- Layer changed but not to the whisper target — still a hop
                 layerConfirmed = true
             elseif currentNum and currentNum > 0 and currentNum == hopState.fromLayer and elapsed > 10 then
                 -- Still on the same layer after 10s — hop failed
@@ -662,21 +660,30 @@ local function PollLayer()
             end
         end
 
-        -- Periodically poke NWB to re-detect from nearby NPCs.
-        -- NWB scans on its own events, but this nudge speeds up detection
-        -- by feeding it target, mouseover, or visible nameplates.
-        if not layerConfirmed and elapsed > 3 then
+        -- Poke NWB to re-detect from nearby NPCs every 2s.
+        -- Start immediately — don't wait 3s, the phase may already be done.
+        if not layerConfirmed then
             local now = GetTime()
-            if (now - hopState._lastNWBPoke) > 3 then
+            if (now - hopState._lastNWBPoke) > 2 then
                 hopState._lastNWBPoke = now
                 PokeNWBForLayer(true)
             end
         end
 
-        -- Safety timeout
+        -- Detect manual group leave — if the user left the group,
+        -- check if the layer changed and confirm or cancel.
+        if not layerConfirmed and not IsInGroup() then
+            if currentNum and currentNum > 0 and currentNum ~= hopState.fromLayer then
+                layerConfirmed = true
+            elseif elapsed > 5 then
+                -- Left group without layer change after 5s — cancel
+                FailHop("Left group \226\128\148 hop cancelled")
+            end
+        end
+
+        -- Safety timeout (120s)
         if not layerConfirmed and elapsed > IN_GROUP_TIMEOUT then
             if not IsInGroup() then
-                -- Group disbanded and timed out — trust the hop
                 layerConfirmed = true
             else
                 LeaveHopGroup("timeout")
@@ -715,7 +722,7 @@ local function PollLayer()
         hopState.targetLayer = nil
         hopState.hostName = nil
         hopState.deadline = nil
-        hopState._nwbCleared = false
+    
         hopState.hopRetries = 0
     end
     -- IN_GROUP safety net: 120s without any proof — leave and reset.
@@ -744,7 +751,7 @@ local function PollLayer()
         hopState.targetLayer = nil
         hopState.hostName = nil
         hopState.deadline = nil
-        hopState._nwbCleared = false
+    
         hopState.hopRetries = 0
     end
 
@@ -900,7 +907,7 @@ local function CreateStatusFrame()
                     hopState.targetLayer = nil
                     hopState.hostName = nil
                     hopState.deadline = nil
-                    hopState._nwbCleared = false
+                
                     hopState.hopRetries = 0
                     UIErrorsFrame:AddMessage("PatchWerk: Hop cancelled", 1.0, 0.6, 0.0, 1.0, GetToastDuration())
                     UpdateStatusFrame()
@@ -1288,7 +1295,7 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
         hopState.fromLayer = currentLayer and tonumber(currentLayer) or nil
         hopState.targetLayer = nil
         hopState.deadline = GetTime() + WAITING_TIMEOUT
-        hopState._nwbCleared = false
+    
         hopState.timestamp = GetTime()
         UpdateStatusFrame()
     end)
@@ -1418,7 +1425,7 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
                 hopState.fromLayer = currentLayer and tonumber(currentLayer) or nil
                 hopState.targetLayer = nil
                 hopState.deadline = GetTime() + WAITING_TIMEOUT
-                hopState._nwbCleared = false
+            
                 hopState.timestamp = GetTime()
                 UpdateStatusFrame()
             end
@@ -1441,7 +1448,7 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
                 hopState.timestamp = GetTime()
                 hopState.hostName = GetPartyMemberName()
                 hopState.deadline = GetTime() + IN_GROUP_TIMEOUT
-                hopState._nwbCleared = false
+            
 
                 -- Extract targetLayer from whisper if available
                 if not hopState.targetLayer and hopState.hostName then
@@ -1451,16 +1458,11 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
                     end
                 end
 
-                -- Clear NWB layer caches so stale pre-hop data doesn't
-                -- block detection. NWB will re-detect from fresh NPC
-                -- interactions (target, mouseover, nameplates).
-                rawset(_G, "NWB_CurrentLayer", 0)
-                if NWB then
-                    NWB.currentLayer = 0
-                    if NWB.lastKnownLayerMapID then NWB.lastKnownLayerMapID = 0 end
-                    if NWB.lastKnownLayerMapZoneID then NWB.lastKnownLayerMapZoneID = 0 end
-                    if NWB.lastKnownLayerID then NWB.lastKnownLayerID = 0 end
-                end
+                -- Note: we do NOT clear NWB_CurrentLayer or NWB internals.
+                -- PollLayer checks both NWB_CurrentLayer and NWB.currentLayer
+                -- and compares against fromLayer to detect the change.
+                -- Clearing NWB state causes recalcMinimapLayerFrame to fight
+                -- our detection by restoring stale values.
 
                 -- Known cross-continent host? Instant leave — no whisper spam,
                 -- no retry wasted. They already got the message last time.
