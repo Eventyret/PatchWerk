@@ -522,13 +522,13 @@ UpdateStatusFrame = function()
         if layerKnown then
             infoStr = "|cff33ff33On|r  |cff555555·|r  Layer " .. currentLayer
         else
-            infoStr = "|cff33ff33On|r  |cff555555·|r  |cff888888Detecting...|r"
+            infoStr = "|cff33ff33On|r  |cff555555·|r  |cff888888Detecting layer...|r"
         end
     else
         if layerKnown then
             infoStr = "|cffff3333Off|r  |cff555555·|r  Layer " .. currentLayer
         else
-            infoStr = "|cffff3333Off|r  |cff555555·|r  |cff888888Detecting...|r"
+            infoStr = "|cffff3333Off|r  |cff555555·|r  |cff888888Detecting layer...|r"
         end
     end
     statusFrame.infoText:SetText(infoStr)
@@ -926,7 +926,7 @@ local function CreateStatusFrame()
                 -- Block when layer is unknown — we need a baseline to verify the hop
                 local curLayer = NWB_CurrentLayer and tonumber(NWB_CurrentLayer)
                 if not curLayer or curLayer <= 0 then
-                    UIErrorsFrame:AddMessage("PatchWerk: Target an NPC first to detect your layer", 1.0, 0.6, 0.0, 1.0, 5)
+                    UIErrorsFrame:AddMessage("PatchWerk: Can't hop yet — target an NPC so we know your current layer", 1.0, 0.6, 0.0, 1.0, 5)
                     PokeNWBForLayer()
                     return
                 end
