@@ -124,6 +124,8 @@ ns.patches["Pawn_tooltipDedup"] = function()
     if not PawnUpdateTooltip then return end
 
     local lastProcessedLink = {}
+    local lastProcessedTime = {}
+    local DEDUP_WINDOW = 0.1  -- only skip within the same frame (~100ms)
 
     local origUpdate = PawnUpdateTooltip
     rawset(_G, "PawnUpdateTooltip", function(TooltipName, MethodName, Param1, ...)
@@ -140,21 +142,26 @@ ns.patches["Pawn_tooltipDedup"] = function()
         end
 
         -- Skip if we already processed this exact item on this tooltip
-        if itemLink and lastProcessedLink[TooltipName] == itemLink then
+        -- within the same frame. The time window prevents stale dedup:
+        -- when the game rebuilds a tooltip via Set* methods (e.g., bag
+        -- refresh), Pawn's text is stripped but would never be re-added
+        -- if we blocked indefinitely on the same link.
+        local now = GetTime()
+        if itemLink and lastProcessedLink[TooltipName] == itemLink
+            and (now - (lastProcessedTime[TooltipName] or 0)) < DEDUP_WINDOW then
             return
         end
         lastProcessedLink[TooltipName] = itemLink
+        lastProcessedTime[TooltipName] = now
         return origUpdate(TooltipName, MethodName, Param1, ...)
     end)
 
-    -- Clear on tooltip hide/clear (GameTooltip + shopping comparison tooltips)
+    -- Clear on tooltip hide (GameTooltip + shopping comparison tooltips)
     local function HookTooltipClear(tip, name)
         if not tip then return end
         hooksecurefunc(tip, "Hide", function()
             lastProcessedLink[name] = nil
-        end)
-        hooksecurefunc(tip, "ClearLines", function()
-            lastProcessedLink[name] = nil
+            lastProcessedTime[name] = nil
         end)
     end
 
