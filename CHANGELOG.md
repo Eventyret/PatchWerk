@@ -40,6 +40,7 @@ Hotfix incoming. No arena season reset required.
 **Bugs that got /kicked:**
 - ElvUI: All plugins (including ToxiUI) were invisible in ElvUI's options panel because a missing compatibility function prevented them from registering during startup. Restored the missing piece so plugins show up and work correctly again
 - ElvUI: Profile selection was broken for the same reason — ElvUI's startup sequence would hit a wall before it finished setting up the options panel. Profiles, imports, and copying all work again
+- ElvUI: In ElvUI v15.07+, plugin registration could crash if the options panel loaded in an unexpected order. PatchWerk now catches this and ensures plugins still finish setting up correctly
 - ElvUI: Added a safety net for the addon manager panel in case the enable-state check was missing from the game's built-in functions
 
 ---
