@@ -2,6 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
+| [v1.5.5](#v155--the-one-where-elvui-remembered-its-plugins) | ElvUI plugins and profiles work again — missing compatibility function restored |
 | [v1.5.4](#v154--the-one-where-the-host-stopped-calling-back) | AutoLayer stops re-invites for good, popup resets after hop, Bagnon crash fix |
 | [v1.5.3](#v153--the-one-where-autolayer-learned-to-listen) | AutoLayer whisper-aware hops, cross-continent raid detection, popup fix + Pawn tooltip fix |
 | [v1.5.2](#v152--the-one-where-the-bags-opened-again) | ElvUI bags fixed (B key works again) + AutoLayer declines known-bad hosts at the door |
@@ -28,6 +29,18 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 - **Don_Perry** — reported the spellbook security warning ([v1.4.2](#v142--the-one-where-the-spellbook-fought-back), [v1.5.0](#v150--the-one-where-elvui-walked-in-and-the-spellbook-chilled-out))
 - **Yitra_Beloff** — reported the ElvUI bag keybinding bug ([v1.5.2](#v152--the-one-where-the-bags-opened-again))
 - **TarybleTexan** — reported the Pawn tooltip disappearing bug ([v1.5.3](#v153--the-one-where-autolayer-learned-to-listen))
+- **Der2werg** — reported ElvUI plugins and profiles being broken ([v1.5.5](#v155--the-one-where-elvui-remembered-its-plugins))
+
+---
+
+## v1.5.5 — "The One Where ElvUI Remembered Its Plugins"
+
+Hotfix incoming. No arena season reset required.
+
+**Bugs that got /kicked:**
+- ElvUI: All plugins (including ToxiUI) were invisible in ElvUI's options panel because a missing compatibility function prevented them from registering during startup. Restored the missing piece so plugins show up and work correctly again
+- ElvUI: Profile selection was broken for the same reason — ElvUI's startup sequence would hit a wall before it finished setting up the options panel. Profiles, imports, and copying all work again
+- ElvUI: Added a safety net for the addon manager panel in case the enable-state check was missing from the game's built-in functions
 
 ---
 

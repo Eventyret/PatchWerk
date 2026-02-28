@@ -25,6 +25,22 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.5.5",
+        title = "ElvUI Plugin Fix",
+        subtitle = "The One Where ElvUI Remembered Its Plugins",
+        flavor = "Hotfix incoming. No arena season reset required.",
+        sections = {
+            {
+                header = "Bugs that got /kicked:",
+                entries = {
+                    "ElvUI: All plugins (including ToxiUI) were invisible in ElvUI's options panel because a missing compatibility function prevented them from registering during startup. Restored the missing piece so plugins show up and work correctly again",
+                    "ElvUI: Profile selection was broken for the same reason \226\128\148 ElvUI's startup would hit a wall before it finished setting up the options panel. Profiles, imports, and copying all work again",
+                    "ElvUI: Added a safety net for the addon manager panel in case the enable-state check was missing from the game's built-in functions",
+                },
+            },
+        },
+    },
+    {
         version = "1.5.4",
         title = "Re-invite Fix",
         subtitle = "The One Where the Host Stopped Calling Back",
