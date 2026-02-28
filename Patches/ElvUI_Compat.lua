@@ -89,6 +89,23 @@ ns.patches["ElvUI_addonManagerCompat"] = function()
         }
     end
 
+    -- Gap-fill: GetAddOnEnableState may be missing from the shim or a
+    -- partial native C_AddOns.  ElvUI's Initialize.lua captures this at
+    -- load time and crashes if it is nil.
+    if not C_AddOns.GetAddOnEnableState then
+        local native = _G.GetAddOnEnableState
+        C_AddOns.GetAddOnEnableState = function(addon, character)
+            if native then
+                -- Classic order: (character, addon); convert GUIDs to nil
+                if type(character) == "string" and (character:find("%-") or #character > 12) then
+                    character = nil
+                end
+                return native(character, addon)
+            end
+            return 2
+        end
+    end
+
     -- Wrap the addon manager skin with crash protection
     local original = S.AddonManager or S.Skin_AddonManager
     if not original then return end

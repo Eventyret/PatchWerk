@@ -29,7 +29,15 @@ end
 -- 2. C_AddOns
 -- Retail moved addon management functions into the C_AddOns namespace.
 -- In TBC Classic they are plain globals.
+--
+-- IMPORTANT: Retail's C_AddOns.GetAddOnEnableState(addon, character) has
+-- SWAPPED parameter order vs the Classic global GetAddOnEnableState(character, addon).
+-- The wrapper below transparently converts the Retail calling convention
+-- so addons like ElvUI that use C_AddOns.GetAddOnEnableState(addon, guid)
+-- get the correct result from the Classic global.
 ------------------------------------------------------------------------
+
+local _GetAddOnEnableState = GetAddOnEnableState
 
 if not C_AddOns then
     rawset(_G, "C_AddOns", {
@@ -43,6 +51,17 @@ if not C_AddOns then
         IsAddOnLoadOnDemand         = IsAddOnLoadOnDemand,
         GetAddOnDependencies        = GetAddOnDependencies,
         GetAddOnOptionalDependencies = GetAddOnOptionalDependencies,
+        GetAddOnEnableState         = function(addon, character)
+            if _GetAddOnEnableState then
+                -- Classic API order: (character, addon)
+                -- Retail callers may pass a GUID; classic expects a name or nil
+                if type(character) == "string" and (character:find("%-") or #character > 12) then
+                    character = nil
+                end
+                return _GetAddOnEnableState(character, addon)
+            end
+            return 2 -- assume enabled
+        end,
     })
 end
 
@@ -52,6 +71,20 @@ if C_AddOns then
     if not GetAddOnMetadata then rawset(_G, "GetAddOnMetadata", C_AddOns.GetAddOnMetadata) end
     if not GetAddOnInfo then rawset(_G, "GetAddOnInfo", C_AddOns.GetAddOnInfo) end
     if not GetNumAddOns then rawset(_G, "GetNumAddOns", C_AddOns.GetNumAddOns) end
+end
+
+-- Gap-fill: ensure GetAddOnEnableState exists even if C_AddOns was
+-- provided natively but is missing this specific function.
+if C_AddOns and not C_AddOns.GetAddOnEnableState then
+    rawset(C_AddOns, "GetAddOnEnableState", function(addon, character)
+        if _GetAddOnEnableState then
+            if type(character) == "string" and (character:find("%-") or #character > 12) then
+                character = nil
+            end
+            return _GetAddOnEnableState(character, addon)
+        end
+        return 2
+    end)
 end
 
 ------------------------------------------------------------------------
@@ -1066,4 +1099,13 @@ if not Settings then
             GetID = function(self) return self.ID end,
         }
     end
+
+    -- Safety stubs: ElvUI's ActionBars module calls Settings.GetValue()
+    -- unconditionally inside SettingsPanel_OnHide.  If SettingsPanel exists
+    -- but Settings was shimmed (rather than native), these prevent a nil crash.
+    function tbl.GetValue()
+        return false
+    end
+
+    function tbl.SetValue() end
 end
