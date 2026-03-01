@@ -2,6 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
+| [v1.5.6](#v156--the-one-where-the-plugins-actually-stayed) | ElvUI plugin registration crash finally squashed for real this time |
 | [v1.5.5](#v155--the-one-where-elvui-remembered-its-plugins) | ElvUI plugins and profiles work again — missing compatibility function restored |
 | [v1.5.4](#v154--the-one-where-the-host-stopped-calling-back) | AutoLayer stops re-invites for good, popup resets after hop, Bagnon crash fix |
 | [v1.5.3](#v153--the-one-where-autolayer-learned-to-listen) | AutoLayer whisper-aware hops, cross-continent raid detection, popup fix + Pawn tooltip fix |
@@ -29,7 +30,18 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 - **Don_Perry** — reported the spellbook security warning ([v1.4.2](#v142--the-one-where-the-spellbook-fought-back), [v1.5.0](#v150--the-one-where-elvui-walked-in-and-the-spellbook-chilled-out))
 - **Yitra_Beloff** — reported the ElvUI bag keybinding bug ([v1.5.2](#v152--the-one-where-the-bags-opened-again))
 - **TarybleTexan** — reported the Pawn tooltip disappearing bug ([v1.5.3](#v153--the-one-where-autolayer-learned-to-listen))
-- **Der2werg** — reported ElvUI plugins and profiles being broken ([v1.5.5](#v155--the-one-where-elvui-remembered-its-plugins))
+- **Der2werg** — reported ElvUI plugins and profiles being broken ([v1.5.5](#v155--the-one-where-elvui-remembered-its-plugins), [v1.5.6](#v156--the-one-where-the-plugins-actually-stayed))
+- **geggiot94470** — confirmed the ElvUI plugin registration crash ([v1.5.6](#v156--the-one-where-the-plugins-actually-stayed))
+
+---
+
+## v1.5.6 — "The One Where the Plugins Actually Stayed"
+
+Consider this the Emergency Maintenance your AddOns folder never got.
+
+**Squashed like Razorgore's eggs:**
+- ElvUI: Plugin registration (ToxiUI and others) was still crashing on startup because the options panel wasn't fully built yet when plugins tried to register. The previous fix caught the crash but didn't prevent it — this one builds the missing structure ahead of time so the registration goes through cleanly
+- ElvUI: Verified patches against ElvUI v15.07 (up from v15.05)
 
 ---
 

@@ -25,6 +25,21 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.5.6",
+        title = "Plugin Registration Fix",
+        subtitle = "The One Where the Plugins Actually Stayed",
+        flavor = "Consider this the Emergency Maintenance your AddOns folder never got.",
+        sections = {
+            {
+                header = "Squashed like Razorgore's eggs:",
+                entries = {
+                    "ElvUI: Plugin registration (ToxiUI and others) was still crashing on startup because the options panel wasn't fully built yet when plugins tried to register. The previous fix caught the crash but didn't prevent it \226\128\148 this one builds the missing structure ahead of time so the registration goes through cleanly",
+                    "ElvUI: Verified patches against ElvUI v15.07 (up from v15.05)",
+                },
+            },
+        },
+    },
+    {
         version = "1.5.5",
         title = "ElvUI Plugin Fix",
         subtitle = "The One Where ElvUI Remembered Its Plugins",

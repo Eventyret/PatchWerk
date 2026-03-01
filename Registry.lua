@@ -48,7 +48,7 @@ ns.registry = {
     { id = "GudaChat",           label = "GudaChat (Chat)",                         deps = { "GudaChat" },            status = "verified",    targetVersion = "1.1.4" },
     { id = "HazeLoot",           label = "HazeLoot (Loot Frame)",                   deps = { "HazeLoot" },            status = "verified",    targetVersion = "2.1.0" },
     { id = "HazeCooldowns",     label = "HazeCooldowns (Cooldown Text)",           deps = { "HazeCooldowns" },       status = "verified",    targetVersion = "1.0.1" },
-    { id = "ElvUI",             label = "ElvUI (UI Replacement)",                  deps = { "ElvUI" },              status = "verified",    targetVersion = "15.05" },
+    { id = "ElvUI",             label = "ElvUI (UI Replacement)",                  deps = { "ElvUI" },              status = "verified",    targetVersion = "15.07" },
 }
 
 ------------------------------------------------------------------------
