@@ -2,6 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
+| [v1.5.7](#v157--the-one-where-the-pet-stopped-panicking) | ElvUI pet frame crash fix — tag system no longer chokes on power updates |
 | [v1.5.6](#v156--the-one-where-the-plugins-actually-stayed) | ElvUI plugin registration crash finally squashed for real this time |
 | [v1.5.5](#v155--the-one-where-elvui-remembered-its-plugins) | ElvUI plugins and profiles work again — missing compatibility function restored |
 | [v1.5.4](#v154--the-one-where-the-host-stopped-calling-back) | AutoLayer stops re-invites for good, popup resets after hop, Bagnon crash fix |
@@ -31,7 +32,16 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 - **Yitra_Beloff** — reported the ElvUI bag keybinding bug ([v1.5.2](#v152--the-one-where-the-bags-opened-again))
 - **TarybleTexan** — reported the Pawn tooltip disappearing bug ([v1.5.3](#v153--the-one-where-autolayer-learned-to-listen))
 - **Der2werg** — reported ElvUI plugins and profiles being broken ([v1.5.5](#v155--the-one-where-elvui-remembered-its-plugins), [v1.5.6](#v156--the-one-where-the-plugins-actually-stayed))
-- **geggiot94470** — confirmed the ElvUI plugin registration crash ([v1.5.6](#v156--the-one-where-the-plugins-actually-stayed))
+- **geggiot94470** — confirmed the ElvUI plugin registration crash ([v1.5.6](#v156--the-one-where-the-plugins-actually-stayed)), reported the ElvUI pet frame tag crash ([v1.5.7](#v157--the-one-where-the-pet-stopped-panicking))
+
+---
+
+## v1.5.7 — "The One Where the Pet Stopped Panicking"
+
+PatchWerk reporting in from the repair bot queue with another round of fixes.
+
+**Squashed like Razorgore's eggs:**
+- ElvUI: Fixed a crash in ElvUI's unit frame tag system that fired 144+ times per session. When your pet's power bar updated, ElvUI's tag system was handed an internal data table instead of the actual pet frame — and that table had no idea how to answer "are you visible?". PatchWerk now checks that the object is a real frame before tagging it, preventing the crash entirely. This is an ElvUI bug on TBC Classic Anniversary, not caused by PatchWerk
 
 ---
 

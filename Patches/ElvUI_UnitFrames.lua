@@ -9,9 +9,11 @@
 --   2. ElvUI_ufGlowConsolidate  - Combines per-frame glow checks into
 --                                 a single pass instead of 120 separate
 --                                 checks running in parallel
---   3. ElvUI_ufTagMemoize       - Skips text updates when the displayed
+--   3. ElvUI_ufTagFrameGuard    - Prevents a crash when oUF's tag system
+--                                 receives a non-frame object
+--   4. ElvUI_ufTagMemoize       - Skips text updates when the displayed
 --                                 value hasn't actually changed
---   4. ElvUI_ufHealthColorCache - Reads color settings once per update
+--   5. ElvUI_ufHealthColorCache - Reads color settings once per update
 --                                 instead of looking them up repeatedly
 ------------------------------------------------------------------------
 
@@ -33,6 +35,13 @@ ns:RegisterPatch("ElvUI", {
     detail = "ElvUI creates three separate watchers per unit frame for mouseover, target, and focus glows. In a 40-player raid that's 120 independent watchers all checking mouse position ten times per second. The fix replaces all of them with one single checker that handles every frame in a single pass.",
     impact = "FPS", impactLevel = "Medium", category = "Performance",
     estimate = "~2-4% smoother in 40-player raids with glows enabled",
+})
+ns:RegisterPatch("ElvUI", {
+    key = "ElvUI_ufTagFrameGuard", label = "Tag System Crash Fix",
+    help = "Prevents a crash in ElvUI's unit frame tag system when updating pet power text.",
+    detail = "ElvUI's tag system can crash with the error 'attempt to call method IsShown (a nil value)' when it tries to update a power tag on the pet frame. This happens because the tag update receives an internal data table instead of the actual pet frame, and that table doesn't know how to answer 'are you visible?'. This fix checks that the object is a real frame before tagging it, preventing the crash entirely. Fires 144+ times per session without this fix.",
+    impact = "FPS", impactLevel = "High", category = "Fixes",
+    estimate = "Prevents pet frame crashes",
 })
 ns:RegisterPatch("ElvUI", {
     key = "ElvUI_ufTagMemoize", label = "Text Update Skip",
@@ -194,7 +203,39 @@ ns.patches["ElvUI_ufGlowConsolidate"] = function()
 end
 
 ------------------------------------------------------------------------
--- 3. ElvUI_ufTagMemoize
+-- 3. ElvUI_ufTagFrameGuard
+--
+-- oUF/elements/tags.lua:771 — ShouldUpdateTag calls frame:IsShown()
+-- but the tag system can receive a non-frame table (the oUF.Tags
+-- environment object) instead of a real unit frame.  This happens
+-- when oUF.Tag() is called with an invalid self argument during pet
+-- frame setup on TBC Classic Anniversary.  The event handler then
+-- fires UNIT_POWER_FREQUENT for "pet" and tries to call IsShown()
+-- on a plain Lua table, causing a crash 144+ times per session.
+--
+-- Fix: Wrap oUF.Tag to verify that self is a real UI frame (has
+-- IsShown method) before proceeding.  Non-frame objects are silently
+-- skipped.  This prevents the bad handler from ever being created.
+------------------------------------------------------------------------
+ns.patches["ElvUI_ufTagFrameGuard"] = function()
+    if not ElvUI then return end
+    local E = unpack(ElvUI)
+
+    local oUF = E.oUF or _G.oUF
+    if not oUF then return end
+
+    local origTag = oUF.Tag
+    if not origTag then return end
+
+    oUF.Tag = function(self, fs, tagstr, ...)
+        -- Only tag real UI frames — skip plain tables that lack frame methods
+        if not self.IsShown then return end
+        return origTag(self, fs, tagstr, ...)
+    end
+end
+
+------------------------------------------------------------------------
+-- 4. ElvUI_ufTagMemoize
 --
 -- Tags.lua and Tags/API.lua — tag functions call string.format(),
 -- UnitPowerType(), and E:GetFormattedText() on every event.  With
@@ -239,7 +280,7 @@ ns.patches["ElvUI_ufTagMemoize"] = function()
 end
 
 ------------------------------------------------------------------------
--- 4. ElvUI_ufHealthColorCache
+-- 5. ElvUI_ufHealthColorCache
 --
 -- Health.lua:90-108 — UF.db.colors is accessed 5+ times in
 -- PostUpdateHealthColor without being stored locally.

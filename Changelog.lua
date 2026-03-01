@@ -25,6 +25,20 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.5.7",
+        title = "Pet Frame Crash Fix",
+        subtitle = "The One Where the Pet Stopped Panicking",
+        flavor = "PatchWerk reporting in from the repair bot queue with another round of fixes.",
+        sections = {
+            {
+                header = "Squashed like Razorgore's eggs:",
+                entries = {
+                    "ElvUI: Fixed a crash in ElvUI's unit frame tag system that fired 144+ times per session. When your pet's power bar updated, ElvUI's tag system was handed an internal data table instead of the actual pet frame. PatchWerk now checks that the object is a real frame before tagging it, preventing the crash entirely",
+                },
+            },
+        },
+    },
+    {
         version = "1.5.6",
         title = "Plugin Registration Fix",
         subtitle = "The One Where the Plugins Actually Stayed",
