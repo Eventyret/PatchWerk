@@ -104,8 +104,14 @@ ns.patches["Details_fadeHandler"] = function()
 
     -- Wrap: skip the real handler when there is nothing to process
     -- Read frames table inside the closure each time in case Details replaces it
+    -- Guard against FadeHandler being nil (Details may wipe/reinit it)
     fadeFrame:SetScript("OnUpdate", function(self, deltaTime)
-        local frames = Details.FadeHandler.frames
+        local fh = Details.FadeHandler
+        if not fh then
+            self:Hide()
+            return
+        end
+        local frames = fh.frames
         if not frames or not next(frames) then
             self:Hide()
             return
