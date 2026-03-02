@@ -20,4 +20,10 @@ local _, ns = ...
 ns.versionOverrides = {
     -- Populated by /patch-audit when addon updates are verified safe.
     -- Synced back to Registry.lua targetVersion at release time.
+    ["Questie"] = "11.22.0",                        -- verified 2026-03-02
+    ["Plater"] = "Plater-v633-TBC",                 -- verified 2026-03-02
+    ["BigWigs"] = "v407.7",                         -- verified 2026-03-02
+    ["Details"] = "#Details.20260301.14700.170",     -- verified 2026-03-02
+    ["AutoLayer"] = "1.7.9",                        -- verified 2026-03-02
+    ["BigDebuffs"] = "v60",                         -- verified 2026-03-02
 }
