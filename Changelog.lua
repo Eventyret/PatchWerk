@@ -25,6 +25,20 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.5.8",
+        title = "Details Crash Fix",
+        subtitle = "The One Where the Fade Stopped Freaking Out",
+        flavor = "Maintenance window complete. Unlike Blizzard's, this one actually fixed something.",
+        sections = {
+            {
+                header = "Squashed like Razorgore's eggs:",
+                entries = {
+                    "Details: Fixed a crash that fired 357+ times per second when Details reinitialised its fade system. PatchWerk's \"Idle Animation Saver\" patch was reading fade data every frame without checking if it still existed \226\128\148 when Details cleared it momentarily, the patch panicked and spammed errors nonstop. This cascaded into other Details failures across the entire damage meter. Added crash protection so the fade system quietly pauses when Details is rebuilding itself",
+                },
+            },
+        },
+    },
+    {
         version = "1.5.7",
         title = "Pet Frame Crash Fix",
         subtitle = "The One Where the Pet Stopped Panicking",

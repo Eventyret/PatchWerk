@@ -2,6 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
+| [v1.5.8](#v158--the-one-where-the-fade-stopped-freaking-out) | Details crash fix — fade system no longer panics when Details reinitializes |
 | [v1.5.7](#v157--the-one-where-the-pet-stopped-panicking) | ElvUI pet frame crash fix — tag system no longer chokes on power updates |
 | [v1.5.6](#v156--the-one-where-the-plugins-actually-stayed) | ElvUI plugin registration crash finally squashed for real this time |
 | [v1.5.5](#v155--the-one-where-elvui-remembered-its-plugins) | ElvUI plugins and profiles work again — missing compatibility function restored |
@@ -33,6 +34,15 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 - **TarybleTexan** — reported the Pawn tooltip disappearing bug ([v1.5.3](#v153--the-one-where-autolayer-learned-to-listen))
 - **Der2werg** — reported ElvUI plugins and profiles being broken ([v1.5.5](#v155--the-one-where-elvui-remembered-its-plugins), [v1.5.6](#v156--the-one-where-the-plugins-actually-stayed))
 - **geggiot94470** — confirmed the ElvUI plugin registration crash ([v1.5.6](#v156--the-one-where-the-plugins-actually-stayed)), reported the ElvUI pet frame tag crash ([v1.5.7](#v157--the-one-where-the-pet-stopped-panicking))
+
+---
+
+## v1.5.8 — "The One Where the Fade Stopped Freaking Out"
+
+Maintenance window complete. Unlike Blizzard's, this one actually fixed something.
+
+**Squashed like Razorgore's eggs:**
+- Details: Fixed a crash that fired 357+ times per second when Details reinitialised its internal fade system. PatchWerk's "Idle Animation Saver" patch was reading fade data every frame without checking if it still existed — when Details cleared it momentarily during a reset, the patch panicked and spammed errors nonstop. This cascaded into "RefreshMainWindow" and "SchedulePetUpdate" failures across the entire damage meter. Added crash protection so the fade system quietly pauses when Details is rebuilding itself
 
 ---
 
