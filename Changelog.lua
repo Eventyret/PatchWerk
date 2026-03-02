@@ -25,6 +25,20 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.5.9",
+        title = "AutoLayer Position Saving",
+        subtitle = "The One Where AutoLayer Remembered Where It Parked",
+        flavor = "No realm restart required. We fixed it while you were farming Primal Mana.",
+        sections = {
+            {
+                header = "What got buffed:",
+                entries = {
+                    "AutoLayer: The status frame now saves its position when you drag it. Move it once, and it stays put through reloads and relogs \226\128\148 no more repositioning every session",
+                },
+            },
+        },
+    },
+    {
         version = "1.5.8",
         title = "Details Crash Fix",
         subtitle = "The One Where the Fade Stopped Freaking Out",
