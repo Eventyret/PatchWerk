@@ -2,7 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
-| [v1.5.9](#v159--the-one-where-autolayer-remembered-where-it-parked) | AutoLayer status frame now remembers its position between sessions |
+| [v1.5.9](#v159--the-one-where-autolayer-remembered-where-it-parked) | AutoLayer position saving + 6 addon compatibility updates |
 | [v1.5.8](#v158--the-one-where-the-fade-stopped-freaking-out) | Details crash fix — fade system no longer panics when Details reinitializes |
 | [v1.5.7](#v157--the-one-where-the-pet-stopped-panicking) | ElvUI pet frame crash fix — tag system no longer chokes on power updates |
 | [v1.5.6](#v156--the-one-where-the-plugins-actually-stayed) | ElvUI plugin registration crash finally squashed for real this time |
@@ -45,6 +45,14 @@ No realm restart required. We fixed it while you were farming Primal Mana.
 
 **What got buffed:**
 - AutoLayer: The status frame now saves its position when you drag it. Move it once, and it stays put through reloads and relogs — no more repositioning every session
+
+**Verified for latest updates:**
+- Questie 11.22.0 — all 3 patches confirmed working
+- Plater v633-TBC — all 3 patches confirmed working
+- BigWigs v407.7 — proximity text patch confirmed working
+- Details latest build — all 5 patches confirmed working
+- AutoLayer 1.7.9 — all 10 patches confirmed working
+- BigDebuffs v60 — both patches confirmed working
 
 ---
 

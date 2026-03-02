@@ -36,6 +36,17 @@ ns.changelog = {
                     "AutoLayer: The status frame now saves its position when you drag it. Move it once, and it stays put through reloads and relogs \226\128\148 no more repositioning every session",
                 },
             },
+            {
+                header = "Verified for latest updates:",
+                entries = {
+                    "Questie 11.22.0 \226\128\148 all 3 patches confirmed working",
+                    "Plater v633-TBC \226\128\148 all 3 patches confirmed working",
+                    "BigWigs v407.7 \226\128\148 proximity text patch confirmed working",
+                    "Details latest build \226\128\148 all 5 patches confirmed working",
+                    "AutoLayer 1.7.9 \226\128\148 all 10 patches confirmed working",
+                    "BigDebuffs v60 \226\128\148 both patches confirmed working",
+                },
+            },
         },
     },
     {
