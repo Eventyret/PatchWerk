@@ -163,7 +163,7 @@ ns:RegisterPatch("AutoLayer", {
 ns:RegisterDefault("AutoLayer_hopWhisperEnabled", true)
 ns:RegisterDefault("AutoLayer_hopWhisperMessage", "[PatchWerk] Phased! Fresh mobs, fresh nodes. Thanks for the ride!")
 ns:RegisterDefault("AutoLayer_toastDuration", 8)
-ns:RegisterDefault("AutoLayer_statusFrame_point", nil)
+ns:RegisterDefault("AutoLayer_statusFrame_point", false)
 
 ------------------------------------------------------------------------
 -- Shared state for visual patches (6, 7, 8)
