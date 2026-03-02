@@ -2,6 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
+| [v1.5.10](#v1510--the-one-where-the-hop-actually-hopped) | AutoLayer hop tracking fixed — status updates, auto-leave, and layer detection work again |
 | [v1.5.9](#v159--the-one-where-autolayer-remembered-where-it-parked) | AutoLayer position saving + 6 addon compatibility updates |
 | [v1.5.8](#v158--the-one-where-the-fade-stopped-freaking-out) | Details crash fix — fade system no longer panics when Details reinitializes |
 | [v1.5.7](#v157--the-one-where-the-pet-stopped-panicking) | ElvUI pet frame crash fix — tag system no longer chokes on power updates |
@@ -36,6 +37,15 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 - **Der2werg** — reported ElvUI plugins and profiles being broken ([v1.5.5](#v155--the-one-where-elvui-remembered-its-plugins), [v1.5.6](#v156--the-one-where-the-plugins-actually-stayed))
 - **geggiot94470** — confirmed the ElvUI plugin registration crash ([v1.5.6](#v156--the-one-where-the-plugins-actually-stayed)), reported the ElvUI pet frame tag crash ([v1.5.7](#v157--the-one-where-the-pet-stopped-panicking))
 - **PapaSolDragon** — suggested the AutoLayer status frame position saving ([v1.5.9](#v159--the-one-where-autolayer-remembered-where-it-parked))
+
+---
+
+## v1.5.10 — "The One Where the Hop Actually Hopped"
+
+Consider this the Emergency Maintenance your AddOns folder never got.
+
+**Bugs that got /kicked:**
+- AutoLayer: Layer hopping is fully working again. AutoLayer 1.7.9 introduced a crash that silently broke PatchWerk's hop tracking — you'd request a hop and the invite would go out, but PatchWerk never knew it happened. No status updates, no auto-leave, no layer change detection. Fixed by setting up tracking before the request instead of after, with crash protection so the hop goes through cleanly
 
 ---
 

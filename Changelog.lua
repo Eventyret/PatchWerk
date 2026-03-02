@@ -25,6 +25,20 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.5.10",
+        title = "AutoLayer Hop Fix",
+        subtitle = "The One Where the Hop Actually Hopped",
+        flavor = "Consider this the Emergency Maintenance your AddOns folder never got.",
+        sections = {
+            {
+                header = "Bugs that got /kicked:",
+                entries = {
+                    "AutoLayer: Layer hopping is fully working again. AutoLayer 1.7.9 introduced a crash that silently broke PatchWerk's hop tracking \226\128\148 you'd request a hop and the invite would go out, but PatchWerk never knew it happened. No status updates, no auto-leave, no layer change detection. Fixed by setting up tracking before the request instead of after, with crash protection so the hop goes through cleanly",
+                },
+            },
+        },
+    },
+    {
         version = "1.5.9",
         title = "AutoLayer Position Saving",
         subtitle = "The One Where AutoLayer Remembered Where It Parked",
