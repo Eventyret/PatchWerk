@@ -1487,23 +1487,33 @@ ns.patches["AutoLayer_hopTransitionTracker"] = function()
         end)
     end
 
-    -- Hook SendLayerRequest to capture hop initiation (outbound path)
-    -- Allow from IDLE, WAITING_INVITE (retry), or NO_RESPONSE (retry after failure)
-    -- Block only when IN_GROUP or CONFIRMED (already mid-hop)
-    hooksecurefunc(AutoLayer, "SendLayerRequest", function()
-        if hopState.state == "IN_GROUP" or hopState.state == "CONFIRMED" then return end
-        lastHopBroadcastTime = GetTime()
-        local currentLayer = NWB_CurrentLayer
-        hopState.state = "WAITING_INVITE"
-        hopState.source = "OUTBOUND"
-        hopState.fromLayer = currentLayer and tonumber(currentLayer) or nil
-        hopState.fromZoneID = GetCurrentZoneID()
-        hopState.targetLayer = nil
-        hopState.deadline = GetTime() + WAITING_TIMEOUT
-
-        hopState.timestamp = GetTime()
-        UpdateStatusFrame()
-    end)
+    -- Replace SendLayerRequest to capture hop initiation (outbound path).
+    -- Uses pre-hook + pcall instead of hooksecurefunc because AutoLayer
+    -- 1.7.9 crashes inside SendLayerRequest (`send:SetDisabled(true)` on
+    -- nil when HopGUI is closed). Post-hooks don't fire when the hooked
+    -- function errors, so the hop state was never being set.
+    -- The hop request IS sent before the crash (LeaveParty + ProccessQueue
+    -- run first), so we set state before calling the original.
+    local origSendLayerRequest = AutoLayer.SendLayerRequest
+    AutoLayer.SendLayerRequest = function(self, ...)
+        if hopState.state ~= "IN_GROUP" and hopState.state ~= "CONFIRMED" then
+            lastHopBroadcastTime = GetTime()
+            local currentLayer = NWB_CurrentLayer
+            hopState.state = "WAITING_INVITE"
+            hopState.source = "OUTBOUND"
+            hopState.fromLayer = currentLayer and tonumber(currentLayer) or nil
+            hopState.fromZoneID = GetCurrentZoneID()
+            hopState.targetLayer = nil
+            hopState.deadline = GetTime() + WAITING_TIMEOUT
+            hopState.timestamp = GetTime()
+            UpdateStatusFrame()
+        end
+        local ok, err = pcall(origSendLayerRequest, self, ...)
+        if not ok and err then
+            -- Suppress AutoLayer's internal error (e.g. send:SetDisabled on
+            -- nil when HopGUI is closed). The hop request was already sent.
+        end
+    end
 
     -- Track [AutoLayer] whispers to:
     -- 1. Identify AutoLayer hosts (vs manual friend invites)
