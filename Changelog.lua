@@ -25,6 +25,21 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.5.11",
+        title = "ElvUI Profile Fix",
+        subtitle = "The One Where ElvUI Profiles Came Home",
+        flavor = "PatchWerk reporting in from the repair bot queue with another round of fixes.",
+        sections = {
+            {
+                header = "Bugs that got /kicked:",
+                entries = {
+                    "ElvUI: Profiles are back! The profile selector, import, copy, and delete were all missing from the ElvUI config panel. Turns out PatchWerk was accidentally telling the game to load part of ElvUI's settings system too early \226\128\148 before ElvUI was ready for it. Removed the overeager load hint and everything snapped back into place",
+                    "ElvUI: Simplified the plugin registration safety net \226\128\148 the previous version could leave behind bad data in ElvUI's config, which also contributed to broken profiles",
+                },
+            },
+        },
+    },
+    {
         version = "1.5.10",
         title = "AutoLayer Hop Fix",
         subtitle = "The One Where the Hop Actually Hopped",
