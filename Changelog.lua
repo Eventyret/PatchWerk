@@ -25,6 +25,30 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.5.12",
+        title = "Loot Lock & Changelog Polish",
+        subtitle = "The One Where Your Loot Method Stopped Resetting",
+        flavor = "Hotfix incoming. No arena season reset required.",
+        sections = {
+            {
+                header = "What got buffed:",
+                entries = {
+                    "AutoLayer: New \"Enforce Loot Method\" option \226\128\148 pick your preferred loot method and it stays locked through layer hops, group joins, and group leaves. No more loot resetting to Group Loot every time someone joins or leaves. Opt-in and off by default",
+                    "AutoLayer: The status frame now shows your enforced loot method when enabled \226\128\148 click it to cycle through Free For All, Group Loot, Need Before Greed, Round Robin, and Master Looter without opening settings",
+                    "AutoLayer: Loot enforcement only applies when you're the group leader and skips dungeons and raids entirely \226\128\148 your dungeon loot rules are never touched",
+                },
+            },
+            {
+                header = "Bugs that got /kicked:",
+                entries = {
+                    "Changelog: The version list no longer overflows off the bottom of the screen \226\128\148 it scrolls now, like a proper list should",
+                    "Changelog: Navigation arrows changed from left/right to up/down to match the vertical version list",
+                    "Settings: The loot method dropdown in AutoLayer settings no longer overlaps with the label text \226\128\148 proper spacing restored",
+                },
+            },
+        },
+    },
+    {
         version = "1.5.11",
         title = "ElvUI Profile Fix",
         subtitle = "The One Where ElvUI Profiles Came Home",
@@ -717,6 +741,14 @@ local function CreateChangelogFrame()
     sidebarHeader:SetPoint("TOPLEFT", vSep, "TOPRIGHT", 10, -6)
     sidebarHeader:SetText("|cff888888Versions|r")
 
+    -- Scrollable version list
+    local sidebarScroll = CreateFrame("ScrollFrame", "PatchWerk_ChangelogSidebarScroll", f, "UIPanelScrollFrameTemplate")
+    sidebarScroll:SetPoint("TOPLEFT", vSep, "TOPRIGHT", 2, -22)
+    sidebarScroll:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -14, 46)
+    local sidebarContent = CreateFrame("Frame", nil, sidebarScroll)
+    sidebarContent:SetWidth(SIDEBAR_WIDTH - 24)
+    sidebarScroll:SetScrollChild(sidebarContent)
+
     -- Version buttons
     local versionButtons = {}
     local selectedIndex = 1
@@ -744,11 +776,12 @@ local function CreateChangelogFrame()
         end
     end
 
-    local by = -24
+    local by = 0
     for i, entry in ipairs(ns.changelog) do
-        local btn = CreateFrame("Button", nil, f)
-        btn:SetPoint("TOPLEFT", vSep, "TOPRIGHT", 4, by)
-        btn:SetSize(SIDEBAR_WIDTH - 10, 22)
+        local btn = CreateFrame("Button", nil, sidebarContent)
+        btn:SetPoint("TOPLEFT", 0, by)
+        btn:SetPoint("RIGHT", sidebarContent, "RIGHT", 0, 0)
+        btn:SetHeight(22)
 
         local btnBg = btn:CreateTexture(nil, "BACKGROUND")
         btnBg:SetAllPoints()
@@ -782,6 +815,7 @@ local function CreateChangelogFrame()
         versionButtons[i] = btn
         by = by - 24
     end
+    sidebarContent:SetHeight(-by)
 
     ---------------------------------------------------------------------------
     -- Bottom bar
@@ -798,36 +832,36 @@ local function CreateChangelogFrame()
     gotItBtn:SetText("Got it")
     gotItBtn:SetScript("OnClick", function() ns:CloseChangelog() end)
 
-    -- Prev / Next buttons (bottom-left)
-    local prevBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    prevBtn:SetPoint("BOTTOMLEFT", 12, 6)
-    prevBtn:SetSize(24, 24)
-    prevBtn:SetText("<")
-    prevBtn:SetScript("OnClick", function()
+    -- Newer / Older buttons (bottom-left, vertical arrows for vertical list)
+    local newerBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    newerBtn:SetPoint("BOTTOMLEFT", 12, 6)
+    newerBtn:SetSize(24, 24)
+    newerBtn:SetText("^")
+    newerBtn:SetScript("OnClick", function()
         if selectedIndex > 1 then
             SelectVersion(selectedIndex - 1)
         end
     end)
 
-    local nextBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    nextBtn:SetPoint("LEFT", prevBtn, "RIGHT", 4, 0)
-    nextBtn:SetSize(24, 24)
-    nextBtn:SetText(">")
-    nextBtn:SetScript("OnClick", function()
+    local olderBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    olderBtn:SetPoint("LEFT", newerBtn, "RIGHT", 4, 0)
+    olderBtn:SetSize(24, 24)
+    olderBtn:SetText("v")
+    olderBtn:SetScript("OnClick", function()
         if selectedIndex < #ns.changelog then
             SelectVersion(selectedIndex + 1)
         end
     end)
 
     local navLabel = f:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    navLabel:SetPoint("LEFT", nextBtn, "RIGHT", 8, 0)
+    navLabel:SetPoint("LEFT", olderBtn, "RIGHT", 8, 0)
 
     -- Wrap SelectVersion to update nav state
     local origSelect = SelectVersion
     SelectVersion = function(index)
         origSelect(index)
-        prevBtn:SetEnabled(index > 1)
-        nextBtn:SetEnabled(index < #ns.changelog)
+        newerBtn:SetEnabled(index > 1)
+        olderBtn:SetEnabled(index < #ns.changelog)
         navLabel:SetText("|cff888888" .. index .. " / " .. #ns.changelog .. "|r")
     end
 

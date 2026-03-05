@@ -17,6 +17,7 @@
 --   8. AutoLayer_hopTransitionTracker - Hop lifecycle tracker (Tweaks)
 --   9. AutoLayer_enhancedTooltip     - Enhanced minimap tooltip (Tweaks)
 --  10. AutoLayer_instanceGuard       - Block invites and hops inside instances (Fixes)
+--  11. AutoLayer_lootEnforce          - Enforce preferred loot method (Tweaks)
 ------------------------------------------------------------------------
 
 local _, ns = ...
@@ -160,6 +161,19 @@ ns:RegisterPatch("AutoLayer", {
     estimate = "Prevents accidental group disruption in dungeons and raids",
 })
 
+-- 11. Loot Method Enforcement
+ns:RegisterPatch("AutoLayer", {
+    key = "AutoLayer_lootEnforce",
+    label = "Enforce Loot Method",
+    help = "Re-applies your preferred loot method when group composition changes.",
+    detail = "When players join or leave your group and you are the leader, this patch ensures your preferred loot method stays active. Useful when layer hopping causes loot settings to reset.",
+    category = "Tweaks",
+    estimate = "Persistent loot settings",
+})
+
+ns:RegisterDefault("AutoLayer_lootEnforce", false)
+ns:RegisterDefault("AutoLayer_preferredLootMethod", "freeforall")
+
 ns:RegisterDefault("AutoLayer_hopWhisperEnabled", true)
 ns:RegisterDefault("AutoLayer_hopWhisperMessage", "[PatchWerk] Phased! Fresh mobs, fresh nodes. Thanks for the ride!")
 ns:RegisterDefault("AutoLayer_toastDuration", 8)
@@ -168,6 +182,16 @@ ns:RegisterDefault("AutoLayer_statusFrame_point", false)
 ------------------------------------------------------------------------
 -- Shared state for visual patches (6, 7, 8)
 ------------------------------------------------------------------------
+
+-- Loot method labels and cycle order (used by status frame + lootEnforce)
+local LOOT_LABELS = {
+    freeforall = "Free For All",
+    group = "Group Loot",
+    needbeforegreed = "Need Before Greed",
+    roundrobin = "Round Robin",
+    master = "Master Looter",
+}
+local LOOT_CYCLE = { "freeforall", "group", "needbeforegreed", "roundrobin", "master" }
 
 local statusFrame = nil
 local pollerStarted = false
@@ -705,11 +729,33 @@ UpdateStatusFrame = function()
         statusFrame.hintText:SetText(hint or "")
         if hint then
             statusFrame.hintText:Show()
-            statusFrame:SetHeight(46)
         else
             statusFrame.hintText:Hide()
-            statusFrame:SetHeight(34)
         end
+
+        -- Loot enforcement line
+        local showLoot = ns:GetOption("AutoLayer_lootEnforce")
+        if showLoot and statusFrame.lootBtn then
+            local method = ns:GetOption("AutoLayer_preferredLootMethod") or "freeforall"
+            statusFrame.lootText:SetText("|cff888888Loot:|r  |cffcccccc" .. (LOOT_LABELS[method] or "Free For All") .. "|r")
+            -- Anchor below hint if visible, below info if not
+            statusFrame.lootBtn:ClearAllPoints()
+            if hint then
+                statusFrame.lootBtn:SetPoint("TOPLEFT", statusFrame.hintText, "BOTTOMLEFT", 0, -1)
+            else
+                statusFrame.lootBtn:SetPoint("TOPLEFT", statusFrame.infoText, "BOTTOMLEFT", 0, -1)
+            end
+            statusFrame.lootBtn:SetPoint("RIGHT", statusFrame, "RIGHT", -6, 0)
+            statusFrame.lootBtn:Show()
+        elseif statusFrame.lootBtn then
+            statusFrame.lootBtn:Hide()
+        end
+
+        -- Dynamic height: 34 base + 12 hint + 12 loot
+        local h = 34
+        if hint then h = h + 12 end
+        if showLoot then h = h + 12 end
+        statusFrame:SetHeight(h)
     end
 end
 
@@ -1032,6 +1078,42 @@ local function CreateStatusFrame()
     hintText:SetPoint("RIGHT", f, "RIGHT", -6, 0)
     hintText:Hide()
     f.hintText = hintText
+
+    -- Loot enforcement line (line 4): shows preferred method, click to cycle
+    local lootBtn = CreateFrame("Button", nil, f)
+    lootBtn:SetHeight(12)
+    lootBtn:SetPoint("TOPLEFT", hintText, "BOTTOMLEFT", 0, -1)
+    lootBtn:SetPoint("RIGHT", f, "RIGHT", -6, 0)
+    local lootText = lootBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    lootText:SetPoint("LEFT", 0, 0)
+    lootBtn:Hide()
+    f.lootBtn = lootBtn
+    f.lootText = lootText
+
+    local function CycleLootMethod()
+        local current = ns:GetOption("AutoLayer_preferredLootMethod") or "freeforall"
+        local nextIdx = 1
+        for i, v in ipairs(LOOT_CYCLE) do
+            if v == current then nextIdx = (i % #LOOT_CYCLE) + 1; break end
+        end
+        local newMethod = LOOT_CYCLE[nextIdx]
+        ns:SetOption("AutoLayer_preferredLootMethod", newMethod)
+        lootText:SetText("|cff888888Loot:|r  |cffcccccc" .. LOOT_LABELS[newMethod] .. "|r")
+        UpdateStatusFrame()
+    end
+
+    lootBtn:SetScript("OnClick", CycleLootMethod)
+    lootBtn:SetScript("OnEnter", function(self)
+        lootText:SetText("|cff888888Loot:|r  |cffffffff" .. (LOOT_LABELS[ns:GetOption("AutoLayer_preferredLootMethod") or "freeforall"] or "Free For All") .. "|r")
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+        GameTooltip:SetText("Loot Method Enforcement", 1, 1, 1)
+        GameTooltip:AddLine("Click to cycle through loot methods.", 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    lootBtn:SetScript("OnLeave", function()
+        lootText:SetText("|cff888888Loot:|r  |cffcccccc" .. (LOOT_LABELS[ns:GetOption("AutoLayer_preferredLootMethod") or "freeforall"] or "Free For All") .. "|r")
+        GameTooltip:Hide()
+    end)
 
     -- Drag to reposition (left-button drag only)
     f:SetScript("OnDragStart", function(self)
@@ -1951,4 +2033,47 @@ ns.patches["AutoLayer_instanceGuard"] = function()
             return origSendLayerRequest(self, ...)
         end
     end
+end
+
+------------------------------------------------------------------------
+-- 11. Loot Method Enforcement
+------------------------------------------------------------------------
+ns.patches["AutoLayer_lootEnforce"] = function()
+    if not ns:IsAddonLoaded("AutoLayer_Vanilla") then return end
+
+    local lootFrame = CreateFrame("Frame")
+    local pendingEnforce = false
+
+    local function EnforceLootMethod()
+        pendingEnforce = false
+        if not IsInGroup() then return end
+        if not UnitIsGroupLeader("player") then return end
+
+        local inInstance, instanceType = IsInInstance()
+        if inInstance and (instanceType == "party" or instanceType == "raid") then return end
+
+        local preferred = ns:GetOption("AutoLayer_preferredLootMethod") or "freeforall"
+        local current = GetLootMethod()
+        if current == preferred then return end
+
+        if preferred == "master" then
+            SetLootMethod("master", UnitName("player"))
+        else
+            SetLootMethod(preferred)
+        end
+    end
+
+    local function ScheduleEnforce()
+        if pendingEnforce then return end
+        pendingEnforce = true
+        C_Timer.After(0.5, EnforceLootMethod)
+    end
+
+    lootFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+    lootFrame:RegisterEvent("PARTY_LEADER_CHANGED")
+    lootFrame:SetScript("OnEvent", function()
+        if ns:GetOption("AutoLayer_lootEnforce") then
+            ScheduleEnforce()
+        end
+    end)
 end

@@ -446,6 +446,63 @@ local function BuildAddonGroup(content, groupInfo, installed)
         end)
         slider:SetScript("OnLeave", function() GameTooltip:Hide() end)
         by = by - 30
+
+        -- Loot method dropdown
+        by = by - 10
+        local lootSep = bf:CreateTexture(nil, "BACKGROUND")
+        lootSep:SetHeight(1)
+        lootSep:SetPoint("TOPLEFT", 24, by)
+        lootSep:SetPoint("RIGHT", bf, "RIGHT", -20, 0)
+        SetSolidColor(lootSep, 0.4, 0.4, 0.4, 0.3)
+        by = by - 16
+
+        local lootLabel = bf:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+        lootLabel:SetPoint("TOPLEFT", 24, by)
+        lootLabel:SetText("Preferred loot method:")
+        by = by - 18
+
+        local LOOT_OPTIONS = {
+            { value = "freeforall",      label = "Free For All" },
+            { value = "group",           label = "Group Loot" },
+            { value = "needbeforegreed", label = "Need Before Greed" },
+            { value = "roundrobin",      label = "Round Robin" },
+            { value = "master",          label = "Master Looter" },
+        }
+
+        local lootDropdown = CreateFrame("Frame", "PatchWerk_LootMethodDropdown", bf, "UIDropDownMenuTemplate")
+        lootDropdown:SetPoint("TOPLEFT", 12, by + 2)
+
+        local function LootDropdown_OnClick(self)
+            ns:SetOption("AutoLayer_preferredLootMethod", self.value)
+            UIDropDownMenu_SetSelectedValue(lootDropdown, self.value)
+        end
+
+        UIDropDownMenu_SetWidth(lootDropdown, 160)
+        UIDropDownMenu_Initialize(lootDropdown, function(self, level)
+            for _, opt in ipairs(LOOT_OPTIONS) do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = opt.label
+                info.value = opt.value
+                info.func = LootDropdown_OnClick
+                info.checked = nil
+                UIDropDownMenu_AddButton(info, level)
+            end
+        end)
+        UIDropDownMenu_SetSelectedValue(lootDropdown, ns:GetOption("AutoLayer_preferredLootMethod") or "freeforall")
+
+        -- Find the selected label for display
+        local selectedLabel = "Free For All"
+        local currentVal = ns:GetOption("AutoLayer_preferredLootMethod") or "freeforall"
+        for _, opt in ipairs(LOOT_OPTIONS) do
+            if opt.value == currentVal then selectedLabel = opt.label end
+        end
+        UIDropDownMenu_SetText(lootDropdown, selectedLabel)
+        by = by - 30
+
+        local lootHint = bf:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+        lootHint:SetPoint("TOPLEFT", 24, by)
+        lootHint:SetText("|cff555555Applied when you are group leader and group composition changes.|r")
+        by = by - 18
     end
 
     local bh = -by + 2
