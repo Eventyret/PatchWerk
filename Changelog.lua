@@ -25,6 +25,20 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.7.0",
+        title = "Sonah Support",
+        subtitle = "The One Where Sonah Learned to Read the Room",
+        flavor = "No new attunements required. Just log in.",
+        sections = {
+            {
+                header = "Newly attuned:",
+                entries = {
+                    "Sonah (Rotation Helper): New addon support! Choose where Sonah's rotation helper appears \226\128\148 everywhere, only in dungeons, only in raids, dungeons & raids, or all instances. Pick your mode in the PatchWerk settings panel under the Sonah group. No more rotation suggestions cluttering your screen while farming Primal Mana in Netherstorm",
+                },
+            },
+        },
+    },
+    {
         version = "1.6.0",
         title = "Loot Lock & Changelog Polish",
         subtitle = "The One Where Your Loot Method Stopped Resetting",
