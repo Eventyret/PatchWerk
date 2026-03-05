@@ -25,7 +25,7 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
-        version = "1.5.12",
+        version = "1.6.0",
         title = "Loot Lock & Changelog Polish",
         subtitle = "The One Where Your Loot Method Stopped Resetting",
         flavor = "Hotfix incoming. No arena season reset required.",

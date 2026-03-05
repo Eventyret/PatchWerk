@@ -2,7 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
-| [v1.5.12](#v1512--the-one-where-your-loot-method-stopped-resetting) | AutoLayer loot method enforcement + changelog scroll fix |
+| [v1.6.0](#v1512--the-one-where-your-loot-method-stopped-resetting) | AutoLayer loot method enforcement + changelog scroll fix |
 | [v1.5.11](#v1511--the-one-where-elvui-profiles-came-home) | ElvUI profiles and import working again — load order fix |
 | [v1.5.10](#v1510--the-one-where-the-hop-actually-hopped) | AutoLayer hop tracking fixed — status updates, auto-leave, and layer detection work again |
 | [v1.5.9](#v159--the-one-where-autolayer-remembered-where-it-parked) | AutoLayer position saving + 6 addon compatibility updates |
@@ -38,11 +38,11 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 - **TarybleTexan** — reported the Pawn tooltip disappearing bug ([v1.5.3](#v153--the-one-where-autolayer-learned-to-listen))
 - **Der2werg** — reported ElvUI plugins and profiles being broken ([v1.5.5](#v155--the-one-where-elvui-remembered-its-plugins), [v1.5.6](#v156--the-one-where-the-plugins-actually-stayed))
 - **geggiot94470** — confirmed the ElvUI plugin registration crash ([v1.5.6](#v156--the-one-where-the-plugins-actually-stayed)), reported the ElvUI pet frame tag crash ([v1.5.7](#v157--the-one-where-the-pet-stopped-panicking))
-- **PapaSolDragon** — suggested the AutoLayer status frame position saving ([v1.5.9](#v159--the-one-where-autolayer-remembered-where-it-parked)), reported loot method resetting during layer hops ([v1.5.12](#v1512--the-one-where-your-loot-method-stopped-resetting))
+- **PapaSolDragon** — suggested the AutoLayer status frame position saving ([v1.5.9](#v159--the-one-where-autolayer-remembered-where-it-parked)), reported loot method resetting during layer hops ([v1.6.0](#v1512--the-one-where-your-loot-method-stopped-resetting))
 
 ---
 
-## v1.5.12 — "The One Where Your Loot Method Stopped Resetting"
+## v1.6.0 — "The One Where Your Loot Method Stopped Resetting"
 
 Hotfix incoming. No arena season reset required.
 
