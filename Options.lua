@@ -505,6 +505,71 @@ local function BuildAddonGroup(content, groupInfo, installed)
         by = by - 18
     end
 
+    -- Sonah-specific settings: visibility mode dropdown
+    if groupId == "Sonah" and installed then
+        by = by - 10
+        local sonahSep = bf:CreateTexture(nil, "BACKGROUND")
+        sonahSep:SetHeight(1)
+        sonahSep:SetPoint("TOPLEFT", 24, by)
+        sonahSep:SetPoint("RIGHT", bf, "RIGHT", -20, 0)
+        SetSolidColor(sonahSep, 0.4, 0.4, 0.4, 0.3)
+        by = by - 16
+
+        local vizLabel = bf:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+        vizLabel:SetPoint("TOPLEFT", 24, by)
+        vizLabel:SetText("Show Sonah in:")
+        by = by - 18
+
+        local VIZ_OPTIONS = {
+            { value = "everywhere",      label = "Everywhere (default)" },
+            { value = "dungeons_raids",  label = "Dungeons & Raids" },
+            { value = "raids",           label = "Raids Only" },
+            { value = "dungeons",        label = "Dungeons Only" },
+            { value = "instances",       label = "All Instances (incl. BGs & Arena)" },
+        }
+
+        local vizDropdown = CreateFrame("Frame", "PatchWerk_SonahVisibilityDropdown", bf, "UIDropDownMenuTemplate")
+        vizDropdown:SetPoint("TOPLEFT", 12, by + 2)
+
+        local function VizDropdown_OnClick(self)
+            ns:SetOption("Sonah_visibilityMode", self.value)
+            UIDropDownMenu_SetSelectedValue(vizDropdown, self.value)
+            for _, opt in ipairs(VIZ_OPTIONS) do
+                if opt.value == self.value then
+                    UIDropDownMenu_SetText(vizDropdown, opt.label)
+                    break
+                end
+            end
+            ShowReloadBanner()
+        end
+
+        UIDropDownMenu_SetWidth(vizDropdown, 200)
+        UIDropDownMenu_Initialize(vizDropdown, function(self, level)
+            for _, opt in ipairs(VIZ_OPTIONS) do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = opt.label
+                info.value = opt.value
+                info.func = VizDropdown_OnClick
+                info.checked = nil
+                UIDropDownMenu_AddButton(info, level)
+            end
+        end)
+        UIDropDownMenu_SetSelectedValue(vizDropdown, ns:GetOption("Sonah_visibilityMode") or "everywhere")
+
+        local selectedLabel = "Everywhere (default)"
+        local currentVal = ns:GetOption("Sonah_visibilityMode") or "everywhere"
+        for _, opt in ipairs(VIZ_OPTIONS) do
+            if opt.value == currentVal then selectedLabel = opt.label end
+        end
+        UIDropDownMenu_SetText(vizDropdown, selectedLabel)
+        by = by - 30
+
+        local vizHint = bf:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+        vizHint:SetPoint("TOPLEFT", 24, by)
+        vizHint:SetText("|cff555555Controls which zones Sonah's rotation helper appears in. Requires /reload.|r")
+        by = by - 18
+    end
+
     local bh = -by + 2
     bf:SetHeight(bh)
 
