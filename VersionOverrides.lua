@@ -18,6 +18,15 @@
 local _, ns = ...
 
 ns.versionOverrides = {
-    -- Populated by /patch-audit when addon updates are verified safe.
-    -- Synced back to Registry.lua targetVersion at release time.
+    ["Details"]      = "#Details.20260304.14718.170", -- verified 2026-03-09
+    ["Plater"]       = "Plater-v635-TBC",             -- verified 2026-03-09
+    ["Questie"]      = "11.23.0",                     -- verified 2026-03-09
+    ["TitanPanel"]   = "9.1.2",                       -- verified 2026-03-09
+    ["BigWigs"]      = "v407.9",                      -- verified 2026-03-09
+    ["MoveAny"]      = "1.8.258",                     -- verified 2026-03-09
+    ["LeatrixMaps"]  = "2.5.11",                      -- verified 2026-03-09
+    ["LeatrixPlus"]  = "2.5.11",                      -- verified 2026-03-09
+    ["ElvUI"]        = "v15.08",                      -- verified 2026-03-09
+    ["Sonah"]        = "1.9.5",                       -- verified 2026-03-09
+    ["Prat"]         = "3.9.93",                      -- verified 2026-03-09
 }

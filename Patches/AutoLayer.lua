@@ -2040,6 +2040,7 @@ end
 ------------------------------------------------------------------------
 ns.patches["AutoLayer_lootEnforce"] = function()
     if not ns:IsAddonLoaded("AutoLayer_Vanilla") then return end
+    if not GetLootMethod or not SetLootMethod then return end
 
     local lootFrame = CreateFrame("Frame")
     local pendingEnforce = false
