@@ -25,6 +25,26 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.7.1",
+        title = "Loot Enforce Fix",
+        subtitle = "The One Where Loot Rules Didn't Exist",
+        flavor = "Another patch cycle. No realm restarts, no 6-hour downtime. You're welcome.",
+        sections = {
+            {
+                header = "Bugs that got /kicked:",
+                entries = {
+                    "AutoLayer: PatchWerk's \"Enforce Loot Method\" patch was crashing on enable because TBC Classic Anniversary removed the loot method functions it relied on. Our patch now detects this and safely skips \226\128\148 AutoLayer itself works fine, just the loot enforcement feature won't kick in until Blizzard restores those functions (Thanks PapaSolDragon!)",
+                },
+            },
+            {
+                header = "Verified for latest updates:",
+                entries = {
+                    "Details, Plater, Questie, TitanPanel, BigWigs, MoveAny, Leatrix Maps, Leatrix Plus, ElvUI, Sonah, and Prat \226\128\148 all patches confirmed working with their latest versions",
+                },
+            },
+        },
+    },
+    {
         version = "1.7.0",
         title = "Sonah Support",
         subtitle = "The One Where Sonah Learned to Read the Room",

@@ -2,6 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
+| [v1.7.1](#v171--the-one-where-loot-rules-didnt-exist) | AutoLayer loot enforce crash fix + 11 addon compatibility updates |
 | [v1.7.0](#v170--the-one-where-sonah-learned-to-read-the-room) | Sonah rotation helper — zone-based visibility control |
 | [v1.6.0](#v1512--the-one-where-your-loot-method-stopped-resetting) | AutoLayer loot method enforcement + changelog scroll fix |
 | [v1.5.11](#v1511--the-one-where-elvui-profiles-came-home) | ElvUI profiles and import working again — load order fix |
@@ -39,7 +40,22 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 - **TarybleTexan** — reported the Pawn tooltip disappearing bug ([v1.5.3](#v153--the-one-where-autolayer-learned-to-listen))
 - **Der2werg** — reported ElvUI plugins and profiles being broken ([v1.5.5](#v155--the-one-where-elvui-remembered-its-plugins), [v1.5.6](#v156--the-one-where-the-plugins-actually-stayed))
 - **geggiot94470** — confirmed the ElvUI plugin registration crash ([v1.5.6](#v156--the-one-where-the-plugins-actually-stayed)), reported the ElvUI pet frame tag crash ([v1.5.7](#v157--the-one-where-the-pet-stopped-panicking))
-- **PapaSolDragon** — suggested the AutoLayer status frame position saving ([v1.5.9](#v159--the-one-where-autolayer-remembered-where-it-parked)), reported loot method resetting during layer hops ([v1.6.0](#v1512--the-one-where-your-loot-method-stopped-resetting))
+- **PapaSolDragon** — suggested the AutoLayer status frame position saving ([v1.5.9](#v159--the-one-where-autolayer-remembered-where-it-parked)), reported loot method resetting during layer hops ([v1.6.0](#v1512--the-one-where-your-loot-method-stopped-resetting)), reported the loot enforce crash ([v1.7.1](#v171--the-one-where-loot-rules-didnt-exist))
+
+---
+
+## v1.7.1 — "The One Where Loot Rules Didn't Exist"
+
+Another patch cycle. No realm restarts, no 6-hour downtime. You're welcome.
+
+**Bugs that got /kicked:**
+- AutoLayer: PatchWerk's "Enforce Loot Method" patch was crashing on enable because TBC Classic Anniversary removed the loot method functions it relied on. Our patch now detects this and safely skips — AutoLayer itself works fine, just the loot enforcement feature won't kick in until Blizzard restores those functions (Thanks **PapaSolDragon**!)
+
+**Verified for latest updates:**
+- Details, Plater, Questie, TitanPanel, BigWigs, MoveAny, Leatrix Maps, Leatrix Plus, ElvUI, Sonah, and Prat — all patches confirmed working with their latest versions
+
+---
+*100+ patches. 36 addons. Zero enrage timers.*
 
 ---
 
