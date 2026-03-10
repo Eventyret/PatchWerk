@@ -2,6 +2,7 @@
 
 | Version | Highlights |
 |---------|-----------|
+| [v1.7.2](#v172--the-one-where-loot-stopped-yelling) | AutoLayer loot enforce no longer spams errors on party changes |
 | [v1.7.1](#v171--the-one-where-loot-rules-didnt-exist) | AutoLayer loot enforce crash fix + 11 addon compatibility updates |
 | [v1.7.0](#v170--the-one-where-sonah-learned-to-read-the-room) | Sonah rotation helper — zone-based visibility control |
 | [v1.6.0](#v1512--the-one-where-your-loot-method-stopped-resetting) | AutoLayer loot method enforcement + changelog scroll fix |
@@ -40,7 +41,19 @@ Bug reports, testing, and feedback from these legends made PatchWerk better for 
 - **TarybleTexan** — reported the Pawn tooltip disappearing bug ([v1.5.3](#v153--the-one-where-autolayer-learned-to-listen))
 - **Der2werg** — reported ElvUI plugins and profiles being broken ([v1.5.5](#v155--the-one-where-elvui-remembered-its-plugins), [v1.5.6](#v156--the-one-where-the-plugins-actually-stayed))
 - **geggiot94470** — confirmed the ElvUI plugin registration crash ([v1.5.6](#v156--the-one-where-the-plugins-actually-stayed)), reported the ElvUI pet frame tag crash ([v1.5.7](#v157--the-one-where-the-pet-stopped-panicking))
-- **PapaSolDragon** — suggested the AutoLayer status frame position saving ([v1.5.9](#v159--the-one-where-autolayer-remembered-where-it-parked)), reported loot method resetting during layer hops ([v1.6.0](#v1512--the-one-where-your-loot-method-stopped-resetting)), reported the loot enforce crash ([v1.7.1](#v171--the-one-where-loot-rules-didnt-exist))
+- **PapaSolDragon** — suggested the AutoLayer status frame position saving ([v1.5.9](#v159--the-one-where-autolayer-remembered-where-it-parked)), reported loot method resetting during layer hops ([v1.6.0](#v1512--the-one-where-your-loot-method-stopped-resetting)), reported the loot enforce crash ([v1.7.1](#v171--the-one-where-loot-rules-didnt-exist)), reported loot enforce error spam on party changes ([v1.7.2](#v172--the-one-where-loot-stopped-yelling))
+
+---
+
+## v1.7.2 — "The One Where Loot Stopped Yelling"
+
+PatchWerk reporting in from the repair bot queue with another round of fixes.
+
+**Bugs that got /kicked:**
+- AutoLayer: The "Enforce Loot Method" feature was spamming errors every time someone joined or left your group. Changing loot settings now triggers a brief cooldown so the system doesn't trip over its own feet, and any hiccups during group transitions are handled quietly instead of flooding your screen (Thanks **PapaSolDragon**!)
+
+---
+*100+ patches. 36 addons. Your chat log can breathe again.*
 
 ---
 

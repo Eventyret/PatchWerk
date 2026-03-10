@@ -25,6 +25,20 @@ local SetSolidColor = ns.SetSolidColor
 
 ns.changelog = {
     {
+        version = "1.7.2",
+        title = "Loot Enforce Fix",
+        subtitle = "The One Where Loot Stopped Yelling",
+        flavor = "PatchWerk reporting in from the repair bot queue with another round of fixes.",
+        sections = {
+            {
+                header = "Bugs that got /kicked:",
+                entries = {
+                    "AutoLayer: The \"Enforce Loot Method\" feature was spamming errors every time someone joined or left your group. Changing loot settings now triggers a brief cooldown so the system doesn't trip over its own feet, and any hiccups during group transitions are handled quietly instead of flooding your screen (Thanks PapaSolDragon!)",
+                },
+            },
+        },
+    },
+    {
         version = "1.7.1",
         title = "Loot Enforce Fix",
         subtitle = "The One Where Loot Rules Didn't Exist",
