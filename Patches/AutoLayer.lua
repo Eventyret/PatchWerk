@@ -2044,6 +2044,7 @@ ns.patches["AutoLayer_lootEnforce"] = function()
 
     local lootFrame = CreateFrame("Frame")
     local pendingEnforce = false
+    local suppressUntil = 0
 
     local function EnforceLootMethod()
         pendingEnforce = false
@@ -2054,18 +2055,23 @@ ns.patches["AutoLayer_lootEnforce"] = function()
         if inInstance and (instanceType == "party" or instanceType == "raid") then return end
 
         local preferred = ns:GetOption("AutoLayer_preferredLootMethod") or "freeforall"
-        local current = GetLootMethod()
+        local ok, current = pcall(GetLootMethod)
+        if not ok then return end
         if current == preferred then return end
 
+        -- Suppress events briefly so our own SetLootMethod doesn't re-trigger
+        suppressUntil = GetTime() + 2
+
         if preferred == "master" then
-            SetLootMethod("master", UnitName("player"))
+            pcall(SetLootMethod, "master", UnitName("player"))
         else
-            SetLootMethod(preferred)
+            pcall(SetLootMethod, preferred)
         end
     end
 
     local function ScheduleEnforce()
         if pendingEnforce then return end
+        if GetTime() < suppressUntil then return end
         pendingEnforce = true
         C_Timer.After(0.5, EnforceLootMethod)
     end
